@@ -1,95 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Teppa Trading</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Teppa Trading</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0e0e0e;
-      color: white;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0e0e0e;
+  color: white;
+}
 
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 24px;
-      background: #111;
-    }
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #111;
+}
 
-    .logo span {
-      color: #00ffae;
-    }
+.logo span {
+  color: #00ffae;
+}
 
-    .nav-actions button {
-      margin-left: 10px;
-      padding: 8px 14px;
-      cursor: pointer;
-      border-radius: 4px;
-      border: none;
-    }
+button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
 
-    .outline {
-      background: transparent;
-      color: white;
-      border: 1px solid white;
-    }
+.outline {
+  background: transparent;
+  color: white;
+  border: 1px solid white;
+}
 
-    .hero {
-      text-align: center;
-      padding: 100px 20px;
-    }
+.hero {
+  text-align: center;
+  padding: 100px 20px;
+}
 
-    .cta {
-      background: #00ffae;
-      color: black;
-      font-weight: bold;
-      margin-top: 20px;
-      padding: 10px 20px;
-    }
+.cta {
+  background: #00ffae;
+  color: black;
+  font-weight: bold;
+}
 
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-    .modal-box {
-      background: #111;
-      padding: 24px;
-      width: 300px;
-      border-radius: 8px;
-      text-align: center;
-    }
+.modal-box {
+  background: #111;
+  padding: 24px;
+  width: 300px;
+  border-radius: 10px;
+  text-align: center;
+}
 
-    .modal-box input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-    }
+.modal-box input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+}
 
-    .hidden {
-      display: none;
-    }
-  </style>
+.hidden {
+  display: none;
+}
+</style>
 </head>
 
 <body>
 
 <header class="navbar">
   <div class="logo">TEPPA <span>TRADING</span></div>
-  <div class="nav-actions">
-    <button id="loginBtn" onclick="openAuth('login')">Login</button>
-    <button id="signupBtn" class="outline" onclick="openAuth('signup')">Sign Up</button>
-    <button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+  <div>
+    <button onclick="openAuth('login')" class="outline">Login</button>
+    <button onclick="openAuth('signup')" class="outline">Sign Up</button>
+    <button onclick="logout()" id="logoutBtn" class="hidden">Logout</button>
   </div>
 </header>
 
@@ -103,69 +98,62 @@
 <div id="authModal" class="modal hidden">
   <div class="modal-box">
     <h2 id="authTitle">Login</h2>
-    <input id="email" type="email" placeholder="Email" />
-    <input id="password" type="password" placeholder="Password" />
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
     <button onclick="handleAuth()">Submit</button>
-    <p style="cursor:pointer;margin-top:10px;" onclick="closeAuth()">Close</p>
+    <p style="cursor:pointer;color:#00ffae" onclick="closeAuth()">Close</p>
   </div>
 </div>
 
-<!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co'
-  const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+const supabaseUrl = "https://xuifnaypkeeukyjvlapi.supabase.co";
+const supabaseKey = "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob";
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  let mode = 'login'
+let mode = "login";
 
-  function openAuth(type) {
-    mode = type
-    document.getElementById('authTitle').innerText =
-      type === 'login' ? 'Login' : 'Sign Up'
-    document.getElementById('authModal').classList.remove('hidden')
+function openAuth(type) {
+  mode = type;
+  document.getElementById("authTitle").innerText =
+    type === "login" ? "Login" : "Sign Up";
+  document.getElementById("authModal").classList.remove("hidden");
+}
+
+function closeAuth() {
+  document.getElementById("authModal").classList.add("hidden");
+}
+
+async function handleAuth() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  let result;
+  if (mode === "login") {
+    result = await supabase.auth.signInWithPassword({ email, password });
+  } else {
+    result = await supabase.auth.signUp({ email, password });
   }
 
-  function closeAuth() {
-    document.getElementById('authModal').classList.add('hidden')
+  if (result.error) {
+    alert(result.error.message);
+    return;
   }
 
-  async function handleAuth() {
-    const email = document.getElementById('email').value
-    const password = document.getElementById('password').value
+  alert("Success!");
+  closeAuth();
+  updateUI(true);
+}
 
-    let result
-    if (mode === 'login') {
-      result = await supabase.auth.signInWithPassword({ email, password })
-    } else {
-      result = await supabase.auth.signUp({ email, password })
-    }
+async function logout() {
+  await supabase.auth.signOut();
+  updateUI(false);
+}
 
-    if (result.error) {
-      alert(result.error.message)
-      return
-    }
-
-    alert(mode === 'login' ? 'Logged in!' : 'Signup successful! Check email.')
-    closeAuth()
-    updateUI(true)
-  }
-
-  async function logout() {
-    await supabase.auth.signOut()
-    updateUI(false)
-  }
-
-  function updateUI(loggedIn) {
-    document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
-    document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
-    document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
-  }
-
-  supabase.auth.getSession().then(({ data }) => {
-    updateUI(!!data.session)
-  })
+function updateUI(loggedIn) {
+  document.getElementById("logoutBtn").classList.toggle("hidden", !loggedIn);
+}
 </script>
 
 </body>

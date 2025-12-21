@@ -1,66 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mentorship Application – Teppa Trading</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apply – Teppa Trading</title>
 
+<link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body {
-  background: #0e0e0e;
-  color: white;
-  font-family: Arial, sans-serif;
-  padding: 40px;
-}
-
-.container {
-  max-width: 500px;
-  margin: auto;
-  background: #111;
-  padding: 30px;
-  border-radius: 8px;
-}
-
-h1 {
-  text-align: center;
-}
-
-input, textarea, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-}
-
-button {
-  background: #00ffae;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-}
-
-.success {
-  color: #00ffae;
-  text-align: center;
-  margin-top: 20px;
-}
-</style>
 </head>
 
 <body>
 
-<div class="container">
+<header class="navbar">
+  <div class="logo">TEPPA <span>TRADING</span></div>
+</header>
+
+<section class="hero">
   <h1>Mentorship Application</h1>
 
   <input id="name" placeholder="Full Name">
-  <input id="email" type="email" placeholder="Email">
-  <textarea id="experience" placeholder="Trading experience (beginner / intermediate / advanced)"></textarea>
+  <input id="email" placeholder="Email">
+  <textarea id="experience" placeholder="Trading experience"></textarea>
 
-  <button onclick="submitApplication()">Submit Application</button>
+  <button id="submitApp" class="cta">Submit Application</button>
 
-  <p id="status" class="success"></p>
-</div>
+  <p id="result"></p>
+</section>
 
 <script>
 const supabase = window.supabase.createClient(
@@ -68,29 +33,27 @@ const supabase = window.supabase.createClient(
   'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 )
 
-async function submitApplication() {
+document.getElementById('submitApp').onclick = async () => {
   const name = document.getElementById('name').value.trim()
   const email = document.getElementById('email').value.trim()
   const experience = document.getElementById('experience').value.trim()
 
   if (!name || !email || !experience) {
-    alert('Please fill all fields')
+    alert('Fill out all fields')
     return
   }
 
   const { error } = await supabase
     .from('applications')
-    .insert([
-      { name, email, experience, status: 'pending' }
-    ])
+    .insert([{ name, email, experience }])
 
   if (error) {
     alert(error.message)
     return
   }
 
-  document.getElementById('status').innerText =
-    'Application received. Status: Pending review.'
+  document.getElementById('result').innerText =
+    'Application submitted. Status: Pending'
 }
 </script>
 

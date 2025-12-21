@@ -1,11 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Mentorship Application</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apply – Teppa Trading</title>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
+
+<header class="navbar">
+  <div class="logo">TEPPA <span>TRADING</span></div>
+  <a href="index.html" class="outline">Home</a>
+</header>
+
+<section class="hero">
   <h1>Mentorship Application</h1>
-  <p>Application form coming soon.</p>
+  <p>Fill out the form below</p>
+
+  <div class="modal-box" style="max-width:500px;margin:auto;">
+    <input id="name" placeholder="Full Name">
+    <input id="email" type="email" placeholder="Email">
+    <input id="experience" placeholder="Trading Experience (years)">
+    <textarea id="goals" placeholder="Your trading goals"></textarea>
+
+    <button id="applyBtn" class="cta">Submit Application</button>
+  </div>
+</section>
+
+<script src="apply.js"></script>
 </body>
 </html>

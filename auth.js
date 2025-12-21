@@ -1,25 +1,36 @@
-// Supabase setup
+// Supabase setup (ONLY ONCE)
 const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co'
 const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
 let mode = 'login'
 
-// Open modal
-window.openAuth = function(type) {
+// Elements
+const loginBtn = document.getElementById('loginBtn')
+const signupBtn = document.getElementById('signupBtn')
+const logoutBtn = document.getElementById('logoutBtn')
+const submitAuth = document.getElementById('submitAuth')
+const closeModal = document.getElementById('closeModal')
+
+// Button bindings
+loginBtn.onclick = () => openAuth('login')
+signupBtn.onclick = () => openAuth('signup')
+logoutBtn.onclick = logout
+submitAuth.onclick = handleAuth
+closeModal.onclick = closeAuth
+
+function openAuth(type) {
   mode = type
   document.getElementById('authTitle').innerText =
     type === 'login' ? 'Login' : 'Sign Up'
   document.getElementById('authModal').classList.remove('hidden')
 }
 
-// Close modal
-window.closeAuth = function() {
+function closeAuth() {
   document.getElementById('authModal').classList.add('hidden')
 }
 
-// Login / Signup
-window.handleAuth = async function () {
+async function handleAuth() {
   const email = document.getElementById('email').value
   const password = document.getElementById('password').value
 
@@ -40,25 +51,23 @@ window.handleAuth = async function () {
     return
   }
 
-  alert(mode === 'login' ? 'Logged in!' : 'Signup successful!')
+  alert(mode === 'login' ? 'Logged in!' : 'Check your email to confirm signup')
   closeAuth()
   updateUI(true)
 }
 
-// Logout
-window.logout = async function () {
+async function logout() {
   await supabase.auth.signOut()
   updateUI(false)
 }
 
-// Update buttons
 function updateUI(loggedIn) {
-  document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
-  document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
-  document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
+  loginBtn.classList.toggle('hidden', loggedIn)
+  signupBtn.classList.toggle('hidden', loggedIn)
+  logoutBtn.classList.toggle('hidden', !loggedIn)
 }
 
-// Check session on load
+// Session check on load
 supabase.auth.getSession().then(({ data }) => {
   updateUI(!!data.session)
 })

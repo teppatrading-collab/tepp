@@ -1,23 +1,16 @@
-// Supabase setup (ONLY ONCE)
+// Supabase setup (ONLY HERE)
 const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co'
 const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
 let mode = 'login'
 
-// Elements
-const loginBtn = document.getElementById('loginBtn')
-const signupBtn = document.getElementById('signupBtn')
-const logoutBtn = document.getElementById('logoutBtn')
-const submitAuth = document.getElementById('submitAuth')
-const closeModal = document.getElementById('closeModal')
-
 // Button bindings
-loginBtn.onclick = () => openAuth('login')
-signupBtn.onclick = () => openAuth('signup')
-logoutBtn.onclick = logout
-submitAuth.onclick = handleAuth
-closeModal.onclick = closeAuth
+document.getElementById('loginBtn').onclick = () => openAuth('login')
+document.getElementById('signupBtn').onclick = () => openAuth('signup')
+document.getElementById('logoutBtn').onclick = logout
+document.getElementById('submitAuth').onclick = handleAuth
+document.getElementById('closeModal').onclick = closeAuth
 
 function openAuth(type) {
   mode = type
@@ -62,12 +55,12 @@ async function logout() {
 }
 
 function updateUI(loggedIn) {
-  loginBtn.classList.toggle('hidden', loggedIn)
-  signupBtn.classList.toggle('hidden', loggedIn)
-  logoutBtn.classList.toggle('hidden', !loggedIn)
+  document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
+  document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
+  document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
 }
 
-// Session check on load
+// Session check
 supabase.auth.getSession().then(({ data }) => {
   updateUI(!!data.session)
 })

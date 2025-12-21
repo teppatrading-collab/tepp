@@ -8,52 +8,100 @@
 </head>
 <body>
 
-  <!-- NAVBAR -->
-  <header class="navbar">
-    <div class="logo">TEPPA <span>TRADING</span></div>
-
-    <div class="nav-actions">
-      <button onclick="openAuth('login')">Login</button>
-      <button onclick="openAuth('signup')" class="outline">Sign Up</button>
-      <button onclick="logout()" class="hidden" id="logoutBtn">Logout</button>
-    </div>
-  </header>
-
-  <!-- HERO -->
-  <section class="hero">
-    <h1>Master Forex & Indices</h1>
-    <p>Education • Discipline • Consistency</p>
-    <button class="cta">Apply For Mentorship</button>
-  </section>
-
-  <!-- AUTH MODAL -->
-  <div class="modal hidden" id="authModal">
-    <div class="modal-box">
-      <h2 id="authTitle">Login</h2>
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
-      <button onclick="handleAuth()">Submit</button>
-      <p onclick="closeAuth()">Close</p>
-    </div>
+<header class="navbar">
+  <div class="logo">TEPPA <span>TRADING</span></div>
+  <div class="nav-actions">
+    <button id="loginBtn">Login</button>
+    <button id="signupBtn" class="outline">Sign Up</button>
+    <button id="logoutBtn" class="hidden">Logout</button>
   </div>
+</header>
 
-  <!-- DASHBOARD PREVIEW -->
-  <section class="stats">
-    <div>
-      <h2>0</h2>
-      <p>Courses</p>
-    </div>
-    <div>
-      <h2>0</h2>
-      <p>Hours</p>
-    </div>
-    <div>
-      <h2>0</h2>
-      <p>Certificates</p>
-    </div>
-  </section>
+<section class="hero">
+  <h1>Master Forex & Indices</h1>
+  <p>Education • Discipline • Consistency</p>
+  <button class="cta">Apply For Mentorship</button>
+</section>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+<div class="modal hidden" id="authModal">
+  <div class="modal-box">
+    <h2 id="authTitle">Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="submitAuth">Submit</button>
+    <p id="closeAuth">Close</p>
+  </div>
+</div>
+
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  // ✅ DO NOT name this "supabase"
+  const supabaseClient = window.supabase.createClient(
+    'https://xuifnaypkeeukyjvlapi.supabase.co',
+    'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+  )
+
+  let mode = 'login'
+
+  const authModal = document.getElementById('authModal')
+  const authTitle = document.getElementById('authTitle')
+  const emailInput = document.getElementById('email')
+  const passwordInput = document.getElementById('password')
+
+  document.getElementById('loginBtn').onclick = () => openAuth('login')
+  document.getElementById('signupBtn').onclick = () => openAuth('signup')
+  document.getElementById('logoutBtn').onclick = logout
+  document.getElementById('submitAuth').onclick = handleAuth
+  document.getElementById('closeAuth').onclick = closeAuth
+
+  function openAuth(type) {
+    mode = type
+    authTitle.innerText = type === 'login' ? 'Login' : 'Sign Up'
+    authModal.classList.remove('hidden')
+  }
+
+  function closeAuth() {
+    authModal.classList.add('hidden')
+  }
+
+  async function handleAuth() {
+    const email = emailInput.value
+    const password = passwordInput.value
+
+    let res
+    if (mode === 'login') {
+      res = await supabaseClient.auth.signInWithPassword({ email, password })
+    } else {
+      res = await supabaseClient.auth.signUp({ email, password })
+    }
+
+    if (res.error) {
+      alert(res.error.message)
+      return
+    }
+
+    alert(mode === 'login' ? 'Logged in!' : 'Signup successful! Check email.')
+    closeAuth()
+    updateUI(true)
+  }
+
+  async function logout() {
+    await supabaseClient.auth.signOut()
+    updateUI(false)
+  }
+
+  function updateUI(loggedIn) {
+    document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
+    document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
+    document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
+  }
+
+  supabaseClient.auth.getSession().then(({ data }) => {
+    updateUI(!!data.session)
+  })
+</script>
+
 </body>
 </html>

@@ -88,6 +88,30 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('logoutBtn').onclick = logout
   document.getElementById('submitAuth').onclick = handleAuth
   document.getElementById('closeModal').onclick = closeAuth
+  // =======================
+// APPLY BUTTON LOGIC
+// =======================
+document.addEventListener('DOMContentLoaded', () => {
+  const applyBtn = document.getElementById('applyBtn')
+  if (!applyBtn) return
+
+  applyBtn.onclick = async () => {
+    const { data } = await supabaseClient.auth.getSession()
+
+    // Not logged in → force login
+    if (!data.session) {
+      openAuth('login')
+      return
+    }
+
+    // Logged in → proceed
+    alert('Application access granted!')
+    
+    // OPTIONAL: redirect to application page
+    // window.location.href = '/apply.html'
+  }
+})
+
 
   supabaseClient.auth.getSession().then(({ data }) => {
     updateUI(!!data.session)

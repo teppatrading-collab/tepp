@@ -41,7 +41,7 @@
 
     .hero {
       text-align: center;
-      padding: 80px 20px;
+      padding: 100px 20px;
     }
 
     .cta {
@@ -49,6 +49,7 @@
       color: black;
       font-weight: bold;
       margin-top: 20px;
+      padding: 10px 20px;
     }
 
     .modal {
@@ -76,19 +77,19 @@
     }
 
     .hidden {
-      display: none !important;
+      display: none;
     }
   </style>
 </head>
+
 <body>
 
 <header class="navbar">
   <div class="logo">TEPPA <span>TRADING</span></div>
-
   <div class="nav-actions">
-    <button onclick="openAuth('login')">Login</button>
-    <button onclick="openAuth('signup')" class="outline">Sign Up</button>
-    <button onclick="logout()" id="logoutBtn" class="hidden">Logout</button>
+    <button id="loginBtn" onclick="openAuth('login')">Login</button>
+    <button id="signupBtn" class="outline" onclick="openAuth('signup')">Sign Up</button>
+    <button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
   </div>
 </header>
 
@@ -99,73 +100,72 @@
 </section>
 
 <!-- AUTH MODAL -->
-<div class="modal hidden" id="authModal">
+<div id="authModal" class="modal hidden">
   <div class="modal-box">
     <h2 id="authTitle">Login</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
     <button onclick="handleAuth()">Submit</button>
-    <p style="cursor:pointer;" onclick="closeAuth()">Close</p>
+    <p style="cursor:pointer;margin-top:10px;" onclick="closeAuth()">Close</p>
   </div>
 </div>
 
-<!-- SUPABASE -->
+<!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  const supabase = window.supabase.createClient(
-    "https://xuifnaypkeeukyjvlapi.supabase.co",
-    "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob"
-  );
+  const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co'
+  const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
-  let mode = "login";
+  let mode = 'login'
 
   function openAuth(type) {
-    mode = type;
-    document.getElementById("authTitle").innerText =
-      type === "login" ? "Login" : "Sign Up";
-    document.getElementById("authModal").classList.remove("hidden");
+    mode = type
+    document.getElementById('authTitle').innerText =
+      type === 'login' ? 'Login' : 'Sign Up'
+    document.getElementById('authModal').classList.remove('hidden')
   }
 
   function closeAuth() {
-    document.getElementById("authModal").classList.add("hidden");
+    document.getElementById('authModal').classList.add('hidden')
   }
 
   async function handleAuth() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    const email = document.getElementById('email').value
+    const password = document.getElementById('password').value
 
-    let result;
-    if (mode === "login") {
-      result = await supabase.auth.signInWithPassword({ email, password });
+    let result
+    if (mode === 'login') {
+      result = await supabase.auth.signInWithPassword({ email, password })
     } else {
-      result = await supabase.auth.signUp({ email, password });
+      result = await supabase.auth.signUp({ email, password })
     }
 
     if (result.error) {
-      alert(result.error.message);
-      return;
+      alert(result.error.message)
+      return
     }
 
-    alert("Success!");
-    closeAuth();
-    updateUI(true);
+    alert(mode === 'login' ? 'Logged in!' : 'Signup successful! Check email.')
+    closeAuth()
+    updateUI(true)
   }
 
   async function logout() {
-    await supabase.auth.signOut();
-    updateUI(false);
+    await supabase.auth.signOut()
+    updateUI(false)
   }
 
   function updateUI(loggedIn) {
-    document.querySelector(".nav-actions button:nth-child(1)").classList.toggle("hidden", loggedIn);
-    document.querySelector(".nav-actions button:nth-child(2)").classList.toggle("hidden", loggedIn);
-    document.getElementById("logoutBtn").classList.toggle("hidden", !loggedIn);
+    document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
+    document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
+    document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
   }
 
   supabase.auth.getSession().then(({ data }) => {
-    updateUI(!!data.session);
-  });
+    updateUI(!!data.session)
+  })
 </script>
 
 </body>

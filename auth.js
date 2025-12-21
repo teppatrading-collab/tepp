@@ -1,11 +1,15 @@
-// Supabase setup (ONLY HERE)
-const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co'
-const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+// 🔒 PREVENT DOUBLE SUPABASE INIT
+if (!window._supabaseClient) {
+  window._supabaseClient = window.supabase.createClient(
+    'https://xuifnaypkeeukyjvlapi.supabase.co',
+    'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+  )
+}
 
+const supabase = window._supabaseClient
 let mode = 'login'
 
-// Button bindings
+// BUTTON EVENTS
 document.getElementById('loginBtn').onclick = () => openAuth('login')
 document.getElementById('signupBtn').onclick = () => openAuth('signup')
 document.getElementById('logoutBtn').onclick = logout
@@ -32,12 +36,10 @@ async function handleAuth() {
     return
   }
 
-  let result
-  if (mode === 'login') {
-    result = await supabase.auth.signInWithPassword({ email, password })
-  } else {
-    result = await supabase.auth.signUp({ email, password })
-  }
+  const result =
+    mode === 'login'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password })
 
   if (result.error) {
     alert(result.error.message)
@@ -60,7 +62,7 @@ function updateUI(loggedIn) {
   document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
 }
 
-// Session check
+// SESSION CHECK
 supabase.auth.getSession().then(({ data }) => {
   updateUI(!!data.session)
 })

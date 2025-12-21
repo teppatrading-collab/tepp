@@ -1,10 +1,11 @@
 // =======================
-// SUPABASE SETUP (ONLY ONCE)
+// SUPABASE SETUP (DO NOT REDECLARE supabase)
 // =======================
 const SUPABASE_URL = 'https://xuifnaypkeeukyjvlapi.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 
-const supabaseClient = supabase.createClient(
+// IMPORTANT: use window.supabase (from CDN)
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 )
@@ -38,6 +39,7 @@ async function handleAuth() {
   }
 
   let result
+
   if (mode === 'login') {
     result = await supabaseClient.auth.signInWithPassword({
       email,
@@ -78,17 +80,16 @@ function updateUI(loggedIn) {
 }
 
 // =======================
-// EVENT BINDINGS (CRITICAL)
+// EVENT BINDINGS (RUN AFTER DOM LOAD)
 // =======================
-document.getElementById('loginBtn').onclick = () => openAuth('login')
-document.getElementById('signupBtn').onclick = () => openAuth('signup')
-document.getElementById('logoutBtn').onclick = logout
-document.getElementById('submitAuth').onclick = handleAuth
-document.getElementById('closeModal').onclick = closeAuth
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginBtn').onclick = () => openAuth('login')
+  document.getElementById('signupBtn').onclick = () => openAuth('signup')
+  document.getElementById('logoutBtn').onclick = logout
+  document.getElementById('submitAuth').onclick = handleAuth
+  document.getElementById('closeModal').onclick = closeAuth
 
-// =======================
-// SESSION CHECK
-// =======================
-supabaseClient.auth.getSession().then(({ data }) => {
-  updateUI(!!data.session)
+  supabaseClient.auth.getSession().then(({ data }) => {
+    updateUI(!!data.session)
+  })
 })

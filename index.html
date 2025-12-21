@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- Supabase CDN (ONLY the library, no client here) -->
+<!-- Supabase v2 CDN (ONLY ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -39,8 +39,8 @@
   </div>
 </div>
 
-<!-- AUTH LOGIC (ONLY PLACE WITH SUPABASE CLIENT) -->
-<script src="auth.js"></script>
+<!-- AUTH SCRIPT (LOAD LAST) -->
+<script src="auth.js" defer></script>
 
 </body>
 </html>

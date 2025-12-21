@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teppa Trading</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="logo">TEPPA <span>TRADING</span></div>
+
+    <div class="nav-actions">
+      <button onclick="openAuth('login')">Login</button>
+      <button onclick="openAuth('signup')" class="outline">Sign Up</button>
+      <button onclick="logout()" class="hidden" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Master Forex & Indices</h1>
+    <p>Education • Discipline • Consistency</p>
+    <button class="cta">Apply For Mentorship</button>
+  </section>
+
+  <!-- AUTH MODAL -->
+  <div class="modal hidden" id="authModal">
+    <div class="modal-box">
+      <h2 id="authTitle">Login</h2>
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <button onclick="handleAuth()">Submit</button>
+      <p onclick="closeAuth()">Close</p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PREVIEW -->
+  <section class="stats">
+    <div>
+      <h2>0</h2>
+      <p>Courses</p>
+    </div>
+    <div>
+      <h2>0</h2>
+      <p>Hours</p>
+    </div>
+    <div>
+      <h2>0</h2>
+      <p>Certificates</p>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: radial-gradient(circle, #0a0a0a, #000);
+  color: white;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 30px;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: bold;
+  color: #b400ff;
+}
+
+.logo span {
+  color: #00eaff;
+}
+
+.nav-actions button {
+  margin-left: 10px;
+  padding: 10px 16px;
+  background: #b400ff;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.nav-actions .outline {
+  background: transparent;
+  border: 1px solid #00eaff;
+}
+
+.hero {
+  text-align: center;
+  padding: 120px 20px;
+}
+
+.hero h1 {
+  font-size: 48px;
+  background: linear-gradient(90deg, #00eaff, #b400ff, #00ff6a);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.hero p {
+  margin: 20px 0;
+  color: #aaa;
+}
+
+.cta {
+  padding: 15px 30px;
+  background: linear-gradient(90deg, #00eaff, #b400ff);
+  border: none;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px;
+}
+
+.stats div {
+  text-align: center;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: #111;
+  padding: 30px;
+  width: 300px;
+  border-radius: 10px;
+}
+
+.modal-box input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.hidden {
+  display: none;
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+  .hero h1 {
+    font-size: 32px;
+  }
+  .stats {
+    flex-direction: column;
+  }
+}

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Apply – Teppa Trading</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Apply – Teppa Trading</title>
 
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -18,43 +20,52 @@
 <section class="hero">
   <h1>Mentorship Application</h1>
 
-  <input id="name" placeholder="Full Name">
-  <input id="email" placeholder="Email">
-  <textarea id="experience" placeholder="Trading experience"></textarea>
+  <form id="applicationForm">
+    <input id="name" placeholder="Full Name" required />
+    <input id="email" type="email" placeholder="Email" required />
+    <textarea id="experience" placeholder="Trading experience" required></textarea>
 
-  <button id="submitApp" class="cta">Submit Application</button>
+    <button type="submit" class="cta">Submit Application</button>
+  </form>
 
   <p id="result"></p>
 </section>
 
 <script>
-const supabase = window.supabase.createClient(
-  'https://xuifnaypkeeukyjvlapi.supabase.co',
-  'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
-)
+document.addEventListener('DOMContentLoaded', () => {
 
-document.getElementById('submitApp').onclick = async () => {
-  const name = document.getElementById('name').value.trim()
-  const email = document.getElementById('email').value.trim()
-  const experience = document.getElementById('experience').value.trim()
+  const supabase = window.supabase.createClient(
+    'https://xuifnaypkeeukyjvlapi.supabase.co',
+    'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+  )
 
-  if (!name || !email || !experience) {
-    alert('Fill out all fields')
-    return
-  }
+  const form = document.getElementById('applicationForm')
+  const result = document.getElementById('result')
 
-  const { error } = await supabase
-    .from('applications')
-    .insert([{ name, email, experience }])
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
 
-  if (error) {
-    alert(error.message)
-    return
-  }
+    const name = document.getElementById('name').value.trim()
+    const email = document.getElementById('email').value.trim()
+    const experience = document.getElementById('experience').value.trim()
 
-  document.getElementById('result').innerText =
-    'Application submitted. Status: Pending'
-}
+    result.innerText = 'Submitting...'
+
+    const { error } = await supabase
+      .from('applications')
+      .insert([{ name, email, experience }])
+
+    if (error) {
+      result.innerText = 'Error: ' + error.message
+      result.style.color = 'red'
+      return
+    }
+
+    result.innerText = '✅ Application submitted. Status: Pending'
+    result.style.color = '#00ffae'
+    form.reset()
+  })
+})
 </script>
 
 </body>

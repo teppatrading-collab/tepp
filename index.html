@@ -4,16 +4,95 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Teppa Trading</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0e0e0e;
+      color: white;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: #111;
+    }
+
+    .logo span {
+      color: #00ffae;
+    }
+
+    button {
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: 4px;
+      border: none;
+    }
+
+    .outline {
+      background: transparent;
+      color: white;
+      border: 1px solid white;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .cta {
+      background: #00ffae;
+      color: black;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-box {
+      background: #111;
+      padding: 24px;
+      width: 300px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .modal-box input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
 
 <header class="navbar">
   <div class="logo">TEPPA <span>TRADING</span></div>
+<<<<<<< HEAD
   <div class="nav-actions">
     <button id="loginBtn">Login</button>
     <button id="signupBtn" class="outline">Sign Up</button>
     <button id="logoutBtn" class="hidden">Logout</button>
+=======
+  <div>
+    <button id="loginBtn" onclick="openAuth('login')">Login</button>
+    <button id="signupBtn" onclick="openAuth('signup')" class="outline">Sign Up</button>
+    <button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+>>>>>>> c81fed55475c8cf2ebabb3d6bef10aadfb355aef
   </div>
 </header>
 
@@ -23,6 +102,7 @@
   <button class="cta">Apply For Mentorship</button>
 </section>
 
+<<<<<<< HEAD
 <div class="modal hidden" id="authModal">
   <div class="modal-box">
     <h2 id="authTitle">Login</h2>
@@ -83,12 +163,71 @@
     }
 
     alert(mode === 'login' ? 'Logged in!' : 'Signup successful! Check email.')
+=======
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="authTitle">Login</h2>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="handleAuth()">Submit</button>
+    <p style="cursor:pointer;margin-top:10px" onclick="closeAuth()">Close</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co'
+  const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+
+  let mode = 'login'
+
+  function openAuth(type) {
+    mode = type
+    document.getElementById('authTitle').innerText =
+      type === 'login' ? 'Login' : 'Sign Up'
+    document.getElementById('authModal').classList.remove('hidden')
+  }
+
+  function closeAuth() {
+    document.getElementById('authModal').classList.add('hidden')
+  }
+
+  async function handleAuth() {
+    const email = document.getElementById('email').value
+    const password = document.getElementById('password').value
+
+    if (!email || !password) {
+      alert('Enter email and password')
+      return
+    }
+
+    let result
+    if (mode === 'login') {
+      result = await supabase.auth.signInWithPassword({ email, password })
+    } else {
+      result = await supabase.auth.signUp({ email, password })
+    }
+
+    if (result.error) {
+      alert(result.error.message)
+      return
+    }
+
+    alert(mode === 'login' ? 'Logged in!' : 'Signup successful — check email')
+>>>>>>> c81fed55475c8cf2ebabb3d6bef10aadfb355aef
     closeAuth()
     updateUI(true)
   }
 
   async function logout() {
+<<<<<<< HEAD
     await supabaseClient.auth.signOut()
+=======
+    await supabase.auth.signOut()
+>>>>>>> c81fed55475c8cf2ebabb3d6bef10aadfb355aef
     updateUI(false)
   }
 
@@ -98,7 +237,11 @@
     document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
   }
 
+<<<<<<< HEAD
   supabaseClient.auth.getSession().then(({ data }) => {
+=======
+  supabase.auth.getSession().then(({ data }) => {
+>>>>>>> c81fed55475c8cf2ebabb3d6bef10aadfb355aef
     updateUI(!!data.session)
   })
 </script>

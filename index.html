@@ -16,6 +16,7 @@
     .navbar {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       padding: 16px 24px;
       background: #111;
     }
@@ -24,7 +25,8 @@
       color: #00ffae;
     }
 
-    button {
+    .nav-actions button {
+      margin-left: 10px;
       padding: 8px 14px;
       cursor: pointer;
       border-radius: 4px;
@@ -83,6 +85,10 @@
 <header class="navbar">
   <div class="logo">TEPPA <span>TRADING</span></div>
 
+  <div class="nav-actions">
+    <button onclick="openAuth('login')">Login</button>
+    <button onclick="openAuth('signup')" class="outline">Sign Up</button>
+    <button onclick="logout()" id="logoutBtn" class="hidden">Logout</button>
   </div>
 </header>
 
@@ -92,3 +98,75 @@
   <button class="cta">Apply For Mentorship</button>
 </section>
 
+<!-- AUTH MODAL -->
+<div class="modal hidden" id="authModal">
+  <div class="modal-box">
+    <h2 id="authTitle">Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="handleAuth()">Submit</button>
+    <p style="cursor:pointer;" onclick="closeAuth()">Close</p>
+  </div>
+</div>
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  const supabase = window.supabase.createClient(
+    "https://xuifnaypkeeukyjvlapi.supabase.co",
+    "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob"
+  );
+
+  let mode = "login";
+
+  function openAuth(type) {
+    mode = type;
+    document.getElementById("authTitle").innerText =
+      type === "login" ? "Login" : "Sign Up";
+    document.getElementById("authModal").classList.remove("hidden");
+  }
+
+  function closeAuth() {
+    document.getElementById("authModal").classList.add("hidden");
+  }
+
+  async function handleAuth() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    let result;
+    if (mode === "login") {
+      result = await supabase.auth.signInWithPassword({ email, password });
+    } else {
+      result = await supabase.auth.signUp({ email, password });
+    }
+
+    if (result.error) {
+      alert(result.error.message);
+      return;
+    }
+
+    alert("Success!");
+    closeAuth();
+    updateUI(true);
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    updateUI(false);
+  }
+
+  function updateUI(loggedIn) {
+    document.querySelector(".nav-actions button:nth-child(1)").classList.toggle("hidden", loggedIn);
+    document.querySelector(".nav-actions button:nth-child(2)").classList.toggle("hidden", loggedIn);
+    document.getElementById("logoutBtn").classList.toggle("hidden", !loggedIn);
+  }
+
+  supabase.auth.getSession().then(({ data }) => {
+    updateUI(!!data.session);
+  });
+</script>
+
+</body>
+</html>

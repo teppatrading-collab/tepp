@@ -54,4 +54,69 @@
   </section>
 
   <!-- SUPABASE -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    /* 🔐 SUPABASE CONFIG */
+    const supabase = window.supabase.createClient(
+      'https://xuifnaypkeeukyjvlapi.supabase.co',
+      'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+    )
+
+    let authMode = 'login'
+
+    function openAuth(mode) {
+      authMode = mode
+      document.getElementById('authTitle').innerText =
+        mode === 'login' ? 'Login' : 'Sign Up'
+      document.getElementById('authModal').classList.remove('hidden')
+    }
+
+    function closeAuth() {
+      document.getElementById('authModal').classList.add('hidden')
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('email').value
+      const password = document.getElementById('password').value
+
+      let result
+
+      if (authMode === 'login') {
+        result = await supabase.auth.signInWithPassword({ email, password })
+      } else {
+        result = await supabase.auth.signUp({ email, password })
+      }
+
+      if (result.error) {
+        alert(result.error.message)
+        return
+      }
+
+      alert(authMode === 'login'
+        ? 'Logged in successfully'
+        : 'Signup successful — check your email')
+
+      closeAuth()
+      updateUI()
+    }
+
+    async function logout() {
+      await supabase.auth.signOut()
+      updateUI()
+      alert('Logged out')
+    }
+
+    async function updateUI() {
+      const { data } = await supabase.auth.getUser()
+
+      document.getElementById('loginBtn').classList.toggle('hidden', !!data.user)
+      document.getElementById('signupBtn').classList.toggle('hidden', !!data.user)
+      document.getElementById('logoutBtn').classList.toggle('hidden', !data.user)
+    }
+
+    updateUI()
+  </script>
+
+</body>
+</html>

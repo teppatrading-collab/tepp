@@ -1,37 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Apply – Teppa Trading</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mentorship Application – Teppa Trading</title>
 
-<link rel="stylesheet" href="style.css">
-
-<!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body {
+  background: #0e0e0e;
+  color: white;
+  font-family: Arial, sans-serif;
+  padding: 40px;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  background: #111;
+  padding: 30px;
+  border-radius: 8px;
+}
+
+h1 {
+  text-align: center;
+}
+
+input, textarea, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+button {
+  background: #00ffae;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+}
+
+.success {
+  color: #00ffae;
+  text-align: center;
+  margin-top: 20px;
+}
+</style>
 </head>
 
 <body>
 
-<header class="navbar">
-  <div class="logo">TEPPA <span>TRADING</span></div>
-  <a href="index.html" class="outline">Home</a>
-</header>
-
-<section class="hero">
+<div class="container">
   <h1>Mentorship Application</h1>
-  <p>Fill out the form below</p>
 
-  <div class="modal-box" style="max-width:500px;margin:auto;">
-    <input id="name" placeholder="Full Name">
-    <input id="email" type="email" placeholder="Email">
-    <input id="experience" placeholder="Trading Experience (years)">
-    <textarea id="goals" placeholder="Your trading goals"></textarea>
+  <input id="name" placeholder="Full Name">
+  <input id="email" type="email" placeholder="Email">
+  <textarea id="experience" placeholder="Trading experience (beginner / intermediate / advanced)"></textarea>
 
-    <button id="applyBtn" class="cta">Submit Application</button>
-  </div>
-</section>
+  <button onclick="submitApplication()">Submit Application</button>
 
-<script src="apply.js"></script>
+  <p id="status" class="success"></p>
+</div>
+
+<script>
+const supabase = window.supabase.createClient(
+  'https://xuifnaypkeeukyjvlapi.supabase.co',
+  'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+)
+
+async function submitApplication() {
+  const name = document.getElementById('name').value.trim()
+  const email = document.getElementById('email').value.trim()
+  const experience = document.getElementById('experience').value.trim()
+
+  if (!name || !email || !experience) {
+    alert('Please fill all fields')
+    return
+  }
+
+  const { error } = await supabase
+    .from('applications')
+    .insert([
+      { name, email, experience, status: 'pending' }
+    ])
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  document.getElementById('status').innerText =
+    'Application received. Status: Pending review.'
+}
+</script>
+
 </body>
 </html>

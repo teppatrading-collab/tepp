@@ -117,3 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUI(!!data.session)
   })
 })
+document.addEventListener('DOMContentLoaded', () => {
+  const applyBtn = document.getElementById('applyBtn')
+  if (applyBtn) {
+    applyBtn.onclick = () => {
+      window.location.href = 'apply.html'
+    }
+  }
+})

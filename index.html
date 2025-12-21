@@ -1,91 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Teppa Trading</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Teppa Trading</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0e0e0e;
-      color: white;
-    }
+<link rel="stylesheet" href="style.css">
 
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      padding: 16px 24px;
-      background: #111;
-    }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    .logo span {
-      color: #00ffae;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0e0e0e;
+  color: white;
+}
 
-    .nav-actions button {
-      margin-left: 8px;
-      padding: 8px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      background: transparent;
-      color: white;
-      border: 1px solid white;
-    }
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #111;
+}
 
-    .hero {
-      text-align: center;
-      padding: 80px 20px;
-    }
+.logo span { color: #00ffae; }
 
-    .cta {
-      background: #00ffae;
-      color: black;
-      font-weight: bold;
-      margin-top: 20px;
-      padding: 10px 18px;
-      border: none;
-      cursor: pointer;
-    }
+button {
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
 
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
+.outline {
+  background: transparent;
+  color: white;
+  border: 1px solid white;
+}
 
-    .modal-box {
-      background: #111;
-      padding: 24px;
-      width: 300px;
-      border-radius: 8px;
-      text-align: center;
-    }
+.hero {
+  text-align: center;
+  padding: 100px 20px;
+}
 
-    .modal-box input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-    }
+.cta {
+  background: #00ffae;
+  font-weight: bold;
+}
 
-    .hidden {
-      display: none;
-    }
-  </style>
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: #111;
+  padding: 24px;
+  width: 300px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.modal-box input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.hidden { display: none; }
+</style>
 </head>
+
 <body>
 
 <header class="navbar">
   <div class="logo">TEPPA <span>TRADING</span></div>
-  <div class="nav-actions">
-    <button onclick="openAuth('login')">Login</button>
-    <button onclick="openAuth('signup')">Sign Up</button>
-    <button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+  <div>
+    <button onclick="openAuth('login')" class="outline">Login</button>
+    <button onclick="openAuth('signup')" class="outline">Sign Up</button>
   </div>
 </header>
 
@@ -95,60 +92,55 @@
   <button class="cta">Apply For Mentorship</button>
 </section>
 
+<!-- AUTH MODAL -->
 <div id="authModal" class="modal hidden">
   <div class="modal-box">
     <h2 id="authTitle">Login</h2>
-    <input id="email" type="email" placeholder="Email" />
-    <input id="password" type="password" placeholder="Password" />
-    <button class="cta" onclick="handleAuth()">Submit</button>
-    <p style="cursor:pointer;color:#00ffae;" onclick="closeAuth()">Close</p>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="handleAuth()" class="cta">Submit</button>
+    <p onclick="closeAuth()" style="cursor:pointer;color:#00ffae;">Close</p>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-  const supabase = supabase.createClient(
-    'https://xuifnaypkeeukyjvlapi.supabase.co',
-    'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
-  );
+/* ✅ SUPABASE INIT — ONLY ONCE */
+const supabaseUrl = "https://xuifnaypkeeukyjvlapi.supabase.co";
+const supabaseKey = "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob";
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  let mode = 'login';
+let mode = "login";
 
-  function openAuth(type) {
-    mode = type;
-    document.getElementById('authTitle').innerText =
-      type === 'login' ? 'Login' : 'Sign Up';
-    document.getElementById('authModal').classList.remove('hidden');
+function openAuth(type) {
+  mode = type;
+  document.getElementById("authTitle").innerText =
+    type === "login" ? "Login" : "Sign Up";
+  document.getElementById("authModal").classList.remove("hidden");
+}
+
+function closeAuth() {
+  document.getElementById("authModal").classList.add("hidden");
+}
+
+async function handleAuth() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  let result;
+  if (mode === "login") {
+    result = await supabase.auth.signInWithPassword({ email, password });
+  } else {
+    result = await supabase.auth.signUp({ email, password });
   }
 
-  function closeAuth() {
-    document.getElementById('authModal').classList.add('hidden');
+  if (result.error) {
+    alert(result.error.message);
+    return;
   }
 
-  async function handleAuth() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    const result =
-      mode === 'login'
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
-
-    if (result.error) {
-      alert(result.error.message);
-      return;
-    }
-
-    alert('Success!');
-    closeAuth();
-    document.getElementById('logoutBtn').classList.remove('hidden');
-  }
-
-  async function logout() {
-    await supabase.auth.signOut();
-    location.reload();
-  }
+  alert(mode === "login" ? "Logged in!" : "Check your email to confirm signup.");
+  closeAuth();
+}
 </script>
 
 </body>

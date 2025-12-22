@@ -10,6 +10,26 @@
 <!-- Supabase CDN (LOAD ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabase = window.supabase.createClient(
+  "https://xuifnaypkeeukyjlapi.supabase.co",
+  "sb_publishable_44vXTyFg_8x20hqa8KGuA_0V9HX2ob"
+);
+
+(async () => {
+  const { data } = await supabase.auth.getSession();
+
+  const hash = window.location.hash;
+
+  // 👇 THIS IS THE CRITICAL FIX
+  if (hash.includes("type=recovery")) {
+    window.location.href = "/reset-password.html";
+    return;
+  }
+
+})();
+</script>
 
 <body>
 
@@ -162,3 +182,4 @@ supabaseClient.auth.getSession().then(({ data }) => {
 
 </body>
 </html>
+

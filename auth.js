@@ -1,10 +1,10 @@
 // =======================
-// SUPABASE SETUP
+// SUPABASE CLIENT (DECLARE ONCE)
 // =======================
 const SUPABASE_URL = 'https://xuifnaypkeeukyjvlapi.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 )
@@ -39,9 +39,9 @@ async function handleAuth() {
 
   let result
   if (mode === 'login') {
-    result = await supabase.auth.signInWithPassword({ email, password })
+    result = await supabaseClient.auth.signInWithPassword({ email, password })
   } else {
-    result = await supabase.auth.signUp({ email, password })
+    result = await supabaseClient.auth.signUp({ email, password })
   }
 
   if (result.error) {
@@ -54,15 +54,6 @@ async function handleAuth() {
 }
 
 // =======================
-// GOOGLE SIGN IN
-// =======================
-async function googleLogin() {
-  await supabase.auth.signInWithOAuth({
-    provider: 'google'
-  })
-}
-
-// =======================
 // FORGOT PASSWORD
 // =======================
 async function forgotPassword() {
@@ -72,10 +63,7 @@ async function forgotPassword() {
     return
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  })
-
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email)
   if (error) {
     alert(error.message)
     return
@@ -88,7 +76,7 @@ async function forgotPassword() {
 // LOGOUT
 // =======================
 async function logout() {
-  await supabase.auth.signOut()
+  await supabaseClient.auth.signOut()
   updateUI(false)
 }
 
@@ -110,14 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('logoutBtn').onclick = logout
   document.getElementById('submitAuth').onclick = handleAuth
   document.getElementById('closeModal').onclick = closeAuth
-  document.getElementById('googleBtn').onclick = googleLogin
   document.getElementById('forgotPassword').onclick = forgotPassword
 
-  document.getElementById('applyBtn').onclick = () => {
-    window.location.href = 'apply.html'
-  }
-
-  supabase.auth.getSession().then(({ data }) => {
+  supabaseClient.auth.getSession().then(({ data }) => {
     updateUI(!!data.session)
   })
 })

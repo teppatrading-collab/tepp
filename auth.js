@@ -1,11 +1,10 @@
 // =======================
-// SUPABASE SETUP (DO NOT REDECLARE supabase)
+// SUPABASE SETUP
 // =======================
 const SUPABASE_URL = 'https://xuifnaypkeeukyjvlapi.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 
-// IMPORTANT: use window.supabase (from CDN)
-const supabaseClient = window.supabase.createClient(
+const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 )
@@ -39,17 +38,10 @@ async function handleAuth() {
   }
 
   let result
-
   if (mode === 'login') {
-    result = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    })
+    result = await supabase.auth.signInWithPassword({ email, password })
   } else {
-    result = await supabaseClient.auth.signUp({
-      email,
-      password
-    })
+    result = await supabase.auth.signUp({ email, password })
   }
 
   if (result.error) {
@@ -57,16 +49,46 @@ async function handleAuth() {
     return
   }
 
-  alert(mode === 'login' ? 'Logged in!' : 'Signup successful!')
   closeAuth()
   updateUI(true)
+}
+
+// =======================
+// GOOGLE SIGN IN
+// =======================
+async function googleLogin() {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google'
+  })
+}
+
+// =======================
+// FORGOT PASSWORD
+// =======================
+async function forgotPassword() {
+  const email = document.getElementById('email').value.trim()
+  if (!email) {
+    alert('Enter your email first')
+    return
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  })
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  alert('Password reset email sent')
 }
 
 // =======================
 // LOGOUT
 // =======================
 async function logout() {
-  await supabaseClient.auth.signOut()
+  await supabase.auth.signOut()
   updateUI(false)
 }
 
@@ -80,7 +102,7 @@ function updateUI(loggedIn) {
 }
 
 // =======================
-// EVENT BINDINGS (RUN AFTER DOM LOAD)
+// EVENT BINDINGS
 // =======================
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick = () => openAuth('login')
@@ -88,40 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('logoutBtn').onclick = logout
   document.getElementById('submitAuth').onclick = handleAuth
   document.getElementById('closeModal').onclick = closeAuth
-  // =======================
-// APPLY BUTTON LOGIC
-// =======================
-document.addEventListener('DOMContentLoaded', () => {
-  const applyBtn = document.getElementById('applyBtn')
-  if (!applyBtn) return
+  document.getElementById('googleBtn').onclick = googleLogin
+  document.getElementById('forgotPassword').onclick = forgotPassword
 
-  applyBtn.onclick = async () => {
-    const { data } = await supabaseClient.auth.getSession()
-
-    // Not logged in → force login
-    if (!data.session) {
-      openAuth('login')
-      return
-    }
-
-    // Logged in → proceed
-    alert('Application access granted!')
-    
-    // OPTIONAL: redirect to application page
-    // window.location.href = '/apply.html'
+  document.getElementById('applyBtn').onclick = () => {
+    window.location.href = 'apply.html'
   }
-})
 
-
-  supabaseClient.auth.getSession().then(({ data }) => {
+  supabase.auth.getSession().then(({ data }) => {
     updateUI(!!data.session)
   })
-})
-document.addEventListener('DOMContentLoaded', () => {
-  const applyBtn = document.getElementById('applyBtn')
-  if (applyBtn) {
-    applyBtn.onclick = () => {
-      window.location.href = 'apply.html'
-    }
-  }
 })

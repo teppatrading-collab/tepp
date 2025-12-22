@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Teppa Trading</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Teppa Trading</title>
 
-  <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">
 
-  <!-- Supabase CDN (LOAD ONCE ONLY) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase v2 CDN (LOAD ONCE) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -26,8 +26,10 @@
   <h1>Master Forex & Indices</h1>
   <p>Education • Discipline • Consistency</p>
 
-  <!-- APPLY BUTTON (NOW WORKS) -->
-  <button class="cta" id="applyBtn">Apply For Mentorship</button>
+  <!-- APPLY BUTTON NOW WORKS -->
+  <button class="cta" onclick="window.location.href='apply.html'">
+    Apply For Mentorship
+  </button>
 </section>
 
 <!-- AUTH MODAL -->
@@ -40,19 +42,13 @@
 
     <button id="submitAuth" class="cta">Submit</button>
 
-    <p id="closeModal" style="cursor:pointer;color:#00ffae;">Close</p>
+    <p id="forgotPassword" class="link">Forgot password?</p>
+    <p id="closeModal" class="link">Close</p>
   </div>
 </div>
 
-<!-- AUTH LOGIC -->
+<!-- AUTH SCRIPT (LOAD LAST) -->
 <script src="auth.js"></script>
-
-<!-- APPLY BUTTON SCRIPT -->
-<script>
-  document.getElementById('applyBtn').addEventListener('click', () => {
-    window.location.href = 'apply.html'
-  })
-</script>
 
 </body>
 </html>

@@ -1,50 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Teppa Trading</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teppa Trading</title>
 
-<link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 
-<!-- Supabase v2 CDN (ONLY ONCE) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-.hidden { display: none; }
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.modal-box {
-  background: #111;
-  padding: 30px;
-  border-radius: 12px;
-  width: 320px;
-  color: white;
-}
-
-.modal-box input {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
-}
-
-.link {
-  color: #00ffae;
-  cursor: pointer;
-  font-size: 14px;
-}
-</style>
+  <!-- Supabase CDN (LOAD ONCE ONLY) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -52,18 +16,18 @@
 <header class="navbar">
   <div class="logo">TEPPA <span>TRADING</span></div>
   <div>
-    <button id="loginBtn">Login</button>
-    <button id="signupBtn">Sign Up</button>
-    <button id="logoutBtn" class="hidden">Logout</button>
+    <button id="loginBtn" class="outline">Login</button>
+    <button id="signupBtn" class="outline">Sign Up</button>
+    <button id="logoutBtn" class="outline hidden">Logout</button>
   </div>
 </header>
 
 <section class="hero">
   <h1>Master Forex & Indices</h1>
   <p>Education • Discipline • Consistency</p>
-  <button class="cta" onclick="window.location.href='apply.html'">
-    Apply For Mentorship
-  </button>
+
+  <!-- APPLY BUTTON (NOW WORKS) -->
+  <button class="cta" id="applyBtn">Apply For Mentorship</button>
 </section>
 
 <!-- AUTH MODAL -->
@@ -76,123 +40,18 @@
 
     <button id="submitAuth" class="cta">Submit</button>
 
-    <p class="link" id="forgotPassword">Forgot password?</p>
-    <p class="link" id="googleLogin">Continue with Google</p>
-    <p class="link" id="closeModal">Close</p>
+    <p id="closeModal" style="cursor:pointer;color:#00ffae;">Close</p>
   </div>
 </div>
 
+<!-- AUTH LOGIC -->
+<script src="auth.js"></script>
+
+<!-- APPLY BUTTON SCRIPT -->
 <script>
-/* =====================
-   SUPABASE INIT
-===================== */
-const supabase = window.supabase.createClient(
-  'https://xuifnaypkeeukyjvlapi.supabase.co',
-  'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
-)
-
-let mode = 'login'
-
-/* =====================
-   MODAL CONTROLS
-===================== */
-function openAuth(type) {
-  mode = type
-  document.getElementById('authTitle').innerText =
-    type === 'login' ? 'Login' : 'Sign Up'
-  document.getElementById('authModal').classList.remove('hidden')
-}
-
-function closeAuth() {
-  document.getElementById('authModal').classList.add('hidden')
-}
-
-/* =====================
-   AUTH HANDLER
-===================== */
-async function handleAuth() {
-  const email = document.getElementById('email').value.trim()
-  const password = document.getElementById('password').value.trim()
-
-  if (!email || !password) {
-    alert('Enter email and password')
-    return
-  }
-
-  let res
-  if (mode === 'login') {
-    res = await supabase.auth.signInWithPassword({ email, password })
-  } else {
-    res = await supabase.auth.signUp({ email, password })
-  }
-
-  if (res.error) {
-    alert(res.error.message)
-    return
-  }
-
-  closeAuth()
-  updateUI(true)
-}
-
-/* =====================
-   FORGOT PASSWORD
-===================== */
-async function resetPassword() {
-  const email = document.getElementById('email').value.trim()
-  if (!email) {
-    alert('Enter your email first')
-    return
-  }
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email)
-  if (error) alert(error.message)
-  else alert('Password reset email sent')
-}
-
-/* =====================
-   GOOGLE LOGIN
-===================== */
-async function googleLogin() {
-  await supabase.auth.signInWithOAuth({
-    provider: 'google'
+  document.getElementById('applyBtn').addEventListener('click', () => {
+    window.location.href = 'apply.html'
   })
-}
-
-/* =====================
-   LOGOUT
-===================== */
-async function logout() {
-  await supabase.auth.signOut()
-  updateUI(false)
-}
-
-/* =====================
-   UI STATE
-===================== */
-function updateUI(loggedIn) {
-  loginBtn.classList.toggle('hidden', loggedIn)
-  signupBtn.classList.toggle('hidden', loggedIn)
-  logoutBtn.classList.toggle('hidden', !loggedIn)
-}
-
-/* =====================
-   EVENT BINDINGS
-===================== */
-loginBtn.onclick = () => openAuth('login')
-signupBtn.onclick = () => openAuth('signup')
-logoutBtn.onclick = logout
-submitAuth.onclick = handleAuth
-closeModal.onclick = closeAuth
-forgotPassword.onclick = resetPassword
-googleLogin.onclick = googleLogin
-
-/* =====================
-   SESSION CHECK
-===================== */
-supabase.auth.getSession().then(({ data }) => {
-  updateUI(!!data.session)
-})
 </script>
 
 </body>

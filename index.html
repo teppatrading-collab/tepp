@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- Supabase v2 CDN (LOAD ONCE) -->
+<!-- Supabase CDN (LOAD ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -25,11 +25,7 @@
 <section class="hero">
   <h1>Master Forex & Indices</h1>
   <p>Education • Discipline • Consistency</p>
-
-  <!-- APPLY BUTTON NOW WORKS -->
-  <button class="cta" onclick="window.location.href='apply.html'">
-    Apply For Mentorship
-  </button>
+  <button id="applyBtn" class="cta">Apply For Mentorship</button>
 </section>
 
 <!-- AUTH MODAL -->
@@ -42,13 +38,127 @@
 
     <button id="submitAuth" class="cta">Submit</button>
 
-    <p id="forgotPassword" class="link">Forgot password?</p>
-    <p id="closeModal" class="link">Close</p>
+    <p id="forgotPw" style="cursor:pointer;color:#00ffae;margin-top:10px;">
+      Forgot password?
+    </p>
+
+    <p id="closeModal" style="cursor:pointer;color:#aaa;">Close</p>
   </div>
 </div>
 
-<!-- AUTH SCRIPT (LOAD LAST) -->
-<script src="auth.js"></script>
+<script>
+/* =======================
+   SUPABASE (ONLY ONCE)
+======================= */
+const supabaseClient = window.supabase.createClient(
+  'https://xuifnaypkeeukyjvlapi.supabase.co',
+  'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+)
+
+let mode = 'login'
+
+/* =======================
+   MODAL CONTROLS
+======================= */
+function openAuth(type) {
+  mode = type
+  document.getElementById('authTitle').innerText =
+    type === 'login' ? 'Login' : 'Sign Up'
+  document.getElementById('authModal').classList.remove('hidden')
+}
+
+function closeAuth() {
+  document.getElementById('authModal').classList.add('hidden')
+}
+
+/* =======================
+   AUTH HANDLER
+======================= */
+async function handleAuth() {
+  const email = document.getElementById('email').value.trim()
+  const password = document.getElementById('password').value.trim()
+
+  if (!email || !password) {
+    alert('Enter email and password')
+    return
+  }
+
+  let result
+  if (mode === 'login') {
+    result = await supabaseClient.auth.signInWithPassword({ email, password })
+  } else {
+    result = await supabaseClient.auth.signUp({ email, password })
+  }
+
+  if (result.error) {
+    alert(result.error.message)
+    return
+  }
+
+  alert('Success')
+  closeAuth()
+  updateUI(true)
+}
+
+/* =======================
+   FORGOT PASSWORD
+======================= */
+async function forgotPassword() {
+  const email = document.getElementById('email').value.trim()
+  if (!email) {
+    alert('Enter your email first')
+    return
+  }
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  })
+
+  if (error) {
+    alert(error.message)
+  } else {
+    alert('Password reset email sent')
+  }
+}
+
+/* =======================
+   LOGOUT
+======================= */
+async function logout() {
+  await supabaseClient.auth.signOut()
+  updateUI(false)
+}
+
+/* =======================
+   UI STATE
+======================= */
+function updateUI(loggedIn) {
+  document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
+  document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
+  document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
+}
+
+/* =======================
+   APPLY BUTTON
+======================= */
+document.getElementById('applyBtn').onclick = () => {
+  window.location.href = 'apply.html'
+}
+
+/* =======================
+   EVENTS
+======================= */
+document.getElementById('loginBtn').onclick = () => openAuth('login')
+document.getElementById('signupBtn').onclick = () => openAuth('signup')
+document.getElementById('logoutBtn').onclick = logout
+document.getElementById('submitAuth').onclick = handleAuth
+document.getElementById('closeModal').onclick = closeAuth
+document.getElementById('forgotPw').onclick = forgotPassword
+
+supabaseClient.auth.getSession().then(({ data }) => {
+  updateUI(!!data.session)
+})
+</script>
 
 </body>
 </html>

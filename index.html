@@ -10,6 +10,26 @@
 <!-- Supabase CDN (LOAD ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabase = window.supabase.createClient(
+  "https://xuifnaypkeeukyjlapi.supabase.co",
+  "sb_publishable_44vXTyFg_8x20hqa8KGuA_0V9HX2ob"
+);
+
+(async () => {
+  const { data } = await supabase.auth.getSession();
+
+  const hash = window.location.hash;
+
+  // 👇 THIS IS THE CRITICAL FIX
+  if (hash.includes("type=recovery")) {
+    window.location.href = "/reset-password.html";
+    return;
+  }
+
+})();
+</script>
 
 <body>
 
@@ -48,127 +68,130 @@
 
 <script>
 /* =======================
-   SUPABASE (SINGLE CLIENT)
+   SUPABASE (ONLY ONCE)
 ======================= */
 const supabaseClient = window.supabase.createClient(
-  "https://xuifnaypkeeukyjlapi.supabase.co",
-  "sb_publishable_44vXTyFg_8x20hqa8KGuA_0V9HX2ob"
-);
+  'https://xuifnaypkeeukyjvlapi.supabase.co',
+  'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
+)
 
-let mode = "login";
-
-/* =======================
-   PASSWORD RECOVERY
-======================= */
-const hash = window.location.hash;
-if (hash.includes("type=recovery")) {
-  window.location.href = "/reset-password.html";
-}
+let mode = 'login'
 
 /* =======================
    MODAL CONTROLS
 ======================= */
 function openAuth(type) {
-  mode = type;
-  document.getElementById("authTitle").innerText =
-    type === "login" ? "Login" : "Sign Up";
-  document.getElementById("authModal").classList.remove("hidden");
+  mode = type
+  document.getElementById('authTitle').innerText =
+    type === 'login' ? 'Login' : 'Sign Up'
+  document.getElementById('authModal').classList.remove('hidden')
 }
 
 function closeAuth() {
-  document.getElementById("authModal").classList.add("hidden");
+  document.getElementById('authModal').classList.add('hidden')
 }
 
 /* =======================
    AUTH HANDLER
 ======================= */
 async function handleAuth() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = document.getElementById('email').value.trim()
+  const password = document.getElementById('password').value.trim()
 
   if (!email || !password) {
-    alert("Enter email and password");
-    return;
+    alert('Enter email and password')
+    return
   }
 
-  const result =
-    mode === "login"
-      ? await supabaseClient.auth.signInWithPassword({ email, password })
-      : await supabaseClient.auth.signUp({ email, password });
+  let result
+  if (mode === 'login') {
+    result = await supabaseClient.auth.signInWithPassword({ email, password })
+  } else {
+    result = await supabaseClient.auth.signUp({ email, password })
+  }
 
   if (result.error) {
-    alert(result.error.message);
-    return;
+    alert(result.error.message)
+    return
   }
 
-  closeAuth();
-  updateUI(true);
+  alert('Success')
+  closeAuth()
+  updateUI(true)
 }
 
 /* =======================
    FORGOT PASSWORD
 ======================= */
 async function forgotPassword() {
-  const email = document.getElementById("email").value.trim();
-  if (!email) return alert("Enter your email first");
+  const email = document.getElementById('email').value.trim()
+  if (!email) {
+    alert('Enter your email first')
+    return
+  }
 
-  const { error } =
-    await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    });
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  })
 
-  alert(error ? error.message : "Password reset email sent");
+  if (error) {
+    alert(error.message)
+  } else {
+    alert('Password reset email sent')
+  }
 }
 
 /* =======================
    LOGOUT
 ======================= */
 async function logout() {
-  await supabaseClient.auth.signOut();
-  updateUI(false);
+  await supabaseClient.auth.signOut()
+  updateUI(false)
 }
 
 /* =======================
    UI STATE
 ======================= */
 function updateUI(loggedIn) {
-  document.getElementById("loginBtn").classList.toggle("hidden", loggedIn);
-  document.getElementById("signupBtn").classList.toggle("hidden", loggedIn);
-  document.getElementById("logoutBtn").classList.toggle("hidden", !loggedIn);
+  document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
+  document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
+  document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
 }
 
 /* =======================
-   APPLY BUTTON (SAFE)
+   APPLY BUTTON
 ======================= */
-document.getElementById("applyBtn").onclick = async () => {
+document.getElementById('applyBtn').onclick = async () => {
   const { data } = await supabaseClient.auth.getSession();
-
   if (!data.session) {
-    openAuth("login");
+    openAuth('login');
     return;
   }
+  window.location.href = '/dashboard/index.html';
+}
 
-  window.location.href = "/dashboard/index.html";
-};
 
 /* =======================
    EVENTS
 ======================= */
-document.getElementById("loginBtn").onclick = () => openAuth("login");
-document.getElementById("signupBtn").onclick = () => openAuth("signup");
-document.getElementById("logoutBtn").onclick = logout;
-document.getElementById("submitAuth").onclick = handleAuth;
-document.getElementById("closeModal").onclick = closeAuth;
-document.getElementById("forgotPw").onclick = forgotPassword;
+document.getElementById('loginBtn').onclick = () => openAuth('login')
+document.getElementById('signupBtn').onclick = () => openAuth('signup')
+document.getElementById('logoutBtn').onclick = logout
+document.getElementById('submitAuth').onclick = handleAuth
+document.getElementById('closeModal').onclick = closeAuth
+document.getElementById('forgotPw').onclick = forgotPassword
 
-/* =======================
-   INITIAL SESSION CHECK
-======================= */
-document.addEventListener("DOMContentLoaded", async () => {
-  const { data } = await supabaseClient.auth.getSession();
-  updateUI(!!data.session);
+supabaseClient.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    window.location.href = "/dashboard/index.html";
+  } else {
+    updateUI(false);
+  }
 });
+
 </script>
 
 </body>
 </html>
+
+

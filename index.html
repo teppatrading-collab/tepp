@@ -161,9 +161,15 @@ function updateUI(loggedIn) {
 /* =======================
    APPLY BUTTON
 ======================= */
-document.getElementById('applyBtn').onclick = () => {
-  window.location.href = 'apply.html'
+document.getElementById('applyBtn').onclick = async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) {
+    openAuth('login');
+    return;
+  }
+  window.location.href = '/dashboard/index.html';
 }
+
 
 /* =======================
    EVENTS
@@ -182,4 +188,5 @@ supabaseClient.auth.getSession().then(({ data }) => {
 
 </body>
 </html>
+
 

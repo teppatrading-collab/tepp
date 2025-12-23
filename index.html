@@ -184,15 +184,18 @@ document.getElementById('submitAuth').onclick = handleAuth
 document.getElementById('closeModal').onclick = closeAuth
 document.getElementById('forgotPw').onclick = forgotPassword
 
-supabaseClient.auth.getSession().then(({ data }) => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data } = await supabaseClient.auth.getSession();
   updateUI(!!data.session);
 });
+
 
 
 </script>
 
 </body>
 </html>
+
 
 
 

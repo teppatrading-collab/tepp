@@ -1,14 +1,12 @@
-// PROTECT DASHBOARD
-const user = localStorage.getItem("userEmail");
+const email = localStorage.getItem("userEmail");
 
-if (!user) {
-  window.location.href = "/login.html";
+if (!email) {
+  window.location.href = "/index.html";
 }
 
-document.getElementById("userEmail").innerText = user;
+document.getElementById("userEmail").innerText = email;
 
-// LOGOUT
-document.getElementById("logout").addEventListener("click", () => {
-  localStorage.removeItem("userEmail");
-  window.location.href = "/";
-});
+document.getElementById("logout").onclick = () => {
+  localStorage.clear();
+  window.location.href = "/index.html";
+};

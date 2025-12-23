@@ -140,16 +140,9 @@ function updateUI(loggedIn) {
 /* =======================
    APPLY BUTTON (SAFE)
 ======================= */
-document.getElementById("applyBtn").onclick = async () => {
-  const { data } = await supabaseClient.auth.getSession();
-
-  if (!data.session) {
-    openAuth("login");
-    return;
-  }
-
-  window.location.href = "/dashboard/index.html";
-};
+<a href="/dashboard/index.html">
+  <button class="apply-btn">Apply For Mentorship</button>
+</a>
 
 /* =======================
    EVENTS
@@ -172,4 +165,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 </body>
 </html>
+
 

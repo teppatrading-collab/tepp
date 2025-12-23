@@ -1,12 +1,21 @@
-const email = localStorage.getItem("userEmail");
+const supabase = window.supabase.createClient(
+  "https://xuifnaypkeeukyjlapi.supabase.co",
+  "sb_publishable_44vXTyFg_8x20hqa8KGuA_0V9HX2ob"
+);
 
-if (!email) {
-  window.location.href = "/index.html";
-}
+(async () => {
+  const { data } = await supabase.auth.getSession();
 
-document.getElementById("userEmail").innerText = email;
+  if (!data.session) {
+    window.location.href = "/index.html";
+    return;
+  }
 
-document.getElementById("logout").onclick = () => {
-  localStorage.removeItem("userEmail");
-  window.location.href = "/index.html";
-};
+  document.getElementById("userEmail").innerText =
+    data.session.user.email;
+
+  document.getElementById("logout").onclick = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/index.html";
+  };
+})();

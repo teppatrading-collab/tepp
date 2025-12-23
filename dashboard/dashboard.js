@@ -6,17 +6,14 @@ const supabaseClient = window.supabase.createClient(
 document.addEventListener("DOMContentLoaded", async () => {
   const { data, error } = await supabaseClient.auth.getSession();
 
-  // Protect dashboard
   if (error || !data.session) {
     window.location.href = "/index.html";
     return;
   }
 
-  // Show user email
   document.getElementById("userEmail").innerText =
     data.session.user.email;
 
-  // Logout
   document.getElementById("logout").addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "/index.html";

@@ -161,14 +161,17 @@ function updateUI(loggedIn) {
 /* =======================
    APPLY BUTTON
 ======================= */
-document.getElementById('applyBtn').onclick = async () => {
+document.getElementById("applyBtn").onclick = async () => {
   const { data } = await supabaseClient.auth.getSession();
+
   if (!data.session) {
-    openAuth('login');
+    openAuth("login");
     return;
   }
-  window.location.href = '/dashboard/index.html';
-}
+
+  window.location.href = "/dashboard/index.html";
+};
+
 
 
 /* =======================
@@ -190,6 +193,7 @@ supabaseClient.auth.getSession().then(({ data }) => {
 
 </body>
 </html>
+
 
 
 

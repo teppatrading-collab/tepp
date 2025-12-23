@@ -1,57 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Teppa Trading | Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+// =======================
+// SUPABASE INIT (ONE TIME)
+// =======================
+const supabaseClient = window.supabase.createClient(
+  "https://xuifnaypkeeukyjlapi.supabase.co",
+  "sb_publishable_44vXTyFg_8x20hqa8KGuA_0V9HX2ob"
+);
 
-  <!-- Dashboard styles -->
-  <link rel="stylesheet" href="dashboard.css">
-</head>
-<body>
+// =======================
+// SESSION CHECK
+// =======================
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data, error } = await supabaseClient.auth.getSession();
 
-<div class="dashboard-container">
+  if (error) {
+    console.error("Session error:", error);
+    window.location.href = "/index.html";
+    return;
+  }
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <h2>TEPPA</h2>
-    <ul>
-      <li class="active">Dashboard</li>
-      <li>My Profile</li>
-      <li>Mentorship</li>
-      <li id="logout" style="cursor:pointer;">Logout</li>
-    </ul>
-  </aside>
+  if (!data.session) {
+    // 🚫 NOT LOGGED IN → BACK TO HOME
+    window.location.href = "/index.html";
+    return;
+  }
 
-  <!-- Main Content -->
-  <main class="main-content">
-    <h1>Welcome, <span id="userEmail">Trader</span> 👋</h1>
+  // ✅ LOGGED IN
+  document.getElementById("userEmail").innerText =
+    data.session.user.email;
+});
 
-    <div class="cards">
-      <div class="card">
-        <h3>Account Status</h3>
-        <p>Active</p>
-      </div>
-
-      <div class="card">
-        <h3>Mentorship</h3>
-        <p>Pending Review</p>
-      </div>
-
-      <div class="card">
-        <h3>Access Level</h3>
-        <p>Student</p>
-      </div>
-    </div>
-  </main>
-
-</div>
-
-<!-- ✅ SUPABASE CDN (MUST LOAD FIRST) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- ✅ DASHBOARD LOGIC -->
-<script src="dashboard.js"></script>
-
-</body>
-</html>
+// =

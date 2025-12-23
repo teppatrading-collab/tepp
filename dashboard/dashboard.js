@@ -7,6 +7,6 @@ if (!email) {
 document.getElementById("userEmail").innerText = email;
 
 document.getElementById("logout").onclick = () => {
-  localStorage.clear();
+  localStorage.removeItem("userEmail");
   window.location.href = "/index.html";
 };

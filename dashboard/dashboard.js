@@ -3,19 +3,22 @@ const supabaseClient = window.supabase.createClient(
   "sb_publishable_44vXTyFg_8x20hqa8KGuA_0V9HX2ob"
 );
 
-(async () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const { data, error } = await supabaseClient.auth.getSession();
 
-  if (!data.session) {
+  // Protect dashboard
+  if (error || !data.session) {
     window.location.href = "/index.html";
     return;
   }
 
+  // Show user email
   document.getElementById("userEmail").innerText =
     data.session.user.email;
-})();
 
-document.getElementById("logout").onclick = async () => {
-  await supabaseClient.auth.signOut();
-  window.location.href = "/index.html";
-};
+  // Logout
+  document.getElementById("logout").addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "/index.html";
+  });
+});

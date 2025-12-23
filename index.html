@@ -182,16 +182,14 @@ document.getElementById('closeModal').onclick = closeAuth
 document.getElementById('forgotPw').onclick = forgotPassword
 
 supabaseClient.auth.getSession().then(({ data }) => {
-  if (data.session) {
-    window.location.href = "/dashboard/index.html";
-  } else {
-    updateUI(false);
-  }
+  updateUI(!!data.session);
 });
+
 
 </script>
 
 </body>
 </html>
+
 
 

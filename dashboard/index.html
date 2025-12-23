@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Teppa Trading | Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Dashboard styles -->
   <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
@@ -16,7 +19,7 @@
       <li class="active">Dashboard</li>
       <li>My Profile</li>
       <li>Mentorship</li>
-      <li id="logout">Logout</li>
+      <li id="logout" style="cursor:pointer;">Logout</li>
     </ul>
   </aside>
 
@@ -44,6 +47,11 @@
 
 </div>
 
+<!-- ✅ SUPABASE CDN (MUST LOAD FIRST) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- ✅ DASHBOARD LOGIC -->
 <script src="dashboard.js"></script>
+
 </body>
 </html>

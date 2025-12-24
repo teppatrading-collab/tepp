@@ -8,42 +8,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // 1. Initialize Supabase (Use your actual URL and Key)
-        const supabaseUrl = 'https://your-project-id.supabase.co';
-        const supabaseKey = 'your-anon-key';
+        // 1. Initialize Supabase (Using your actual credentials)
+        const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
+        const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // 2. Optimized Loop-Breaker Logic
-        async function checkUser() {
-            // Get session immediately but don't redirect yet
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (session) {
-                console.log("Session confirmed:", session.user.email);
-                showDashboard();
-            } else {
-                // If no immediate session, wait for one state change to be sure
-                const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, currentSession) => {
-                    if (currentSession) {
-                        showDashboard();
-                        subscription.unsubscribe(); // Stop listening once we find them
-                    } else if (event === 'INITIAL_SESSION' && !currentSession) {
-                        console.log("No session after initialization, redirecting...");
-                        window.location.href = "index.html"; 
-                    }
-                });
+        // 2. The Loop-Breaker Logic
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log("Auth Event (Dashboard):", event);
+
+            if (!session && event === 'INITIAL_SESSION') {
+                // Only kick out if we are SURE there is no session after initialization
+                console.log("No session found after init. Redirecting...");
+                window.location.replace("index.html");
+            } else if (session) {
+                // Only show the page once session is confirmed
+                console.log("Session confirmed for:", session.user.email);
+                document.documentElement.classList.add('authorized');
             }
-        }
-
-        function showDashboard() {
-            // This ensures the page only shows when login is 100% confirmed
-            document.documentElement.classList.add('authorized');
-        }
-
-        checkUser();
+        });
     </script>
     <style>
-        /* Hide everything until 'authorized' class is added */
+        /* Hide everything until 'authorized' class is added to prevent flashing */
         html:not(.authorized) body { display: none; }
         body { display: flex; } /* Restores your sidebar layout */
     </style>
@@ -67,12 +53,14 @@
     </main>
 
     <script>
+        // 3. Logout Function
         async function handleLogout() {
             const { error } = await supabaseClient.auth.signOut();
             if (error) {
                 alert("Error: " + error.message);
             } else {
-                window.location.href = "index.html"; 
+                // Use replace to clear history and prevent loops
+                window.location.replace("index.html"); 
             }
         }
     </script>

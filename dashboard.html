@@ -9,21 +9,31 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // 2. Initialize Supabase (Use your actual URL and Key)
+        // 2. Initialize Supabase (Use YOUR actual URL and Key)
         const supabaseUrl = 'https://your-project-id.supabase.co';
         const supabaseKey = 'your-anon-key';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // 3. Protection: Run this immediately in the head to prevent unauthorized viewing
+        // 3. Loop-Breaker Logic
         async function checkUser() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                // If no session exists, stop loading and redirect to login
-                window.location.href = "index.html"; 
-            }
+            // Added onAuthStateChange to wait for the session to be "ready"
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT' || !session) {
+                    console.log("No session detected, redirecting...");
+                    window.location.href = "index.html"; 
+                } else {
+                    console.log("Session confirmed:", session.user.email);
+                    // Make the page visible only after we are sure the user is logged in
+                    document.body.style.display = "flex";
+                }
+            });
         }
         checkUser();
     </script>
+    <style>
+        /* Hide the body initially to stop the "flashing" loop effect */
+        body { display: none; }
+    </style>
 </head>
 <body>
     <aside class="sidebar">
@@ -50,7 +60,6 @@
             if (error) {
                 alert("Error logging out: " + error.message);
             } else {
-                // Return to landing page after logout
                 window.location.href = "index.html"; 
             }
         }

@@ -1,13 +1,46 @@
-<div class="sidebar">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+<div class="mobile-header">
     <div class="logo">TEPPA TRADING</div>
-    <nav>
-        <a href="/dashboard.html"><i class="icon-user"></i> User Home</a>
-        <div id="admin-links" style="display:none;">
-            <hr>
-            <p class="nav-label">Admin Tools</p>
-            <a href="/admin-users.html"><i class="icon-users"></i> Manage Users</a>
-            <a href="/admin-stats.html"><i class="icon-chart"></i> Site Analytics</a>
-        </div>
-        <a href="#" onclick="handleLogout()"><i class="icon-logout"></i> Logout</a>
-    </nav>
+    <button class="menu-toggle" onclick="toggleSidebar()"><i class='bx bx-menu'></i></button>
 </div>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="logo">TEPPA TRADING</div>
+    
+    <div id="liveClock" class="clock-sidebar">00:00:00 UTC</div>
+
+    <nav>
+        <p class="nav-label">Main Menu</p>
+        <a href="/dashboard.html"><i class='bx bxs-dashboard'></i> User Home</a>
+        
+        <div class="sidebar-widget">
+            <p class="nav-label">Strategy Gate</p>
+            <label class="check-item"><input type="checkbox" class="st-check"> <span>HTF Bias Clear</span></label>
+            <label class="check-item"><input type="checkbox" class="st-check"> <span>Liquidity Sweep</span></label>
+            <label class="check-item"><input type="checkbox" class="st-check"> <span>MSS Confirmation</span></label>
+            <button class="gate-btn" id="gateBtn" disabled>Locked</button>
+        </div>
+
+        <div class="sidebar-widget">
+            <p class="nav-label">Risk Calc</p>
+            <input type="number" id="balance" placeholder="Balance $">
+            <input type="number" id="riskP" placeholder="Risk %">
+            <input type="number" id="stopL" placeholder="SL Pips">
+            <button class="widget-btn" onclick="calculateRisk()">Calculate</button>
+            <p id="calcRes" class="res-text"></p>
+        </div>
+
+        <div id="admin-links" style="display:none;">
+            <hr class="nav-divider">
+            <p class="nav-label">Admin Control</p>
+            <a href="/admin-users.html"><i class='bx bxs-group'></i> Manage Users</a>
+            <a href="/admin-stats.html"><i class='bx bxs-analyse'></i> Site Stats</a>
+        </div>
+
+        <hr class="nav-divider">
+        <a href="#" onclick="handleLogout()" class="logout-text"><i class='bx bx-log-out'></i> Logout</a>
+    </nav>
+</aside>

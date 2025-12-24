@@ -1,10 +1,62 @@
+/* --- Core Layout Logic (Your Original Code) --- */
 .sidebar {
     width: 250px;           /* Sets a specific width */
-    height: 100vh;          /* 100% of the Viewport Height */
-    position: fixed;        /* Anchors it to the browser window */
+    height: 100vh;          /* 100% of Viewport Height */
+    position: fixed;        /* Anchors it */
     background: #1e293b;    /* Your dark theme color */
-}.main-content {
-    margin-left: 250px;     /* Matches the sidebar width */
-    padding: 40px;          /* Adds internal spacing for your cards */
-    width: 100%;            /* Allows it to fill the remaining screen */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    z-index: 1000;          /* Ensures sidebar stays on top */
+}
+
+.main-content {
+    margin-left: 250px;     /* Matches sidebar width */
+    padding: 40px;          /* Adds internal spacing */
+    width: calc(100% - 250px); /* Better than 100% to prevent horizontal scrolling */
+    min-height: 100vh;
+    background: #0f172a;    /* Slightly darker background for contrast */
+}
+
+/* --- Professional UI Styling --- */
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 0 20px 30px;
+    color: #a855f7;         /* Purple to match your 'Teppa' brand */
+}
+
+nav a {
+    display: block;
+    padding: 15px 20px;
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    background: #334155;
+    color: white;
+}
+
+.card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #334155;
+    margin-bottom: 20px;
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative; /* Sidebar moves to top on mobile */
+    }
+    .main-content {
+        margin-left: 0;     /* Remove margin on small screens */
+        width: 100%;
+    }
 }

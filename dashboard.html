@@ -74,7 +74,8 @@
             if (error) {
                 status.innerText = "DB Error!";
             } else {
-                status.innerText = "Trade Saved!";
+                status.innerText = "✅ Trade Saved Successfully!";
+                setTimeout(() => status.innerText = "", 3000);
                 loadTrades(); 
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeReason').value = '';
@@ -105,7 +106,7 @@
                 card.innerHTML = `
                     <div class="card-header">
                         <span style="color:#00ffae; font-weight:bold;">${trade.pair} (${trade.type})</span>
-                        <button class="delete-btn" onclick="deleteTrade(${trade.id})" aria-label="Delete Trade">
+                        <button class="delete-btn" onclick="deleteTrade('${trade.id}')" aria-label="Delete Trade">
                             <i class='bx bx-trash'></i>
                         </button>
                     </div>
@@ -122,7 +123,7 @@
 
         async function deleteTrade(id) {
             if (confirm("Permanently delete this journal entry?")) {
-                console.log("Attempting delete for ID:", id);
+                const status = document.getElementById('journalStatus');
                 
                 const { error } = await supabaseClient
                     .from('trades')
@@ -130,10 +131,11 @@
                     .eq('id', id);
 
                 if (error) {
-                    console.error("Supabase Error:", error.message);
+                    console.error("Delete Error:", error.message);
                     alert("Delete failed: " + error.message);
                 } else {
-                    console.log("Delete successful");
+                    status.innerText = "✅ Trade Deleted Successfully!";
+                    setTimeout(() => status.innerText = "", 3000);
                     loadTrades(); 
                 }
             }
@@ -205,7 +207,7 @@
             </label>
             <input type="file" id="chartUpload" accept="image/*" style="display: none;" onchange="updateFileName()">
             <button class="side-btn" onclick="saveTradeWithImage()">Save Trade</button>
-            <p id="journalStatus" style="font-size: 0.75rem; color:#00ffae; margin-top:8px; text-align: center;"></p>
+            <p id="journalStatus" style="font-size: 0.75rem; color:#00ffae; margin-top:8px; text-align: center; height: 20px;"></p>
         </div>
         <nav style="margin-top: 20px;">
             <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="background:#ff4b4b15; border:1px solid #ff4b4b; color:#ff4b4b; padding:10px; width:100%; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight: bold;">Logout</button>

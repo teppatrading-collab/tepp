@@ -1,62 +1,230 @@
-/* --- Core Layout Logic (Your Original Code) --- */
+/* ============================================================
+   TEPPA TRADING - MASTER DASHBOARD STYLES
+   ============================================================ */
+
+:root {
+    --sb-width: 260px;
+    --primary-bg: #0f172a;
+    --sidebar-bg: #1e293b;
+    --accent-purple: #a855f7;
+    --trading-green: #00ffae;
+    --text-main: #ffffff;
+    --text-muted: #cbd5e1;
+    --border-color: #334155;
+    --widget-bg: #0d1117;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--primary-bg);
+    color: var(--text-main);
+    display: flex;
+    overflow-x: hidden;
+}
+
+/* --- Core Layout --- */
 .sidebar {
-    width: 250px;           /* Sets a specific width */
-    height: 100vh;          /* 100% of Viewport Height */
-    position: fixed;        /* Anchors it */
-    background: #1e293b;    /* Your dark theme color */
-    color: white;
+    width: var(--sb-width);
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
     padding: 20px 0;
-    z-index: 1000;          /* Ensures sidebar stays on top */
+    z-index: 2000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-right: 1px solid var(--border-color);
 }
 
 .main-content {
-    margin-left: 250px;     /* Matches sidebar width */
-    padding: 40px;          /* Adds internal spacing */
-    width: calc(100% - 250px); /* Better than 100% to prevent horizontal scrolling */
+    margin-left: var(--sb-width);
+    padding: 30px;
+    width: calc(100% - var(--sb-width));
     min-height: 100vh;
-    background: #0f172a;    /* Slightly darker background for contrast */
+    transition: margin-left 0.3s ease;
 }
 
-/* --- Professional UI Styling --- */
+/* --- Professional UI Elements --- */
 .logo {
     font-size: 1.5rem;
     font-weight: bold;
-    padding: 0 20px 30px;
-    color: #a855f7;         /* Purple to match your 'Teppa' brand */
+    padding: 0 20px 25px;
+    color: var(--accent-purple);
+    letter-spacing: 1px;
+}
+
+.nav-label {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 10px 20px;
+    margin-top: 10px;
 }
 
 nav a {
-    display: block;
-    padding: 15px 20px;
-    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--text-muted);
     text-decoration: none;
     transition: 0.3s;
+    font-size: 0.95rem;
 }
 
-nav a:hover {
+nav a i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+}
+
+nav a:hover, nav a.active {
     background: #334155;
     color: white;
+    border-right: 3px solid var(--accent-purple);
 }
 
 .card {
-    background: #1e293b;
+    background: var(--sidebar-bg);
     border-radius: 12px;
     padding: 24px;
-    border: 1px solid #334155;
+    border: 1px solid var(--border-color);
     margin-bottom: 20px;
 }
 
-/* --- Mobile Responsiveness --- */
-@media (max-width: 768px) {
+/* --- Sidebar Widgets (Calculator, Journal, Checklist) --- */
+.sidebar-section {
+    background: var(--widget-bg);
+    margin: 10px 15px 20px;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.sidebar-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 0.75rem;
+    color: var(--trading-green);
+    text-transform: uppercase;
+}
+
+.sidebar input, .sidebar select, .sidebar textarea {
+    width: 100%;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.side-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--trading-green);
+    color: #0f172a;
+    border: none;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.side-btn:disabled {
+    background: #475569;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* --- Strategy Checklist Styling --- */
+.check-container {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.check-container input {
+    width: auto;
+    margin-right: 10px;
+    margin-bottom: 0;
+}
+
+/* --- Mobile Logic --- */
+.mobile-header {
+    display: none;
+    background: var(--sidebar-bg);
+    padding: 15px 20px;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1001;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.menu-toggle {
+    background: none;
+    border: 1px solid var(--trading-green);
+    color: var(--trading-green);
+    font-size: 1.5rem;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1999;
+    backdrop-filter: blur(2px);
+}
+
+@media (max-width: 992px) {
     .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative; /* Sidebar moves to top on mobile */
+        transform: translateX(-100%);
+        width: 280px;
     }
+
+    .sidebar.active {
+        transform: translateX(0);
+        box-shadow: 15px 0 30px rgba(0,0,0,0.5);
+    }
+
     .main-content {
-        margin-left: 0;     /* Remove margin on small screens */
+        margin-left: 0;
         width: 100%;
+        padding: 20px;
     }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .sidebar.active + .sidebar-overlay {
+        display: block;
+    }
+}
+
+/* --- Utility --- */
+.clock-sidebar {
+    text-align: center;
+    font-family: monospace;
+    font-size: 1.2rem;
+    color: var(--trading-green);
+    padding: 10px;
+    border: 1px solid rgba(0, 255, 174, 0.2);
+    margin: 0 20px 20px;
+    border-radius: 8px;
 }

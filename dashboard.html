@@ -19,11 +19,10 @@
             } else if (session) {
                 document.getElementById('userEmail').innerText = session.user.email;
                 document.documentElement.classList.add('authorized');
-                loadTrades(); // Load journal on startup
+                loadTrades(); 
             }
         });
 
-        // 1. UPDATE FILE NAME UI
         function updateFileName() {
             const fileInput = document.getElementById('chartUpload');
             const fileNameSpan = document.getElementById('fileName');
@@ -33,7 +32,6 @@
             }
         }
 
-        // 2. SAVE TRADE WITH IMAGE
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
@@ -42,10 +40,14 @@
             const fileInput = document.getElementById('chartUpload');
             const status = document.getElementById('journalStatus');
             
+            if(!pair || !reason) {
+                status.innerText = "Fill required fields!";
+                return;
+            }
+
             status.innerText = "Processing...";
             let imageUrl = null;
 
-            // Upload Image if selected
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const fileExt = file.name.split('.').pop();
@@ -61,12 +63,10 @@
                     return;
                 }
 
-                // Get Public URL
                 const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
                 imageUrl = data.publicUrl;
             }
 
-            // Insert into Database
             const { error } = await supabaseClient.from('trades').insert([
                 { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl }
             ]);
@@ -75,8 +75,7 @@
                 status.innerText = "DB Error!";
             } else {
                 status.innerText = "Trade Saved!";
-                loadTrades(); // Refresh the list
-                // Reset fields
+                loadTrades(); 
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('chartLink').value = '';
@@ -85,7 +84,6 @@
             }
         }
 
-        // 3. FETCH AND DISPLAY JOURNAL
         async function loadTrades() {
             const feed = document.getElementById('tradeFeed');
             const { data: trades, error } = await supabaseClient
@@ -96,13 +94,23 @@
             if (error) return;
             feed.innerHTML = '';
             
+            if(trades.length === 0) {
+                feed.innerHTML = '<p style="color:#8b949e;">No trades recorded yet...</p>';
+                return;
+            }
+
             trades.forEach(trade => {
                 const card = document.createElement('div');
                 card.className = 'trade-log-card';
                 card.innerHTML = `
-                    ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
-                    <div style="display:flex; justify-content:space-between;">
+                    <div class="card-header">
                         <span style="color:#00ffae; font-weight:bold;">${trade.pair} (${trade.type})</span>
+                        <button class="delete-btn" onclick="deleteTrade(${trade.id})">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </div>
+                    ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
+                    <div style="margin-bottom: 5px;">
                         <small style="color:#8b949e;">${new Date(trade.created_at).toLocaleDateString()}</small>
                     </div>
                     <p style="font-size:0.85rem; margin:10px 0;">${trade.reason}</p>
@@ -112,11 +120,19 @@
             });
         }
 
-        // CLOCK & CALC (Keep your existing functions)
+        async function deleteTrade(id) {
+            if (confirm("Delete this journal entry?")) {
+                const { error } = await supabaseClient.from('trades').delete().eq('id', id);
+                if (error) alert("Error deleting");
+                else loadTrades();
+            }
+        }
+
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('en-GB', { timeZone: 'UTC' });
-            document.getElementById('liveClock').innerText = timeString + " UTC";
+            const clockEl = document.getElementById('liveClock');
+            if(clockEl) clockEl.innerText = timeString + " UTC";
         }
         setInterval(updateClock, 1000);
 
@@ -133,18 +149,27 @@
     </script>
 
     <style>
-        /* ADD THESE TO YOUR CSS */
+        /* DASHBOARD LAYOUT */
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
         .trade-log-card { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 10px; transition: 0.3s; }
         .trade-log-card:hover { border-color: #00ffae; }
         .trade-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; cursor: pointer; }
         
-        .upload-label {
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            background: #0d1117; border: 1px dashed #30363d; color: #8b949e;
-            padding: 10px; border-radius: 5px; cursor: pointer; font-size: 0.75rem; margin: 5px 0;
-        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .delete-btn { background: none; border: none; color: #ff4b4b; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; transition: 0.2s; }
+        .delete-btn:hover { transform: scale(1.2); }
+
+        .upload-label { display: flex; align-items: center; justify-content: center; gap: 8px; background: #0d1117; border: 1px dashed #30363d; color: #8b949e; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 0.75rem; margin: 5px 0; }
         .upload-label:hover { border-color: #00ffae; color: #00ffae; }
+
+        .widget-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; margin-bottom: 25px; }
+
+        /* MOBILE FIXES */
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+            .trade-grid { grid-template-columns: 1fr; }
+            .sidebar { width: 100%; position: relative; height: auto; }
+        }
     </style>
 </head>
 <body>
@@ -188,18 +213,32 @@
 
     <main class="main-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h1 style="margin:0; font-size:1.5rem;">Trade History</h1>
+            <h1 style="margin:0; font-size:1.5rem; color:#00ffae;">Market Insights</h1>
             <span id="userEmail" style="color:#8b949e; font-size:0.75rem;"></span>
         </div>
 
-        <div id="tradeFeed" class="trade-grid">
-            <p style="color:#8b949e;">No trades recorded yet...</p>
+        <div class="widget-card" style="padding: 5px;">
+            <div class="tradingview-widget-container">
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                {"symbols": [{"proName": "FX_IDC:EURUSD", "title": "EUR/USD"},{"proName": "OANDA:NAS100USD", "title": "NAS100"},{"proName": "OANDA:XAUUSD", "title": "Gold"}],"colorTheme": "dark","isTransparent": true,"displayMode": "adaptive","locale": "en"}
+                </script>
+            </div>
+        </div>
+
+        <div class="widget-card">
+            <div class="tradingview-widget-container">
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+                {"colorTheme": "dark","isTransparent": true,"width": "100%","height": "400","locale": "en","importanceFilter": "-1,0,1","currencyFilter": "USD,EUR,GBP"}
+                </script>
+            </div>
         </div>
 
         <hr style="border:0; border-top:1px solid #30363d; margin:40px 0;">
-        <h2 style="font-size:1.2rem; margin-bottom:15px;">Economic Calendar</h2>
-        <div style="background:#161b22; border:1px solid #30363d; border-radius:12px; overflow:hidden;">
-            </div>
+
+        <h2 style="font-size:1.2rem; margin-bottom:15px;">Your Trade Journal</h2>
+        <div id="tradeFeed" class="trade-grid">
+            <p style="color:#8b949e;">Loading journal...</p>
+        </div>
     </main>
 </body>
 </html>

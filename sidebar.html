@@ -8,15 +8,37 @@
         <a href="/dashboard.html"><i class='bx bxs-dashboard'></i> User Home</a>
         
         <div class="sidebar-widget">
+            <p class="nav-label">Strategy Gate</p>
+            <label class="check-item"><input type="checkbox" class="st-check"> <span>HTF Bias Clear</span></label>
+            <label class="check-item"><input type="checkbox" class="st-check"> <span>Liquidity Sweep</span></label>
+            <label class="check-item"><input type="checkbox" class="st-check"> <span>MSS Confirmation</span></label>
+            <button class="gate-btn" id="gateBtn" disabled>Locked</button>
+        </div>
+
+        <div class="sidebar-widget">
+            <p class="nav-label">Risk Calc</p>
+            <input type="number" id="balance" placeholder="Balance $">
+            <input type="number" id="riskP" placeholder="Risk %">
+            <input type="number" id="stopL" placeholder="SL Pips">
+            <button class="widget-btn" onclick="calculateRisk()">Calculate</button>
+            <p id="calcRes" class="res-text"></p>
+        </div>
+
+        <div class="sidebar-widget">
             <p class="nav-label">Daily Journal</p>
             <input type="text" id="tradePair" placeholder="Pair (e.g. NAS100)">
+            
+            <select id="tradeType" style="width: 100%; background: #161b22; border: 1px solid #30363d; color: white; border-radius: 4px; padding: 8px; margin-bottom: 10px;">
+                <option value="Buy">Buy</option>
+                <option value="Sell">Sell</option>
+            </select>
+
             <input type="text" id="chartLink" placeholder="TradingView Link">
             <textarea id="tradeReason" placeholder="Entry reason..." rows="2"></textarea>
             
             <label for="chartUpload" class="upload-label" id="uploadArea">
                 <i class='bx bx-camera'></i> <span id="fileName">Attach Screenshot</span>
             </label>
-            
             <input type="file" id="chartUpload" accept="image/*" style="display: none !important;" onchange="updateFileName()">
             
             <button class="widget-btn" style="background: #00ffae; color: #0a0e17;" onclick="saveTradeWithImage()">Save Trade</button>

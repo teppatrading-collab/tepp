@@ -7,7 +7,6 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- Supabase CDN (LOAD ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -28,7 +27,6 @@
   <button id="applyBtn" class="cta">Apply For Mentorship</button>
 </section>
 
-<!-- AUTH MODAL -->
 <div id="authModal" class="modal hidden">
   <div class="modal-box">
     <h2 id="authTitle">Login</h2>
@@ -48,7 +46,7 @@
 
 <script>
 /* =======================
-   SUPABASE (ONLY ONCE)
+   SUPABASE INITIALIZATION
 ======================= */
 const supabaseClient = window.supabase.createClient(
   'https://xuifnaypkeeukyjvlapi.supabase.co',
@@ -95,9 +93,8 @@ async function handleAuth() {
     return
   }
 
-  alert('Success')
+  // Success: Modal will close, and onAuthStateChange below will handle the redirect
   closeAuth()
-  updateUI(true)
 }
 
 /* =======================
@@ -146,7 +143,7 @@ document.getElementById('applyBtn').onclick = () => {
 }
 
 /* =======================
-   EVENTS
+   EVENTS & THE REDIRECT GUARD
 ======================= */
 document.getElementById('loginBtn').onclick = () => openAuth('login')
 document.getElementById('signupBtn').onclick = () => openAuth('signup')
@@ -155,10 +152,18 @@ document.getElementById('submitAuth').onclick = handleAuth
 document.getElementById('closeModal').onclick = closeAuth
 document.getElementById('forgotPw').onclick = forgotPassword
 
-supabaseClient.auth.getSession().then(({ data }) => {
-    if (data.session) {
-        // If a user is logged in, send them to the dashboard immediately
-        window.location.href = "dashboard.html";
+// This is the specific fix to stop the infinite loop
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        updateUI(true);
+        // We check the URL to make sure we only redirect IF we are currently on the index page
+        // This stops the index from fighting with the dashboard
+        const isHomePage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/';
+        
+        if (isHomePage) {
+            console.log("Session detected, moving to dashboard...");
+            window.location.href = "dashboard.html";
+        }
     } else {
         updateUI(false);
     }
@@ -167,5 +172,3 @@ supabaseClient.auth.getSession().then(({ data }) => {
 
 </body>
 </html>
-
-

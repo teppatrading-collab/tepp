@@ -33,6 +33,21 @@
             <p id="calcRes" class="res-text"></p>
         </div>
 
+        <div class="sidebar-widget">
+            <p class="nav-label">Daily Journal</p>
+            <input type="text" id="tradePair" placeholder="Pair (e.g. NAS100)">
+            <input type="text" id="chartLink" placeholder="TradingView Link">
+            <textarea id="tradeReason" placeholder="Entry reason..." rows="2" style="width: 100%; background: #161b22; border: 1px solid #30363d; color: white; border-radius: 4px; padding: 8px; margin-bottom: 5px;"></textarea>
+            
+            <label for="chartUpload" class="upload-label">
+                <i class='bx bx-cloud-upload'></i> <span id="fileName">Attach Screenshot</span>
+            </label>
+            <input type="file" id="chartUpload" accept="image/*" style="display: none;" onchange="updateFileName()">
+            
+            <button class="widget-btn" style="background: #00ffae; color: #0a0e17;" onclick="saveTradeWithImage()">Save Trade</button>
+            <p id="journalStatus" class="res-text" style="color: #00ffae;"></p>
+        </div>
+
         <div id="admin-links" style="display:none;">
             <hr class="nav-divider">
             <p class="nav-label">Admin Control</p>

@@ -1,0 +1,17 @@
+async function loadUserDashboard() {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        window.location.href = "/login.html"; // Kick out if not logged in
+        return;
+    }
+
+    // Fetch profile data to check role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    document.getElementById('welcome-text').innerText = `Welcome, ${user.email}`;
+}

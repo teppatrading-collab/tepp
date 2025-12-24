@@ -5,34 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teppa Trading | Dashboard</title>
     <link rel="stylesheet" href="style-dashboard.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // 2. Initialize Supabase (Use YOUR actual URL and Key)
+        // 1. Initialize Supabase (Use your actual URL and Key)
         const supabaseUrl = 'https://your-project-id.supabase.co';
         const supabaseKey = 'your-anon-key';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // 3. Loop-Breaker Logic
+        // 2. Optimized Loop-Breaker Logic
         async function checkUser() {
-            // Added onAuthStateChange to wait for the session to be "ready"
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_OUT' || !session) {
-                    console.log("No session detected, redirecting...");
-                    window.location.href = "index.html"; 
-                } else {
-                    console.log("Session confirmed:", session.user.email);
-                    // Make the page visible only after we are sure the user is logged in
-                    document.body.style.display = "flex";
-                }
-            });
+            // Get session immediately but don't redirect yet
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (session) {
+                console.log("Session confirmed:", session.user.email);
+                showDashboard();
+            } else {
+                // If no immediate session, wait for one state change to be sure
+                const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, currentSession) => {
+                    if (currentSession) {
+                        showDashboard();
+                        subscription.unsubscribe(); // Stop listening once we find them
+                    } else if (event === 'INITIAL_SESSION' && !currentSession) {
+                        console.log("No session after initialization, redirecting...");
+                        window.location.href = "index.html"; 
+                    }
+                });
+            }
         }
+
+        function showDashboard() {
+            // This ensures the page only shows when login is 100% confirmed
+            document.documentElement.classList.add('authorized');
+        }
+
         checkUser();
     </script>
     <style>
-        /* Hide the body initially to stop the "flashing" loop effect */
-        body { display: none; }
+        /* Hide everything until 'authorized' class is added */
+        html:not(.authorized) body { display: none; }
+        body { display: flex; } /* Restores your sidebar layout */
     </style>
 </head>
 <body>
@@ -54,11 +67,10 @@
     </main>
 
     <script>
-        // 4. Logout Function
         async function handleLogout() {
             const { error } = await supabaseClient.auth.signOut();
             if (error) {
-                alert("Error logging out: " + error.message);
+                alert("Error: " + error.message);
             } else {
                 window.location.href = "index.html"; 
             }

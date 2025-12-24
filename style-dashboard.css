@@ -1,5 +1,5 @@
 /* ============================================================
-    TEPPA TRADING - FINAL RESPONSIVE CSS (FIXED ATTACH)
+    TEPPA TRADING - UPDATED RESPONSIVE CSS
    ============================================================ */
 
 :root {
@@ -20,6 +20,7 @@ body {
     background: var(--primary-bg);
     color: white;
     display: flex;
+    min-height: 100vh;
 }
 
 /* --- Sidebar Logic --- */
@@ -47,14 +48,56 @@ body {
     transition: margin-left 0.3s ease;
 }
 
-/* --- Sidebar Components --- */
-.logo {
-    color: var(--accent);
-    font-size: 1.4rem;
-    font-weight: bold;
-    margin-bottom: 25px;
+/* --- Delete Button Fix --- */
+.delete-btn {
+    position: relative;
+    z-index: 10; /* Ensures it sits above card backgrounds */
+    pointer-events: auto !important; /* Forces the click to register */
+    background: rgba(255, 75, 75, 0.1);
+    border: 1px solid #ff4b4b;
+    color: #ff4b4b;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
+/* --- Mobile Logic Fix --- */
+.mobile-toggle {
+    display: none;
+    background: var(--accent);
+    color: black;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 3000;
+}
+
+@media (max-width: 992px) {
+    .mobile-toggle { display: block; } /* Shows button on mobile */
+    
+    .sidebar { 
+        transform: translateX(-100%); 
+        width: 100%; 
+        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    }
+    
+    .sidebar.active { 
+        transform: translateX(0); 
+    }
+    
+    .main-content { 
+        margin-left: 0; 
+        width: 100%; 
+        padding-top: 70px; 
+    }
+}
+
+/* Rest of your existing styles for inputs and buttons... */
 .clock-sidebar {
     color: var(--accent);
     font-family: monospace;
@@ -64,93 +107,4 @@ body {
     border: 1px solid rgba(0, 255, 174, 0.3);
     border-radius: 8px;
     margin-bottom: 20px;
-}
-
-.sidebar-widget {
-    background: var(--widget-inner);
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    margin-bottom: 20px;
-}
-
-.nav-label {
-    color: var(--accent);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-    font-weight: bold;
-    display: block;
-}
-
-/* --- Form Elements --- */
-.sidebar input, .sidebar select, .sidebar textarea {
-    width: 100%;
-    background: #161b22;
-    border: 1px solid var(--border);
-    color: white;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    outline: none;
-}
-
-/* --- FIXED UPLOAD BUTTON --- */
-.upload-label {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background: #1c2128;
-    border: 2px dashed var(--accent) !important; /* Made neon green and thicker */
-    color: #ffffff;
-    padding: 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    margin-bottom: 15px;
-    transition: 0.3s;
-}
-
-.upload-label:hover {
-    background: #21262d;
-    filter: brightness(1.2);
-}
-
-.upload-label i {
-    font-size: 1.2rem;
-    color: var(--accent);
-}
-
-/* --- Buttons --- */
-.widget-btn, .side-btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--accent);
-    color: black;
-    border: none;
-    font-weight: bold;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-/* --- Mobile Logic --- */
-.mobile-header {
-    display: none;
-    background: var(--sidebar-bg);
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--border);
-    position: fixed;
-    top: 0; width: 100%; z-index: 1001;
-    justify-content: space-between;
-}
-
-@media (max-width: 992px) {
-    .sidebar { transform: translateX(-100%); width: 100%; }
-    .sidebar.active { transform: translateX(0); }
-    .main-content { margin-left: 0; width: 100%; padding-top: 80px; }
-    .mobile-header { display: flex; }
 }

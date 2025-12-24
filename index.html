@@ -156,10 +156,16 @@ document.getElementById('closeModal').onclick = closeAuth
 document.getElementById('forgotPw').onclick = forgotPassword
 
 supabaseClient.auth.getSession().then(({ data }) => {
-  updateUI(!!data.session)
-})
+    if (data.session) {
+        // If a user is logged in, send them to the dashboard immediately
+        window.location.href = "dashboard.html";
+    } else {
+        updateUI(false);
+    }
+});
 </script>
 
 </body>
 </html>
+
 

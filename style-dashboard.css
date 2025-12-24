@@ -1,14 +1,15 @@
 /* ============================================================
-   TEPPA TRADING - FINAL RESPONSIVE CSS
+    TEPPA TRADING - FINAL RESPONSIVE CSS
    ============================================================ */
 
 :root {
     --sb-width: 280px;
     --primary-bg: #0b0e14;
     --sidebar-bg: #161b22;
-    --accent: #00ffae; /* Matching your new neon green */
+    --accent: #00ffae; /* Matching your neon green */
     --border: #30363d;
     --text-muted: #8b949e;
+    --widget-inner: #0d1117;
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +47,7 @@ body {
     transition: margin-left 0.3s ease;
 }
 
-/* --- Sidebar Widgets --- */
+/* --- Sidebar Components --- */
 .logo {
     color: var(--accent);
     font-size: 1.4rem;
@@ -62,11 +63,15 @@ body {
     padding: 12px;
     border: 1px solid rgba(0, 255, 174, 0.2);
     border-radius: 8px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
-.sidebar-section {
-    margin-bottom: 25px;
+.sidebar-widget {
+    background: var(--widget-inner);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
 }
 
 .nav-label {
@@ -76,20 +81,28 @@ body {
     letter-spacing: 1px;
     margin-bottom: 12px;
     font-weight: bold;
+    display: block;
 }
 
+/* --- Form Elements --- */
 .sidebar input, .sidebar select, .sidebar textarea {
     width: 100%;
-    background: #0d1117;
+    background: #161b22;
     border: 1px solid var(--border);
     color: white;
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 6px;
     font-size: 0.85rem;
+    outline: none;
 }
 
-.side-btn {
+.sidebar input:focus {
+    border-color: var(--accent);
+}
+
+/* --- Buttons --- */
+.widget-btn, .side-btn, .gate-btn {
     width: 100%;
     padding: 12px;
     background: var(--accent);
@@ -99,10 +112,55 @@ body {
     border-radius: 6px;
     cursor: pointer;
     transition: 0.2s;
+    font-size: 0.9rem;
 }
 
-.side-btn:hover {
+.widget-btn:hover, .side-btn:hover {
     filter: brightness(1.1);
+}
+
+.gate-btn:disabled {
+    background: #30363d;
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* --- Checklist Styling --- */
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.check-item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/* --- Custom Upload Button --- */
+.upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #1c2128;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+    transition: 0.3s;
+}
+
+.upload-label:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* --- Mobile Responsiveness --- */
@@ -116,12 +174,21 @@ body {
     width: 100%;
     z-index: 1001;
     justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1999;
 }
 
 @media (max-width: 992px) {
     .sidebar {
         transform: translateX(-100%);
-        width: 100%; /* Full screen on mobile for better focus */
+        width: 100%; 
     }
 
     .sidebar.active {
@@ -131,10 +198,14 @@ body {
     .main-content {
         margin-left: 0;
         width: 100%;
-        padding-top: 80px; /* Space for mobile header */
+        padding-top: 80px; 
     }
 
     .mobile-header {
         display: flex;
+    }
+
+    .sidebar.active + .sidebar-overlay {
+        display: block;
     }
 }

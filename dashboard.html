@@ -8,30 +8,40 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // 1. Initialize Supabase (Using your actual credentials)
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // 2. The Loop-Breaker Logic
         supabaseClient.auth.onAuthStateChange((event, session) => {
-            console.log("Auth Event (Dashboard):", event);
-
             if (!session && event === 'INITIAL_SESSION') {
-                // Only kick out if we are SURE there is no session after initialization
-                console.log("No session found after init. Redirecting...");
                 window.location.replace("index.html");
             } else if (session) {
-                // Only show the page once session is confirmed
-                console.log("Session confirmed for:", session.user.email);
+                // FEATURE 1: Display User Email
+                document.getElementById('userEmail').innerText = session.user.email;
                 document.documentElement.classList.add('authorized');
             }
         });
     </script>
     <style>
-        /* Hide everything until 'authorized' class is added to prevent flashing */
         html:not(.authorized) body { display: none; }
-        body { display: flex; } /* Restores your sidebar layout */
+        body { display: flex; margin: 0; background-color: #0a0e17; color: white; }
+        
+        /* Ticker Container Styling */
+        .ticker-wrap {
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #1e222d;
+        }
+
+        .user-badge {
+            background: rgba(0, 255, 174, 0.1);
+            color: #00ffae;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid #00ffae;
+        }
     </style>
 </head>
 <body>
@@ -45,23 +55,42 @@
     </aside>
 
     <main class="main-content">
-        <h1>Welcome to your Dashboard</h1>
+        <div class="ticker-wrap">
+            <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                {
+                "symbols": [
+                    { "proName": "FX_IDC:EURUSD", "title": "EUR/USD" },
+                    { "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
+                    { "proName": "OANDA:NAS100USD", "title": "NAS100" },
+                    { "proName": "OANDA:XAUUSD", "title": "Gold" }
+                ],
+                "showSymbolLogo": true,
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "displayMode": "adaptive",
+                "locale": "en"
+                }
+                </script>
+            </div>
+            </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Welcome back!</h1>
+            <span class="user-badge" id="userEmail">Loading...</span>
+        </div>
+
         <div class="card">
             <h3>Master Forex & Indices</h3>
-            <p>Your trading session is active.</p>
+            <p>Your trading session is active and secured.</p>
         </div>
     </main>
 
     <script>
-        // 3. Logout Function
         async function handleLogout() {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
-                // Use replace to clear history and prevent loops
-                window.location.replace("index.html"); 
-            }
+            await supabaseClient.auth.signOut();
+            window.location.replace("index.html"); 
         }
     </script>
 </body>

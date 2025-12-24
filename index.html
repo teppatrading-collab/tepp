@@ -46,8 +46,12 @@ async function handleAuth() {
     ? await supabaseClient.auth.signInWithPassword({ email, password })
     : await supabaseClient.auth.signUp({ email, password });
 
-  if (error) alert(error.message);
-  else window.location.href = "dashboard.html"; // Immediate move on success
+  if (error) {
+      alert(error.message);
+  } else {
+      // Manual redirect on success
+      window.location.replace("dashboard.html"); 
+  }
 }
 
 function updateUI(loggedIn) {
@@ -62,11 +66,16 @@ document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut
 document.getElementById('submitAuth').onclick = handleAuth;
 document.getElementById('closeModal').onclick = () => document.getElementById('authModal').classList.add('hidden');
 
-// LOOP-BREAKER: Only redirect if on THIS page
+/* =======================
+   THE LOOP-BREAKER GUARD
+======================= */
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         updateUI(true);
-        if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+        // Path check: ensures this page doesn't try to redirect if you are already on the dashboard
+        const path = window.location.pathname;
+        if (path.endsWith('index.html') || path === '/' || path.includes('teppatrading.com')) {
+            console.log("Session confirmed, replacing index with dashboard...");
             window.location.replace("dashboard.html");
         }
     } else {

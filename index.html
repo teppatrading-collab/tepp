@@ -4,12 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Teppa Trading</title>
-
 <link rel="stylesheet" href="style.css">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
 
 <header class="navbar">
@@ -30,16 +27,10 @@
 <div id="authModal" class="modal hidden">
   <div class="modal-box">
     <h2 id="authTitle">Login</h2>
-
     <input id="email" type="email" placeholder="Email">
     <input id="password" type="password" placeholder="Password">
-
     <button id="submitAuth" class="cta">Submit</button>
-
-    <p id="forgotPw" style="cursor:pointer;color:#00ffae;margin-top:10px;">
-      Forgot password?
-    </p>
-
+    <p id="forgotPw" style="cursor:pointer;color:#00ffae;margin-top:10px;">Forgot password?</p>
     <p id="closeModal" style="cursor:pointer;color:#aaa;">Close</p>
   </div>
 </div>
@@ -55,13 +46,9 @@ const supabaseClient = window.supabase.createClient(
 
 let mode = 'login'
 
-/* =======================
-   MODAL CONTROLS
-======================= */
 function openAuth(type) {
   mode = type
-  document.getElementById('authTitle').innerText =
-    type === 'login' ? 'Login' : 'Sign Up'
+  document.getElementById('authTitle').innerText = type === 'login' ? 'Login' : 'Sign Up'
   document.getElementById('authModal').classList.remove('hidden')
 }
 
@@ -69,9 +56,6 @@ function closeAuth() {
   document.getElementById('authModal').classList.add('hidden')
 }
 
-/* =======================
-   AUTH HANDLER
-======================= */
 async function handleAuth() {
   const email = document.getElementById('email').value.trim()
   const password = document.getElementById('password').value.trim()
@@ -81,94 +65,52 @@ async function handleAuth() {
     return
   }
 
-  let result
-  if (mode === 'login') {
-    result = await supabaseClient.auth.signInWithPassword({ email, password })
-  } else {
-    result = await supabaseClient.auth.signUp({ email, password })
-  }
+  let result = mode === 'login' 
+    ? await supabaseClient.auth.signInWithPassword({ email, password })
+    : await supabaseClient.auth.signUp({ email, password });
 
   if (result.error) {
     alert(result.error.message)
-    return
-  }
-
-  // Success: Modal will close, and onAuthStateChange below will handle the redirect
-  closeAuth()
-}
-
-/* =======================
-   FORGOT PASSWORD
-======================= */
-async function forgotPassword() {
-  const email = document.getElementById('email').value.trim()
-  if (!email) {
-    alert('Enter your email first')
-    return
-  }
-
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  })
-
-  if (error) {
-    alert(error.message)
   } else {
-    alert('Password reset email sent')
+    closeAuth()
+    // Manual redirect after success to ensure it happens immediately
+    window.location.href = "dashboard.html";
   }
 }
 
-/* =======================
-   LOGOUT
-======================= */
 async function logout() {
   await supabaseClient.auth.signOut()
-  updateUI(false)
 }
 
-/* =======================
-   UI STATE
-======================= */
 function updateUI(loggedIn) {
   document.getElementById('loginBtn').classList.toggle('hidden', loggedIn)
   document.getElementById('signupBtn').classList.toggle('hidden', loggedIn)
   document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn)
 }
 
-/* =======================
-   APPLY BUTTON
-======================= */
-document.getElementById('applyBtn').onclick = () => {
-  window.location.href = 'apply.html'
-}
-
-/* =======================
-   EVENTS & THE REDIRECT GUARD
-======================= */
 document.getElementById('loginBtn').onclick = () => openAuth('login')
 document.getElementById('signupBtn').onclick = () => openAuth('signup')
 document.getElementById('logoutBtn').onclick = logout
 document.getElementById('submitAuth').onclick = handleAuth
 document.getElementById('closeModal').onclick = closeAuth
-document.getElementById('forgotPw').onclick = forgotPassword
 
-// This is the specific fix to stop the infinite loop
+/* =======================
+   THE LOOP-BREAKER GUARD
+======================= */
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         updateUI(true);
-        // We check the URL to make sure we only redirect IF we are currently on the index page
-        // This stops the index from fighting with the dashboard
-        const isHomePage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/';
-        
-        if (isHomePage) {
-            console.log("Session detected, moving to dashboard...");
-            window.location.href = "dashboard.html";
+        // Only redirect if the user is on the homepage. 
+        // This prevents index.html from fighting with dashboard.html
+        const path = window.location.pathname;
+        if (path === '/' || path.endsWith('index.html') || path === '/teppatrading.com/') {
+            console.log("Redirecting to dashboard...");
+            window.location.replace("dashboard.html");
         }
     } else {
         updateUI(false);
     }
 });
 </script>
-
 </body>
 </html>

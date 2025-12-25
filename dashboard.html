@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teppa Trading | Pro Terminal</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -13,6 +14,7 @@
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         let activeFilter = 'all'; 
+        let performanceChart; // Global chart variable
 
         // 1. Auth Check
         async function checkAuth() {
@@ -30,7 +32,7 @@
             document.querySelector('.sidebar').classList.toggle('active');
         }
 
-        // 2. Live Chart Sync Logic
+        // 2. Live Chart Sync
         function updateWidget() {
             const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
             const widgetFrame = document.getElementById('tv-widget');
@@ -103,11 +105,10 @@
             }
         }
 
-        // 5. Load Trades & Calculate Analytics
+        // 5. Load Trades & Analytics
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
             
-            // Toggle Visuals
             document.getElementById('btn-all').classList.toggle('active-filter', filterMode === 'all');
             document.getElementById('btn-playbook').classList.toggle('active-filter', filterMode === 'playbook');
 
@@ -128,12 +129,11 @@
             if (error) return;
             feed.innerHTML = '';
             
-            // --- NEW ANALYTICS LOGIC ---
+            // --- ANALYTICS ---
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
             
-            // Calculate Current Streak
             let currentStreak = 0;
             for (let i = 0; i < trades.length; i++) {
                 if(trades[i].outcome === 'Pending') continue;
@@ -141,25 +141,41 @@
                 else break; 
             }
 
-            // Calculate Best Session
-            let sessions = { "London": 0, "New York": 0, "Asian": 0 };
+            // Session Stats Logic
+            let sessionStats = {
+                "London": { wins: 0, losses: 0 },
+                "New York": { wins: 0, losses: 0 },
+                "Asian": { wins: 0, losses: 0 }
+            };
+
             trades.forEach(t => {
-                if(t.outcome === 'Win' && sessions[t.session] !== undefined) {
-                    sessions[t.session]++;
+                if(sessionStats[t.session]) {
+                    if(t.outcome === 'Win') sessionStats[t.session].wins++;
+                    if(t.outcome === 'Loss') sessionStats[t.session].losses++;
                 }
             });
-            let bestSession = Object.keys(sessions).reduce((a, b) => sessions[a] > sessions[b] ? a : b);
+
+            // Find Best Session
+            let bestSession = "N/A";
+            let maxWins = -1;
+            Object.keys(sessionStats).forEach(s => {
+                if(sessionStats[s].wins > maxWins && sessionStats[s].wins > 0) {
+                    maxWins = sessionStats[s].wins;
+                    bestSession = s;
+                }
+            });
             
-            // Update UI Stats
             if(filterMode === 'all') {
                 document.getElementById('winRateStat').innerText = winRate + "%";
                 document.getElementById('winRateStat').style.color = winRate >= 50 ? 'var(--primary)' : '#ff4b4b';
                 
                 document.getElementById('totalTradesStat').innerText = trades.length;
                 document.getElementById('streakStat').innerText = currentStreak + " W";
-                document.getElementById('bestSessionStat').innerText = sessions[bestSession] > 0 ? bestSession : "N/A";
+                document.getElementById('bestSessionStat').innerText = bestSession;
+                
+                // UPDATE CHART
+                updateChart(sessionStats);
             }
-            // ---------------------------
 
             trades.forEach(trade => {
                 const card = document.createElement('div');
@@ -188,6 +204,61 @@
             });
         }
 
+        // 6. Chart Logic
+        function updateChart(stats) {
+            const ctx = document.getElementById('sessionChart').getContext('2d');
+            
+            // Prepare Data
+            const labels = ['London', 'New York', 'Asian'];
+            const wins = [stats['London'].wins, stats['New York'].wins, stats['Asian'].wins];
+            const losses = [stats['London'].losses, stats['New York'].losses, stats['Asian'].losses];
+
+            if (performanceChart) {
+                performanceChart.data.datasets[0].data = wins;
+                performanceChart.data.datasets[1].data = losses;
+                performanceChart.update();
+            } else {
+                performanceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Wins',
+                                data: wins,
+                                backgroundColor: '#00ffae',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Losses',
+                                data: losses,
+                                backgroundColor: '#ff4b4b',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#8b949e' } }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#30363d' },
+                                ticks: { color: '#8b949e', stepSize: 1 }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#8b949e' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         async function deleteTrade(id) {
             if (confirm("Delete this entry?")) {
                 await supabaseClient.from('trades').delete().eq('id', id);
@@ -204,35 +275,36 @@
         .sidebar { width: 300px; height: 100vh; background: #010409; position: fixed; border-right: 1px solid var(--border); padding: 25px; overflow-y: auto; transition: 0.3s; z-index: 1000; box-sizing: border-box;}
         .main-content { margin-left: 300px; padding: 40px; max-width: 1600px; }
         
-        /* Sidebar Elements */
         .sidebar-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
         .side-input { width: 100%; background: var(--bg); color: white; border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; transition: 0.2s;}
         .side-input:focus { border-color: var(--primary); outline: none; }
         .side-btn { width: 100%; background: var(--primary); color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .side-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* Playbook Checkbox */
         .playbook-option { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; font-size: 0.85rem; color: var(--gold); font-weight: bold; }
         .playbook-option input { accent-color: var(--gold); width: 16px; height: 16px; }
 
-        /* Filter Toggle Buttons */
         .filter-container { display: flex; gap: 10px; margin-bottom: 25px; }
         .filter-btn { background: var(--card); border: 1px solid var(--border); color: #8b949e; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
         .filter-btn:hover { background: #21262d; }
         .filter-btn.active-filter { background: rgba(0, 255, 174, 0.1); color: var(--primary); border-color: var(--primary); }
         .filter-btn.active-filter.pb-btn { background: rgba(255, 215, 0, 0.1); color: var(--gold); border-color: var(--gold); }
 
-        /* NEW STATS GRID (4 Cards) */
+        /* Stats Grid */
         .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-box { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 12px; position: relative; overflow: hidden; }
         .stat-box::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--border); }
-        .stat-box:nth-child(1)::before { background: var(--primary); } /* Win Rate */
-        .stat-box:nth-child(2)::before { background: #3fb950; } /* Streak */
-        .stat-box:nth-child(3)::before { background: #a371f7; } /* Session */
-        .stat-box:nth-child(4)::before { background: #8b949e; } /* Total */
+        .stat-box:nth-child(1)::before { background: var(--primary); } 
+        .stat-box:nth-child(2)::before { background: #3fb950; } 
+        .stat-box:nth-child(3)::before { background: #a371f7; } 
+        .stat-box:nth-child(4)::before { background: #8b949e; } 
 
         .stat-label { color: #8b949e; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; display: block; }
         .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin: 0; }
+
+        /* Chart Section */
+        .chart-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 30px; height: 300px; position: relative; }
+        .chart-header { font-size: 0.9rem; color: #8b949e; font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; }
 
         /* Trade Cards */
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
@@ -255,12 +327,10 @@
         .card-meta { color: #8b949e; font-size: 0.8rem; margin: 10px 0; display: flex; align-items: center; gap: 10px;}
         .trade-reason { font-size: 0.9rem; line-height: 1.6; margin: 10px 0; color: #e6edf3; }
         .live-link { color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
-        .live-link:hover { text-decoration: underline; }
         
         .delete-btn { background: none; border: none; color: #484f58; cursor: pointer; float: right; padding: 5px; border-radius: 4px;}
         .delete-btn:hover { color: #ff4b4b; background: rgba(255, 75, 75, 0.1); }
 
-        /* Mobile Responsive */
         .mobile-toggle { display: none; position: fixed; top: 20px; right: 20px; background: var(--card); border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 10px; z-index: 2000; cursor: pointer; }
         
         @media (max-width: 992px) {
@@ -341,6 +411,16 @@
             <div class="stat-box">
                 <span class="stat-label">Total Trades</span>
                 <h3 class="stat-value" id="totalTradesStat" style="color:#8b949e;">0</h3>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="chart-header">
+                <span>PERFORMANCE BY SESSION</span>
+                <i class='bx bx-bar-chart-alt-2'></i>
+            </div>
+            <div style="height: 230px;">
+                <canvas id="sessionChart"></canvas>
             </div>
         </div>
         

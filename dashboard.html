@@ -13,7 +13,12 @@
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        let activeFilter = 'all'; 
+        // --- SETTINGS ---
+        let ACCOUNT_GOAL = 10000; // Target Profit Goal ($)
+        
+        // --- STATE ---
+        let activeFilter = 'all'; // 'all' or 'playbook'
+        let activeTimeframe = 'all'; // 'week', 'month', 'year', 'all'
         let sessionChart; 
         let equityChart; 
         let currentEditId = null; 
@@ -26,7 +31,7 @@
             } else {
                 document.getElementById('userEmail').innerText = session.user.email;
                 loadTrades();
-                setDefaultSession(); // Set sidebar session automatically on load
+                setDefaultSession();
             }
         }
         checkAuth();
@@ -42,7 +47,7 @@
             widgetFrame.src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","dateRange":"12M","colorTheme":"dark","trendLineColor":"rgba(0, 255, 174, 1)","underLineColor":"rgba(0, 255, 174, 0.3)","isTransparent":true,"autosize":true,"largeChartUrl":""}`;
         }
 
-        // 3. Set Default Session (Auto-detect but allow change)
+        // 3. Set Default Session
         function setDefaultSession() {
             const hour = new Date().getHours(); 
             let session = "Asian";
@@ -53,20 +58,19 @@
             if(sessionSelect) sessionSelect.value = session;
         }
 
-        // 4. Save Trade (NOW USES SELECTED SESSION)
+        // 4. Save Trade (NOW WITH STRATEGY)
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
             const pnl = document.getElementById('tradePnL').value; 
             const emotion = document.getElementById('tradeEmotion').value;
+            const strategy = document.getElementById('tradeStrategy').value; // Get Strategy
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
             const isPlaybook = document.getElementById('playbookCheck').checked;
             const fileInput = document.getElementById('chartUpload');
             const status = document.getElementById('journalStatus');
-            
-            // NEW: Get session from dropdown instead of auto-calc
             const currentSession = document.getElementById('tradeSession').value; 
             
             if(!pair || !reason) {
@@ -99,14 +103,16 @@
                 { 
                     pair, type, reason, tradingview_link: chartLink, 
                     chart_screenshot: imageUrl, outcome, emotion,
-                    session: currentSession, // Saving selected session
+                    session: currentSession, 
+                    strategy: strategy, // Saving Strategy
                     is_playbook: isPlaybook,
                     pnl: finalPnL 
                 }
             ]);
 
             if (error) {
-                status.innerText = "Error saving.";
+                status.innerText = "Error: Check 'strategy' column exists in DB.";
+                console.error(error);
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
@@ -114,35 +120,64 @@
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
                 document.getElementById('playbookCheck').checked = false;
-                setDefaultSession(); // Reset session to current time
+                setDefaultSession(); 
             }
         }
 
-        // 5. Load Trades & Analytics
+        // --- NEW: TIMEFRAME FILTER LOGIC ---
+        function setTimeframe(tf) {
+            activeTimeframe = tf;
+            // Update visual buttons
+            document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active-tf'));
+            document.getElementById(`tf-${tf}`).classList.add('active-tf');
+            loadTrades(activeFilter); // Reload with new time filter
+        }
+
+        function filterTradesByTime(trades) {
+            if (activeTimeframe === 'all') return trades;
+
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            return trades.filter(t => {
+                const tDate = new Date(t.created_at);
+                if (activeTimeframe === 'week') {
+                    // Simple "last 7 days" logic or "Start of Week"
+                    const oneWeekAgo = new Date();
+                    oneWeekAgo.setDate(now.getDate() - 7);
+                    return tDate >= oneWeekAgo;
+                }
+                if (activeTimeframe === 'month') {
+                    return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear();
+                }
+                if (activeTimeframe === 'year') {
+                    return tDate.getFullYear() === now.getFullYear();
+                }
+                return true;
+            });
+        }
+
+        // 5. Load Trades (UPDATED)
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
-            
             document.getElementById('btn-all').classList.toggle('active-filter', filterMode === 'all');
             document.getElementById('btn-playbook').classList.toggle('active-filter', filterMode === 'playbook');
 
             const feed = document.getElementById('tradeFeed');
-            feed.innerHTML = '<p style="color:#8b949e;">Calculating financials...</p>';
+            feed.innerHTML = '<p style="color:#8b949e;">Analyzing market data...</p>';
 
-            let query = supabaseClient
-                .from('trades')
-                .select('*')
-                .order('created_at', { ascending: false });
+            let query = supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
+            if (filterMode === 'playbook') query = query.eq('is_playbook', true);
 
-            if (filterMode === 'playbook') {
-                query = query.eq('is_playbook', true);
-            }
-
-            const { data: trades, error } = await query;
-
+            const { data: rawTrades, error } = await query;
             if (error) return;
+            
+            // APPLY TIMEFRAME FILTER
+            const trades = filterTradesByTime(rawTrades);
+
             feed.innerHTML = '';
             
-            // --- FINANCIAL MATH ---
+            // Analytics
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
@@ -152,6 +187,7 @@
             let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
             let profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
 
+            // Streak
             let currentStreak = 0;
             for (let i = 0; i < trades.length; i++) {
                 if(trades[i].outcome === 'Pending') continue;
@@ -159,33 +195,30 @@
                 else break; 
             }
 
-            let sessionStats = {
-                "London": { wins: 0, losses: 0 },
-                "New York": { wins: 0, losses: 0 },
-                "Asian": { wins: 0, losses: 0 }
-            };
+            // Session Stats
+            let sessionStats = { "London": { wins: 0, losses: 0 }, "New York": { wins: 0, losses: 0 }, "Asian": { wins: 0, losses: 0 } };
             trades.forEach(t => {
-                // Ensure session exists in stats (handles old/custom sessions)
                 if(!sessionStats[t.session]) sessionStats[t.session] = { wins: 0, losses: 0 };
-                
                 if(t.outcome === 'Win') sessionStats[t.session].wins++;
                 if(t.outcome === 'Loss') sessionStats[t.session].losses++;
             });
 
-            if(filterMode === 'all') {
-                const pnlEl = document.getElementById('netPnLStat');
-                pnlEl.innerText = "$" + netPnL.toLocaleString();
-                pnlEl.style.color = netPnL >= 0 ? '#00ffae' : '#ff4b4b';
+            // UPDATE GOAL TRACKER
+            updateGoalTracker(netPnL);
 
-                document.getElementById('pfStat').innerText = profitFactor;
-                document.getElementById('winRateStat').innerText = winRate + "%";
-                document.getElementById('winRateStat').style.color = winRate >= 50 ? 'var(--primary)' : '#ff4b4b';
-                document.getElementById('streakStat').innerText = currentStreak + " W";
-                
-                updateSessionChart(sessionStats);
-                updateEquityChart(trades);
-                renderHeatmap(trades); 
-            }
+            // Update DOM
+            const pnlEl = document.getElementById('netPnLStat');
+            pnlEl.innerText = "$" + netPnL.toLocaleString();
+            pnlEl.style.color = netPnL >= 0 ? '#00ffae' : '#ff4b4b';
+
+            document.getElementById('pfStat').innerText = profitFactor;
+            document.getElementById('winRateStat').innerText = winRate + "%";
+            document.getElementById('winRateStat').style.color = winRate >= 50 ? 'var(--primary)' : '#ff4b4b';
+            document.getElementById('streakStat').innerText = currentStreak + " W";
+            
+            updateSessionChart(sessionStats);
+            updateEquityChart(trades);
+            renderHeatmap(trades); 
 
             trades.forEach(trade => {
                 const card = document.createElement('div');
@@ -194,14 +227,14 @@
 
                 const pnlColor = (trade.pnl || 0) >= 0 ? '#00ffae' : '#ff4b4b';
                 const pnlText = (trade.pnl || 0) >= 0 ? `+$${trade.pnl}` : `-$${Math.abs(trade.pnl)}`;
-                
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
 
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="pair-badge">${trade.pair}</span>
-                        <div style="display:flex; gap:5px;">
+                        <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
                              ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
+                             ${trade.strategy ? `<span class="strategy-badge">${trade.strategy}</span>` : ''}
                              <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <div class="card-actions">
@@ -209,11 +242,7 @@
                             <button class="action-btn delete" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
                         </div>
                     </div>
-                    
-                    <div style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${pnlColor};">
-                        ${pnlText}
-                    </div>
-
+                    <div style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${pnlColor};">${pnlText}</div>
                     ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
                     <div class="card-meta">
                         <span><i class='bx bx-time'></i> ${trade.session}</span> | 
@@ -226,17 +255,27 @@
             });
         }
 
-        // --- EDIT MODAL (UPDATED WITH SESSION) ---
+        // --- NEW GOAL TRACKER ---
+        function updateGoalTracker(currentPnL) {
+            const percentage = Math.min(Math.max((currentPnL / ACCOUNT_GOAL) * 100, 0), 100);
+            document.getElementById('goalFill').style.width = percentage + "%";
+            document.getElementById('goalText').innerText = `$${currentPnL.toLocaleString()} / $${ACCOUNT_GOAL.toLocaleString()} Goal`;
+        }
+
+        // --- EDIT LOGIC (UPDATED WITH STRATEGY) ---
         function openEditModal(tradeDataStr) {
             const trade = JSON.parse(decodeURIComponent(tradeDataStr));
             currentEditId = trade.id;
-
             document.getElementById('editPair').value = trade.pair;
             document.getElementById('editOutcome').value = trade.outcome;
             document.getElementById('editPnL').value = trade.pnl;
             document.getElementById('editReason').value = trade.reason;
-            document.getElementById('editSession').value = trade.session || "New York"; // Load existing session
+            document.getElementById('editSession').value = trade.session || "New York"; 
             
+            // Set Strategy
+            const stratSelect = document.getElementById('editStrategy');
+            if(stratSelect) stratSelect.value = trade.strategy || "Extreme";
+
             document.getElementById('editModal').style.display = 'flex';
         }
 
@@ -247,67 +286,55 @@
 
         async function saveEdit() {
             if(!currentEditId) return;
-
             const outcome = document.getElementById('editOutcome').value;
             const pnl = parseFloat(document.getElementById('editPnL').value) || 0;
             const reason = document.getElementById('editReason').value;
-            const session = document.getElementById('editSession').value; // Get new session
+            const session = document.getElementById('editSession').value; 
+            const strategy = document.getElementById('editStrategy').value; // Get Strategy
 
             document.getElementById('saveEditBtn').innerText = "Saving...";
-
+            
             const { error } = await supabaseClient
                 .from('trades')
-                .update({ outcome, pnl, reason, session }) // Update session in DB
+                .update({ outcome, pnl, reason, session, strategy })
                 .eq('id', currentEditId);
-
+            
             document.getElementById('saveEditBtn').innerText = "Update Trade";
             
-            if (!error) {
-                closeEditModal();
-                loadTrades(activeFilter);
-            } else {
-                alert("Error updating trade");
-            }
+            if (!error) { closeEditModal(); loadTrades(activeFilter); } 
+            else { alert("Error updating. Check 'strategy' column."); }
         }
 
-        // --- HEATMAP ---
+        // --- VISUALS ---
         function renderHeatmap(trades) {
             const container = document.getElementById('heatmapGrid');
             container.innerHTML = '';
-            
             const days = 60;
             const today = new Date();
             const dateMap = {};
-
             trades.forEach(t => {
                 const dateStr = new Date(t.created_at).toISOString().split('T')[0];
                 if (!dateMap[dateStr]) dateMap[dateStr] = 0;
                 dateMap[dateStr] += (t.pnl || 0);
             });
-
             for (let i = days; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(today.getDate() - i);
                 const dateStr = d.toISOString().split('T')[0];
                 const pnl = dateMap[dateStr];
-
                 const box = document.createElement('div');
                 box.className = 'heat-box';
                 box.title = `${dateStr}: ${pnl !== undefined ? '$'+pnl : 'No Trades'}`;
-
                 if (pnl > 0) box.classList.add('win');
                 else if (pnl < 0) box.classList.add('loss');
                 else box.classList.add('empty'); 
-
                 container.appendChild(box);
             }
         }
 
-        // --- CHARTS ---
         function updateEquityChart(trades) {
             const ctx = document.getElementById('equityChart').getContext('2d');
             const sortedTrades = [...trades].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            
             let runningBalance = 0;
             const dataPoints = sortedTrades.map(t => { runningBalance += (t.pnl || 0); return runningBalance; });
             const labels = sortedTrades.map(t => new Date(t.created_at).toLocaleDateString());
@@ -344,12 +371,9 @@
 
         function updateSessionChart(stats) {
             const ctx = document.getElementById('sessionChart').getContext('2d');
-            
-            // Handle cases where stats object might be missing keys if data was edited
             const wL = stats['London'] || {wins:0, losses:0};
             const wNY = stats['New York'] || {wins:0, losses:0};
             const wA = stats['Asian'] || {wins:0, losses:0};
-
             const labels = ['London', 'New York', 'Asian'];
             const wins = [wL.wins, wNY.wins, wA.wins];
             const losses = [wL.losses, wNY.losses, wA.losses];
@@ -384,6 +408,59 @@
                 loadTrades(activeFilter); 
             }
         }
+        
+        // MT4 Import (Keep this logic)
+        function handleFileImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            document.getElementById('journalStatus').innerText = "Reading file...";
+            
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const rows = doc.querySelectorAll('tr');
+                let batch = [];
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length < 10) return;
+                    const typeText = cells[2]?.innerText?.toLowerCase();
+                    if (typeText !== 'buy' && typeText !== 'sell') return;
+                    const closeTimeStr = cells[8]?.innerText;
+                    const pair = cells[4]?.innerText;
+                    const profitStr = cells[cells.length - 1]?.innerText?.replace(' ', '');
+                    if (!closeTimeStr || !pair || !profitStr) return;
+                    const pnl = parseFloat(profitStr);
+                    const outcome = pnl >= 0 ? 'Win' : 'Loss';
+                    const dateParts = closeTimeStr.split(' ');
+                    const ymd = dateParts[0].split('.');
+                    const hm = dateParts[1].split(':');
+                    const tradeDate = new Date(ymd[0], ymd[1]-1, ymd[2], hm[0], hm[1]);
+                    const hour = tradeDate.getHours();
+                    let session = "Asian";
+                    if (hour >= 8 && hour < 14) session = "London";
+                    if (hour >= 14 && hour < 21) session = "New York";
+
+                    batch.push({
+                        pair: pair, type: typeText === 'buy' ? 'Buy' : 'Sell',
+                        outcome: outcome, pnl: pnl, session: session,
+                        reason: "Imported from MT4/5", created_at: tradeDate.toISOString(),
+                        emotion: 'Neutral', is_playbook: false, strategy: 'Pro Trend' // Default for imports
+                    });
+                });
+
+                if (batch.length > 0) {
+                    const { error } = await supabaseClient.from('trades').insert(batch);
+                    if (!error) {
+                        document.getElementById('journalStatus').innerText = `✅ Imported ${batch.length} trades!`;
+                        loadTrades();
+                    }
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
     </script>
 
     <style>
@@ -402,7 +479,19 @@
         .playbook-option { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; font-size: 0.85rem; color: var(--gold); font-weight: bold; }
         .playbook-option input { accent-color: var(--gold); width: 16px; height: 16px; }
 
-        .filter-container { display: flex; gap: 10px; margin-bottom: 25px; }
+        /* GOAL TRACKER STYLES */
+        .goal-container { margin-bottom: 30px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .goal-header { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #8b949e; margin-bottom: 10px; }
+        .goal-bar-bg { width: 100%; height: 12px; background: #21262d; border-radius: 6px; overflow: hidden; }
+        .goal-fill { height: 100%; background: linear-gradient(90deg, #00ffae, #00b8ff); width: 0%; transition: width 1s ease-in-out; }
+
+        /* TIMEFRAME FILTERS */
+        .tf-container { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tf-btn { background: transparent; color: #8b949e; border: 1px solid transparent; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .tf-btn:hover { color: #fff; }
+        .tf-btn.active-tf { background: #21262d; color: var(--primary); border-color: #30363d; }
+
+        .filter-container { display: flex; gap: 10px; margin-bottom: 25px; align-items: center; }
         .filter-btn { background: var(--card); border: 1px solid var(--border); color: #8b949e; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
         .filter-btn.active-filter { background: rgba(0, 255, 174, 0.1); color: var(--primary); border-color: var(--primary); }
         .filter-btn.active-filter.pb-btn { background: rgba(255, 215, 0, 0.1); color: var(--gold); border-color: var(--gold); }
@@ -440,6 +529,7 @@
         .action-btn.delete:hover { background: #ff4b4b; color: #fff; border-color: #ff4b4b; }
 
         .pb-tag { color: var(--gold); font-size: 0.65rem; background: rgba(255, 215, 0, 0.1); padding: 3px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255, 215, 0, 0.2); }
+        .strategy-badge { color: #a371f7; font-size: 0.65rem; background: rgba(163, 113, 247, 0.1); padding: 3px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(163, 113, 247, 0.2); margin-right: 5px;}
         .trade-img-preview { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s;}
         .pair-badge { color: #fff; font-weight: 700; font-size: 1.1rem; }
         .outcome-tag { font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; font-weight: 800; text-transform: uppercase; border: 1px solid transparent; }
@@ -473,17 +563,33 @@
             <div class="modal-title">EDIT TRADE</div>
             <input type="text" id="editPair" class="side-input" disabled style="opacity:0.5; cursor:not-allowed;">
             
-            <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Session</label>
-            <select id="editSession" class="side-input">
-                <option>London</option><option>New York</option><option>Asian</option>
-            </select>
-            
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Session</label>
+                    <select id="editSession" class="side-input">
+                        <option>London</option><option>New York</option><option>Asian</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Strategy</label>
+                    <select id="editStrategy" class="side-input">
+                        <option>Extreme</option>
+                        <option>Decisional</option>
+                        <option>SMT Trade</option>
+                        <option>Pro Trend</option>
+                        <option>Counter Trend</option>
+                        <option>Continuation</option>
+                        <option>Reversal</option>
+                    </select>
+                </div>
+            </div>
+
             <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Outcome & P&L</label>
             <div style="display:flex; gap:10px;">
                 <select id="editOutcome" class="side-input" style="flex:1;"><option>Pending</option><option>Win</option><option>Loss</option></select>
                 <input type="number" id="editPnL" class="side-input" placeholder="P&L ($)" style="flex:1;">
             </div>
-
+            
             <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Notes</label>
             <textarea id="editReason" class="side-input" rows="4"></textarea>
             
@@ -505,14 +611,22 @@
             <select id="tradeSession" class="side-input">
                 <option>London</option><option>New York</option><option>Asian</option>
             </select>
+            
+            <select id="tradeStrategy" class="side-input">
+                <option value="Extreme">Extreme</option>
+                <option value="Decisional">Decisional</option>
+                <option value="SMT Trade">SMT Trade</option>
+                <option value="Pro Trend">Pro Trend</option>
+                <option value="Counter Trend">Counter Trend</option>
+                <option value="Continuation">Continuation</option>
+                <option value="Reversal">Reversal</option>
+            </select>
 
             <div style="display:flex; gap:10px;">
                 <select id="tradeType" class="side-input" style="flex:1;"><option>Buy</option><option>Sell</option></select>
                 <select id="tradeOutcome" class="side-input" style="flex:1;"><option>Pending</option><option>Win</option><option>Loss</option></select>
             </div>
-
             <input type="number" id="tradePnL" class="side-input" placeholder="P&L (e.g. 500 or -200)">
-
             <select id="tradeEmotion" class="side-input">
                 <option>Confident</option><option>FOMO</option><option>Aggressive</option><option>Neutral</option>
             </select>
@@ -530,6 +644,12 @@
             </label>
             
             <button class="side-btn" onclick="saveTradeWithImage()">Save Trade</button>
+
+            <input type="file" id="importFile" accept=".html,.htm" style="display:none;" onchange="handleFileImport(this)">
+            <button onclick="document.getElementById('importFile').click()" style="width:100%; background:#161b22; color:#8b949e; border:1px dashed #30363d; margin-top:10px; padding:10px; border-radius:8px; cursor:pointer; font-size:0.75rem;">
+                <i class='bx bx-import'></i> Import MT4 Report
+            </button>
+
             <p id="journalStatus" style="font-size: 0.75rem; color:var(--primary); text-align:center; margin-top:10px; font-weight:bold;"></p>
         </div>
 
@@ -550,6 +670,16 @@
                 <span style="color:var(--primary); font-size:0.8rem; font-weight:bold; background:rgba(0,255,174,0.1); padding:5px 10px; border-radius:20px;">PRO ACCOUNT</span>
             </div>
         </header>
+
+        <div class="goal-container">
+            <div class="goal-header">
+                <span>ACCOUNT GOAL PROGRESS</span>
+                <span id="goalText">$0 / $10,000 Goal</span>
+            </div>
+            <div class="goal-bar-bg">
+                <div id="goalFill" class="goal-fill"></div>
+            </div>
+        </div>
 
         <div class="stats-container">
             <div class="stat-box">
@@ -592,8 +722,17 @@
         </div>
         
         <div class="filter-container">
-            <button id="btn-all" class="filter-btn active-filter" onclick="loadTrades('all')">All Trades</button>
-            <button id="btn-playbook" class="filter-btn pb-btn" onclick="loadTrades('playbook')">🏆 Playbook (Best)</button>
+            <div style="flex: 1; display:flex; gap:10px;">
+                <button id="btn-all" class="filter-btn active-filter" onclick="loadTrades('all')">All Trades</button>
+                <button id="btn-playbook" class="filter-btn pb-btn" onclick="loadTrades('playbook')">🏆 Playbook (Best)</button>
+            </div>
+            
+            <div class="tf-container" style="margin:0;">
+                <button id="tf-week" class="tf-btn" onclick="setTimeframe('week')">Week</button>
+                <button id="tf-month" class="tf-btn" onclick="setTimeframe('month')">Month</button>
+                <button id="tf-year" class="tf-btn" onclick="setTimeframe('year')">Year</button>
+                <button id="tf-all" class="tf-btn active-tf" onclick="setTimeframe('all')">All</button>
+            </div>
         </div>
 
         <div id="tradeFeed" class="trade-grid">

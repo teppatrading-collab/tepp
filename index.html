@@ -43,13 +43,15 @@
 
         /* --- LIVE TICKER TAPE --- */
         .ticker-wrap {
-            position: fixed; top: 70px; width: 100%; overflow: hidden; height: 30px; background: rgba(15, 23, 42, 0.8);
+            position: fixed; top: 70px; /* Below Navbar */
+            width: 100%; overflow: hidden; height: 30px; background: rgba(15, 23, 42, 0.8);
             border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 900;
             display: flex; align-items: center;
         }
         .ticker { display: flex; animation: ticker 30s linear infinite; white-space: nowrap; }
         .ticker-item { margin-right: 40px; color: var(--text-dim); font-size: 0.75rem; font-family: 'Courier New', monospace; font-weight: bold; }
         .up { color: var(--primary); } .down { color: #ef4444; }
+        
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
         /* --- NAVBAR --- */
@@ -192,7 +194,10 @@
         }
         .modal-input:focus { border-color: var(--primary); }
         
-        select.modal-input { color: #94a3b8; } /* Fix placeholder color for select */
+        select.modal-input { color: #fff; } 
+        textarea.modal-input { resize: vertical; }
+
+        .hidden { display: none; }
 
         @media (max-width: 768px) {
             .hero { flex-direction: column; text-align: center; padding-top: 140px; }
@@ -341,6 +346,11 @@
             <h2 style="color:#fff; margin-bottom:10px;">Mentorship Application</h2>
             <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">Limited spots available. Be honest.</p>
             
+            <div id="guestFields" class="hidden">
+                <input id="appEmail" class="modal-input" type="email" placeholder="Your Email Address">
+                <input id="appPass" class="modal-input" type="password" placeholder="Create a Password">
+            </div>
+
             <input id="appDiscord" class="modal-input" type="text" placeholder="Discord Username (e.g. trader#1234)">
             <select id="appExp" class="modal-input">
                 <option value="" disabled selected>Years Trading</option>
@@ -368,23 +378,30 @@
             'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
         );
 
+        let currentUser = null;
+
+        // Check user session on load
+        async function checkUser() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            currentUser = session ? session.user : null;
+        }
+        checkUser();
+
         function openModal(mode) {
             document.getElementById('authTitle').innerText = mode;
             document.getElementById('authModal').classList.add('active');
         }
 
         // --- NEW: APPLICATION LOGIC ---
-        async function openAppModal() {
-            // 1. Check if logged in
-            const { data: { session } } = await supabaseClient.auth.getSession();
+        function openAppModal() {
+            // Open modal immediately
+            document.getElementById('appModal').classList.add('active');
             
-            if (!session) {
-                // If NOT logged in, prompt login
-                alert("Please log in or sign up to apply for mentorship.");
-                openModal('Sign Up');
+            // If user is NOT logged in, show Email/Password fields
+            if (!currentUser) {
+                document.getElementById('guestFields').classList.remove('hidden');
             } else {
-                // If logged in, open Application Modal
-                document.getElementById('appModal').classList.add('active');
+                document.getElementById('guestFields').classList.add('hidden');
             }
         }
 
@@ -393,19 +410,39 @@
             const exp = document.getElementById('appExp').value;
             const cap = document.getElementById('appCap').value;
             const why = document.getElementById('appWhy').value;
-
-            if(!discord || !why) return alert("Please fill out all fields.");
-
             const btn = document.getElementById('btnSubmitApp');
-            btn.innerText = "Sending...";
 
-            const { data: { user } } = await supabaseClient.auth.getUser();
+            // --- 1. Basic Validation ---
+            if(!discord || !why) return alert("Please fill out all fields.");
+            
+            // --- 2. Handle Guest Sign Up ---
+            if (!currentUser) {
+                const email = document.getElementById('appEmail').value;
+                const password = document.getElementById('appPass').value;
+
+                if(!email || !password) return alert("Please enter your email and create a password to submit.");
+
+                btn.innerText = "Creating Account...";
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+                if (error) {
+                    btn.innerText = "Submit Application";
+                    return alert("Sign Up Error: " + error.message);
+                }
+                
+                // Set the new user (even if email confirm is pending, we might get an ID)
+                if(data.user) currentUser = data.user;
+                else return alert("Please check your email to confirm your account, then try again.");
+            }
+
+            // --- 3. Submit Application ---
+            btn.innerText = "Sending...";
 
             const { error } = await supabaseClient
                 .from('mentorship_applications')
                 .insert([{ 
-                    user_id: user.id, 
-                    email: user.email,
+                    user_id: currentUser.id, 
+                    email: currentUser.email,
                     discord_handle: discord,
                     experience: exp,
                     capital: cap,
@@ -414,12 +451,14 @@
                 }]);
 
             if (error) {
-                alert("Error: " + error.message);
+                alert("Error sending application: " + error.message);
                 btn.innerText = "Submit Application";
             } else {
-                alert("Application Received! We will contact you via email.");
+                alert("Application Received! Check your email for updates.");
                 document.getElementById('appModal').classList.remove('active');
                 btn.innerText = "Submit Application";
+                // Redirect to status page
+                window.location.href = "mentorship.html";
             }
         }
 
@@ -490,11 +529,6 @@
                 window.location.href = "dashboard.html";
             }
         };
-
-        // If user is already logged in, redirect to dashboard (OPTIONAL: You can remove this if you want them to stay on home)
-        // supabaseClient.auth.onAuthStateChange((event, session) => {
-        //    if(session) window.location.href = "dashboard.html";
-        // });
     </script>
 
 </body>

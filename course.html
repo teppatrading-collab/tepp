@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* --- COPYING YOUR DASHBOARD THEME --- */
+        /* --- DASHBOARD THEME --- */
         :root { 
             --primary: #2dd4bf; /* Soft Teal */
             --secondary: #818cf8; /* Soft Indigo */
@@ -134,7 +134,7 @@
     let userIsPro = false; 
     let currentUserEmail = "";
     
-    // ADMIN EMAIL (Updated with your email)
+    // ADMIN EMAIL (Fixed to match exact string)
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
 
     async function init() {
@@ -143,13 +143,15 @@
         
         currentUserEmail = session.user.email;
         
-        // 1. Check if user is admin (Added toLowerCase() to prevent case sensitivity issues)
+        console.log("Logged in as:", currentUserEmail); // Debugging line
+
+        // 1. Check if user is admin (Case Insensitive Check)
         if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
             document.getElementById('adminPanel').style.display = 'block';
-            userIsPro = true; // Admin gets pro access
+            userIsPro = true; 
         }
 
-        // 2. Determine Pro Status 
+        // 2. Determine Pro Status
         if (currentUserEmail.includes("pro") || currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
             userIsPro = true;
             document.getElementById('userStatus').innerText = "PRO MEMBER";
@@ -178,14 +180,12 @@
             const card = document.createElement('div');
             card.className = 'course-card';
             
-            // Thumbnail Logic
             let thumbHTML = `<div class="thumb-area">
                 <img src="${course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
                 <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
                 ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
             </div>`;
 
-            // Body Logic
             let bodyHTML = `<div class="card-body">
                 <div class="c-title">${course.title}</div>
                 <div class="c-desc">${course.description}</div>
@@ -206,7 +206,6 @@
         document.getElementById('videoModal').style.display = 'flex';
     }
 
-    // --- ADMIN UPLOAD FUNCTION ---
     async function uploadCourse() {
         const title = document.getElementById('cTitle').value;
         const desc = document.getElementById('cDesc').value;
@@ -224,7 +223,6 @@
         else {
             alert("Course Uploaded!");
             loadCourses();
-            // Clear inputs
             document.getElementById('cTitle').value = "";
         }
     }

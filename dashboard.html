@@ -7,11 +7,11 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
     <script>
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
-        // Correct variable name to prevent crashes
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         // --- SETTINGS ---
@@ -39,11 +39,37 @@
 
         function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('active'); }
 
+        // --- NEW: UPDATED WIDGET LOGIC ---
         function updateWidget() {
             const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
+            // Update the mini preview
             const widgetFrame = document.getElementById('tv-widget');
             widgetFrame.src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","dateRange":"12M","colorTheme":"dark","trendLineColor":"rgba(45, 212, 191, 1)","underLineColor":"rgba(45, 212, 191, 0.3)","isTransparent":true,"autosize":true,"largeChartUrl":""}`;
         }
+
+        // --- NEW: FULL SCREEN ANALYSIS ---
+        function openAnalysis() {
+            const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
+            document.getElementById('analysisModal').style.display = 'flex';
+            
+            new TradingView.widget({
+                "width": "100%",
+                "height": "100%",
+                "symbol": pair,
+                "interval": "D",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "withdateranges": true,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview_chart"
+            });
+        }
+        function closeAnalysis() { document.getElementById('analysisModal').style.display = 'none'; }
 
         function setDefaultSession() {
             const hour = new Date().getHours(); 
@@ -167,7 +193,6 @@
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
-            
             let grossWin = trades.filter(t => (t.pnl || 0) > 0).reduce((a, b) => a + b.pnl, 0);
             let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
             let profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
@@ -672,6 +697,13 @@
         </div>
     </div>
 
+    <div id="analysisModal" class="modal-overlay" style="z-index: 4000;">
+        <div style="width: 95%; height: 90vh; background: #000; border-radius: 12px; position: relative; overflow: hidden; border: 1px solid var(--border);">
+            <div id="tradingview_chart" style="width:100%; height:100%;"></div>
+            <button onclick="closeAnalysis()" style="position:absolute; top:10px; right:10px; background:var(--primary); color:#000; border:none; padding:8px 15px; font-weight:bold; cursor:pointer; border-radius:4px; z-index:10;">Close Analysis</button>
+        </div>
+    </div>
+
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">EDIT TRADE</div>
@@ -776,8 +808,9 @@
             <p id="journalStatus" style="font-size: 0.75rem; color:var(--primary); text-align:center; margin-top:10px; font-weight:bold;"></p>
         </div>
 
-        <div class="sidebar-section" style="padding:0; overflow:hidden; border:none; height: 250px; background:#000;">
+        <div class="sidebar-section" style="padding:0; overflow:hidden; border:none; height: 250px; background:#000; position:relative;">
             <iframe id="tv-widget" src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22NAS100%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%2C%22dateRange%22%3A%2212M%22%2C%22colorTheme%22%3A%22dark%22%2C%22trendLineColor%22%3A%22rgba(45%2C%20212%2C%20191%2C%201)%22%2C%22underLineColor%22%3A%22rgba(45%2C%20212%2C%20191%2C%200.3)%22%2C%22isTransparent%22%3Atrue%2C%22autosize%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%7D" frameborder="0" style="width:100%; height:100%;"></iframe>
+            <button onclick="openAnalysis()" style="position:absolute; bottom:10px; right:10px; background:var(--primary); color:#000; border:none; padding:5px 10px; border-radius:4px; font-weight:bold; font-size:0.7rem; cursor:pointer; opacity:0.8;">📈 Full Chart</button>
         </div>
         
         <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:#8b949e; width:100%; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.8rem; transition:0.2s;">Log Out</button>

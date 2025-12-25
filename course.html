@@ -131,12 +131,10 @@
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     // --- CONFIG ---
-    // In a real app, you'd check this against a 'profiles' table in DB.
-    // For now, we default everyone to FREE unless specific email.
     let userIsPro = false; 
     let currentUserEmail = "";
     
-    // ADMIN EMAIL (Replace with yours to see upload tools)
+    // ADMIN EMAIL (Updated with your email)
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
 
     async function init() {
@@ -145,15 +143,14 @@
         
         currentUserEmail = session.user.email;
         
-        // 1. Check if user is admin
-        if(currentUserEmail === ADMIN_EMAIL) {
+        // 1. Check if user is admin (Added toLowerCase() to prevent case sensitivity issues)
+        if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
             document.getElementById('adminPanel').style.display = 'block';
             userIsPro = true; // Admin gets pro access
         }
 
-        // 2. Determine Pro Status (Simple email check for demo, usually DB check)
-        // Example: If email contains "pro", they are pro. Change this logic later.
-        if (currentUserEmail.includes("pro") || currentUserEmail === ADMIN_EMAIL) {
+        // 2. Determine Pro Status 
+        if (currentUserEmail.includes("pro") || currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
             userIsPro = true;
             document.getElementById('userStatus').innerText = "PRO MEMBER";
             document.getElementById('userStatus').style.borderColor = "#fbbf24";

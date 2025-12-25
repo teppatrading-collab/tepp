@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* --- COPYING YOUR DASHBOARD THEME --- */
+        /* --- PRO THEME: DEEP SLATE --- */
         :root { 
             --primary: #2dd4bf; 
             --secondary: #818cf8; 
@@ -125,14 +125,13 @@
 <script>
     const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
     const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
-    // FIXED VARIABLE NAME to avoid conflicts
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
     // --- CONFIG ---
     let userIsPro = false; 
     let currentUserEmail = "";
     
-    // ADMIN EMAIL
+    // ADMIN EMAIL (Fixed to match exact string)
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
 
     async function init() {
@@ -141,7 +140,9 @@
         
         currentUserEmail = session.user.email;
         
-        // 1. Check if user is admin (Case Insensitive)
+        console.log("Logged in as:", currentUserEmail); // Debug check
+
+        // 1. Check if user is admin (Clean check)
         if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
             document.getElementById('adminPanel').style.display = 'block';
             userIsPro = true; 
@@ -180,12 +181,14 @@
             const card = document.createElement('div');
             card.className = 'course-card';
             
+            // Thumbnail Logic
             let thumbHTML = `<div class="thumb-area">
                 <img src="${course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
                 <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
                 ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
             </div>`;
 
+            // Body Logic
             let bodyHTML = `<div class="card-body">
                 <div class="c-title">${course.title}</div>
                 <div class="c-desc">${course.description}</div>

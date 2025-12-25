@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teppa Trading | Pro Dashboard</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href="style-dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -17,8 +16,7 @@
             if (!session && event === 'INITIAL_SESSION') {
                 window.location.replace("index.html");
             } else if (session) {
-                const userEmail = document.getElementById('userEmail');
-                if (userEmail) userEmail.innerText = session.user.email;
+                document.getElementById('userEmail').innerText = session.user.email;
                 loadTrades(); 
             }
         });
@@ -70,9 +68,10 @@
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
-                // Reset form
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeReason').value = '';
+                document.getElementById('chartLink').value = '';
+                document.getElementById('fileName').innerText = "Attach Screenshot";
             }
         }
 
@@ -86,7 +85,6 @@
             if (error) return;
             feed.innerHTML = '';
             
-            // Calculate Analytics
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
@@ -104,11 +102,11 @@
                     </div>
                     ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
                     <div class="card-meta">
-                        <span><i class='bx bx-smile'></i> ${trade.emotion || 'Neutral'}</span> | 
+                        <span><i class='bx bx-smile'></i> ${trade.emotion || 'Neutral'}</span> • 
                         <span><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</span>
                     </div>
                     <p class="trade-reason">${trade.reason}</p>
-                    ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> Chart Link</a>` : ''}
+                    ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> View Chart</a>` : ''}
                 `;
                 feed.appendChild(card);
             });
@@ -123,28 +121,140 @@
     </script>
 
     <style>
-        :root { --primary: #00ffae; --bg: #0d1117; --card: #161b22; --border: #30363d; }
-        
-        /* Analytics Styling */
-        .stats-container { display: flex; gap: 15px; margin-bottom: 25px; }
-        .stat-box { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; flex: 1; text-align: center; }
-        .stat-box h3 { font-size: 1.5rem; color: var(--primary); margin: 5px 0; }
-        .stat-box span { color: #8b949e; font-size: 0.75rem; text-transform: uppercase; }
+        :root { 
+            --primary: #00ffae; 
+            --primary-glow: rgba(0, 255, 174, 0.15);
+            --bg: #0a0b0d; 
+            --sidebar-bg: #121417;
+            --card: #1c1f24; 
+            --border: #2d3139; 
+            --text-main: #e6edf3;
+            --text-dim: #8b949e;
+        }
 
-        /* Tags */
-        .outcome-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        body { 
+            background: var(--bg); 
+            color: var(--text-main); 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0; 
+            letter-spacing: -0.01em;
+        }
+        
+        /* Layout */
+        .sidebar { 
+            width: 300px; 
+            height: 100vh; 
+            background: var(--sidebar-bg); 
+            position: fixed; 
+            border-right: 1px solid var(--border); 
+            padding: 24px; 
+            overflow-y: auto; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 1000; 
+        }
+        .main-content { margin-left: 300px; padding: 40px; }
+        
+        /* Typography & UI Components */
+        h1, h2, h3, h4 { color: white; margin: 0; }
+        .sidebar-section { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .side-input { 
+            width: 100%; 
+            background: #0d0f12; 
+            color: white; 
+            border: 1px solid var(--border); 
+            padding: 12px 14px; 
+            margin-bottom: 12px; 
+            border-radius: 10px; 
+            box-sizing: border-box;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .side-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-glow); }
+        .side-btn { 
+            width: 100%; 
+            background: var(--primary); 
+            color: #000;
+            border: none; 
+            padding: 14px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: 0.2s;
+        }
+        .side-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        /* Stats Bar */
+        .stats-container { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-box { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            padding: 24px; 
+            border-radius: 20px; 
+            flex: 1; 
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-box::after { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--primary); opacity: 0.5; }
+        .stat-box h3 { font-size: 2rem; font-weight: 800; color: var(--primary); margin-top: 8px; }
+        .stat-box span { color: var(--text-dim); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Trade Cards */
+        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .trade-log-card { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            padding: 20px; 
+            border-radius: 20px; 
+            position: relative; 
+            transition: 0.3s;
+        }
+        .trade-log-card:hover { border-color: #4d5159; transform: translateY(-4px); }
+        .trade-img-preview { width: 100%; height: 190px; object-fit: cover; border-radius: 12px; margin-bottom: 16px; cursor: pointer; border: 1px solid var(--border); }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .pair-badge { color: white; font-weight: 800; font-size: 1.1rem; }
+        .outcome-tag { font-size: 0.65rem; padding: 4px 10px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
         .outcome-tag.win { background: rgba(0, 255, 174, 0.1); color: var(--primary); border: 1px solid var(--primary); }
         .outcome-tag.loss { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border: 1px solid #ff4b4b; }
-        .outcome-tag.pending { background: #30363d; color: #8b949e; }
+        .outcome-tag.pending { background: #2d3139; color: var(--text-dim); }
 
-        .mobile-toggle { display: none; position: fixed; top: 15px; right: 15px; background: var(--card); border: 1px solid var(--primary); color: var(--primary); padding: 8px; border-radius: 8px; z-index: 3000; }
+        .trade-reason { font-size: 0.95rem; line-height: 1.6; color: var(--text-main); margin-bottom: 15px; }
+        .card-meta { color: var(--text-dim); font-size: 0.75rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .live-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
+        .delete-btn { background: none; border: none; color: #4b4e54; cursor: pointer; transition: 0.2s; font-size: 1.1rem; }
+        .delete-btn:hover { color: #ff4b4b; }
+
+        /* Mobile Adjustments */
+        .mobile-toggle { 
+            display: none; 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            color: var(--primary); 
+            padding: 12px; 
+            border-radius: 12px; 
+            z-index: 2000; 
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
         
         @media (max-width: 992px) {
             .mobile-toggle { display: block; }
-            .sidebar { transform: translateX(-101%); width: 300px; position: fixed; z-index: 2500; transition: 0.4s; }
+            .sidebar { transform: translateX(-100%); width: 85%; max-width: 320px; box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
             .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0 !important; width: 100% !important; padding: 80px 15px !important; }
-            .stats-container { flex-direction: row; }
+            .main-content { margin-left: 0; padding: 100px 20px 40px 20px; }
+            .stats-container { flex-direction: column; gap: 12px; }
+            .stat-box { padding: 18px; }
         }
     </style>
 </head>
@@ -152,64 +262,51 @@
     <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu-alt-right'></i></button>
 
     <aside class="sidebar">
-        <div style="color:var(--primary); font-weight:900; font-size:1.5rem; margin-bottom:20px; text-align:center;">TEPPA PRO</div>
+        <div style="color:var(--primary); font-weight:900; font-size:1.6rem; margin-bottom:30px; text-align:center; letter-spacing: -0.02em;">TEPPA PRO</div>
         
         <div class="sidebar-section">
-            <h4><i class='bx bx-calculator'></i> Risk Calc</h4>
-            <input type="number" id="balance" class="side-input" placeholder="Balance ($)">
-            <input type="number" id="stopLoss" class="side-input" placeholder="SL Pips">
-            <button class="side-btn" onclick="calculateRisk()" style="width:100%; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold;">Calculate</button>
-            <p id="calcResult" style="color:var(--primary); font-size:0.8rem; margin-top:10px; text-align:center;"></p>
-        </div>
-
-        <div class="sidebar-section">
-            <h4><i class='bx bx-edit-alt'></i> New Entry</h4>
+            <h4 style="margin:0 0 15px 0; color:var(--text-dim); font-size:0.7rem; text-transform: uppercase; letter-spacing: 0.1em;">Journal Entry</h4>
             <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. NAS100)">
-            <div style="display:flex; gap:5px;">
+            <div style="display:flex; gap:8px;">
                 <select id="tradeType" class="side-input" style="flex:1;"><option>Buy</option><option>Sell</option></select>
                 <select id="tradeOutcome" class="side-input" style="flex:1;"><option>Pending</option><option>Win</option><option>Loss</option></select>
             </div>
             <select id="tradeEmotion" class="side-input">
-                <option>Confident</option><option>Fearful (FOMO)</option><option>Aggressive</option><option>Neutral</option>
+                <option>Confident</option><option>FOMO</option><option>Aggressive</option><option>Neutral</option>
             </select>
             <input type="text" id="chartLink" class="side-input" placeholder="Chart Link">
-            <textarea id="tradeReason" placeholder="Setup notes..." rows="2" class="side-input"></textarea>
+            <textarea id="tradeReason" placeholder="Setup analysis..." rows="3" class="side-input" style="resize:none;"></textarea>
             <input type="file" id="chartUpload" accept="image/*" style="display:none;" onchange="document.getElementById('fileName').innerText=this.files[0].name">
-            <label for="chartUpload" id="fileName" style="display:block; border:1px dashed var(--border); padding:10px; border-radius:8px; text-align:center; font-size:0.7rem; cursor:pointer; margin-bottom:10px;">Attach Screenshot</label>
-            <button onclick="saveTradeWithImage()" style="width:100%; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold;">Save Trade</button>
-            <p id="journalStatus" style="font-size: 0.7rem; color:var(--primary); text-align:center; margin-top:5px;"></p>
+            <label for="chartUpload" id="fileName" style="display:block; border:1px dashed var(--border); padding:12px; border-radius:10px; text-align:center; font-size:0.8rem; cursor:pointer; margin-bottom:12px; color:var(--text-dim); background: #0d0f12;">Attach Screenshot</label>
+            <button class="side-btn" onclick="saveTradeWithImage()">Save Trade</button>
+            <p id="journalStatus" style="font-size: 0.75rem; color:var(--primary); text-align:center; margin-top:12px; font-weight: 600;"></p>
         </div>
 
-        <div class="sidebar-section" style="padding:0; overflow:hidden; height:200px;">
-            <div class="tradingview-widget-container">
-                <iframe src="https://www.tradingview-widget.com/embed-widget/events/?colorTheme=dark&isTransparent=true&width=100%&height=200&locale=en&importanceFilter=-1%2C0%2C1&currencyFilter=USD%2CEUR%2CGBP" frameborder="0" style="width:100%; height:200px;"></iframe>
-            </div>
+        <div class="sidebar-section" style="padding:0; overflow:hidden; border:none; height: 320px;">
+            <iframe src="https://www.tradingview-widget.com/embed-widget/events/?colorTheme=dark&isTransparent=true&width=100%&height=320&locale=en&importanceFilter=-1%2C0%2C1&currencyFilter=USD%2CEUR%2CGBP" frameborder="0" style="width:100%; height:320px;"></iframe>
         </div>
         
-        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="background:none; border:1px solid #ff4b4b; color:#ff4b4b; width:100%; padding:8px; border-radius:8px; cursor:pointer;">Logout</button>
+        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="background:none; border:1px solid #3d2327; color:#ff4b4b; width:100%; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; margin-top: 10px; font-size: 0.85rem;">Logout</button>
     </aside>
 
-    <main class="main-content" style="margin-left: 280px; padding: 30px;">
-        <header style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <h1 style="color:var(--primary); margin:0;">Dashboard</h1>
-            <span id="userEmail" style="color:#8b949e; font-size:0.8rem;"></span>
+    <main class="main-content">
+        <header style="margin-bottom:40px;">
+            <h1 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em;">Insights</h1>
+            <span id="userEmail" style="color:var(--text-dim); font-size:0.9rem; font-weight: 500;"></span>
         </header>
 
         <div class="stats-container">
-            <div class="stat-box"><span>Win Rate</span><h3 id="winRateStat">0%</h3></div>
-            <div class="stat-box"><span>Total Trades</span><h3 id="totalTradesStat">0</h3></div>
+            <div class="stat-box"><span>Current Win Rate</span><h3 id="winRateStat">0%</h3></div>
+            <div class="stat-box"><span>Active Journaling</span><h3 id="totalTradesStat">0</h3></div>
         </div>
         
-        <div class="widget-card" style="margin-bottom:25px; border-radius:12px; overflow:hidden;">
-            <div class="tradingview-widget-container">
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-                {"symbols": [{"proName": "OANDA:NAS100USD", "title": "NAS100"},{"proName": "OANDA:XAUUSD", "title": "Gold"},{"proName": "BITSTAMP:BTCUSD", "title": "BTC"}],"colorTheme": "dark","isTransparent": true,"displayMode": "adaptive","locale": "en"}
-                </script>
-            </div>
+        <h2 style="font-size:1.3rem; font-weight: 700; color:white; margin-bottom:24px; display: flex; align-items: center; gap: 8px;">
+            <i class='bx bx-history' style="color: var(--primary);"></i> Performance History
+        </h2>
+        
+        <div id="tradeFeed" class="trade-grid">
+            <p style="color:var(--text-dim);">Scanning for entries...</p>
         </div>
-
-        <h2 style="font-size:1.1rem; color:white; margin-bottom:15px;"><i class='bx bx-list-ul'></i> Recent Journal</h2>
-        <div id="tradeFeed" class="trade-grid"></div>
     </main>
 </body>
 </html>

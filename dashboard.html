@@ -15,7 +15,8 @@
 
         let activeFilter = 'all'; 
         let sessionChart; 
-        let equityChart; // New Chart Variable
+        let equityChart; 
+        let currentEditId = null; // Stores ID of trade being edited
 
         // 1. Auth Check
         async function checkAuth() {
@@ -48,12 +49,12 @@
             return "Asian";
         }
 
-        // 4. Save Trade (NOW INCLUDES P&L)
+        // 4. Save Trade
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
-            const pnl = document.getElementById('tradePnL').value; // Get P&L
+            const pnl = document.getElementById('tradePnL').value; 
             const emotion = document.getElementById('tradeEmotion').value;
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
@@ -86,7 +87,6 @@
                 }
             }
 
-            // Convert P&L to number (default to 0 if empty)
             const finalPnL = pnl ? parseFloat(pnl) : 0;
 
             const { error } = await supabaseClient.from('trades').insert([
@@ -95,17 +95,15 @@
                     chart_screenshot: imageUrl, outcome, emotion,
                     session: currentSession,
                     is_playbook: isPlaybook,
-                    pnl: finalPnL // Saving P&L to DB
+                    pnl: finalPnL 
                 }
             ]);
 
             if (error) {
-                status.innerText = "Error saving. Check DB columns.";
-                console.error(error);
+                status.innerText = "Error saving.";
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
-                // Reset inputs
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
@@ -113,7 +111,7 @@
             }
         }
 
-        // 5. Load Trades & FINANCIAL ANALYTICS
+        // 5. Load Trades & Analytics
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
             
@@ -141,16 +139,12 @@
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
-            
-            // Calculate Net P&L
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
             
-            // Calculate Profit Factor (Gross Win / Gross Loss)
             let grossWin = trades.filter(t => (t.pnl || 0) > 0).reduce((a, b) => a + b.pnl, 0);
             let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
             let profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
 
-            // Streak Logic
             let currentStreak = 0;
             for (let i = 0; i < trades.length; i++) {
                 if(trades[i].outcome === 'Pending') continue;
@@ -158,7 +152,6 @@
                 else break; 
             }
 
-            // Session Stats
             let sessionStats = {
                 "London": { wins: 0, losses: 0 },
                 "New York": { wins: 0, losses: 0 },
@@ -171,24 +164,19 @@
                 }
             });
 
-            // Update UI Stats
             if(filterMode === 'all') {
-                // NET P&L
                 const pnlEl = document.getElementById('netPnLStat');
                 pnlEl.innerText = "$" + netPnL.toLocaleString();
                 pnlEl.style.color = netPnL >= 0 ? '#00ffae' : '#ff4b4b';
 
-                // PROFIT FACTOR
                 document.getElementById('pfStat').innerText = profitFactor;
-
                 document.getElementById('winRateStat').innerText = winRate + "%";
                 document.getElementById('winRateStat').style.color = winRate >= 50 ? 'var(--primary)' : '#ff4b4b';
-                
                 document.getElementById('streakStat').innerText = currentStreak + " W";
                 
-                // UPDATE CHARTS
                 updateSessionChart(sessionStats);
                 updateEquityChart(trades);
+                renderHeatmap(trades); // NEW HEATMAP CALL
             }
 
             trades.forEach(trade => {
@@ -196,9 +184,11 @@
                 card.className = 'trade-log-card';
                 if (trade.is_playbook) card.classList.add('playbook-card');
 
-                // Color code the P&L text
                 const pnlColor = (trade.pnl || 0) >= 0 ? '#00ffae' : '#ff4b4b';
                 const pnlText = (trade.pnl || 0) >= 0 ? `+$${trade.pnl}` : `-$${Math.abs(trade.pnl)}`;
+                
+                // Note: storing data-object to easily pass to edit function
+                const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
 
                 card.innerHTML = `
                     <div class="card-header">
@@ -207,7 +197,10 @@
                              ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
                              <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
                         </div>
-                        <button class="delete-btn" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
+                        <div class="card-actions">
+                            <button class="action-btn" onclick="openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
+                            <button class="action-btn delete" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
+                        </div>
                     </div>
                     
                     <div style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${pnlColor};">
@@ -226,18 +219,93 @@
             });
         }
 
-        // 6. EQUITY CURVE CHART (The Pro Feature)
+        // --- NEW EDIT MODAL LOGIC ---
+        function openEditModal(tradeDataStr) {
+            const trade = JSON.parse(decodeURIComponent(tradeDataStr));
+            currentEditId = trade.id;
+
+            document.getElementById('editPair').value = trade.pair;
+            document.getElementById('editOutcome').value = trade.outcome;
+            document.getElementById('editPnL').value = trade.pnl;
+            document.getElementById('editReason').value = trade.reason;
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditId = null;
+        }
+
+        async function saveEdit() {
+            if(!currentEditId) return;
+
+            const outcome = document.getElementById('editOutcome').value;
+            const pnl = parseFloat(document.getElementById('editPnL').value) || 0;
+            const reason = document.getElementById('editReason').value;
+
+            document.getElementById('saveEditBtn').innerText = "Saving...";
+
+            const { error } = await supabaseClient
+                .from('trades')
+                .update({ outcome, pnl, reason })
+                .eq('id', currentEditId);
+
+            document.getElementById('saveEditBtn').innerText = "Update Trade";
+            
+            if (!error) {
+                closeEditModal();
+                loadTrades(activeFilter);
+            } else {
+                alert("Error updating trade");
+            }
+        }
+
+        // --- NEW HEATMAP LOGIC ---
+        function renderHeatmap(trades) {
+            const container = document.getElementById('heatmapGrid');
+            container.innerHTML = '';
+            
+            // Generate last 60 days
+            const days = 60;
+            const today = new Date();
+            const dateMap = {};
+
+            // Group total P&L by Date string (YYYY-MM-DD)
+            trades.forEach(t => {
+                const dateStr = new Date(t.created_at).toISOString().split('T')[0];
+                if (!dateMap[dateStr]) dateMap[dateStr] = 0;
+                dateMap[dateStr] += (t.pnl || 0);
+            });
+
+            // Create Grid squares
+            for (let i = days; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                const pnl = dateMap[dateStr];
+
+                const box = document.createElement('div');
+                box.className = 'heat-box';
+                
+                // Tooltip
+                box.title = `${dateStr}: ${pnl !== undefined ? '$'+pnl : 'No Trades'}`;
+
+                if (pnl > 0) box.classList.add('win');
+                else if (pnl < 0) box.classList.add('loss');
+                else box.classList.add('empty'); // No trade day
+
+                container.appendChild(box);
+            }
+        }
+
+        // --- CHARTS ---
         function updateEquityChart(trades) {
             const ctx = document.getElementById('equityChart').getContext('2d');
-            
-            // Reverse trades to show Oldest -> Newest
             const sortedTrades = [...trades].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
             
             let runningBalance = 0;
-            const dataPoints = sortedTrades.map(t => {
-                runningBalance += (t.pnl || 0);
-                return runningBalance;
-            });
+            const dataPoints = sortedTrades.map(t => { runningBalance += (t.pnl || 0); return runningBalance; });
             const labels = sortedTrades.map(t => new Date(t.created_at).toLocaleDateString());
 
             if (equityChart) {
@@ -256,7 +324,7 @@
                             backgroundColor: 'rgba(0, 255, 174, 0.05)',
                             borderWidth: 2,
                             fill: true,
-                            tension: 0.4, // Smooth curve
+                            tension: 0.4,
                             pointRadius: 0
                         }]
                     },
@@ -264,16 +332,12 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
-                        scales: {
-                            y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
-                            x: { display: false } // Hide dates for cleaner look
-                        }
+                        scales: { y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }, x: { display: false } }
                     }
                 });
             }
         }
 
-        // 7. Session Chart
         function updateSessionChart(stats) {
             const ctx = document.getElementById('sessionChart').getContext('2d');
             const labels = ['London', 'New York', 'Asian'];
@@ -298,10 +362,7 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, grid: { display:false }, ticks: { display: false } },
-                            x: { grid: { display: false }, ticks: { color: '#8b949e' } }
-                        }
+                        scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#8b949e' } } }
                     }
                 });
             }
@@ -334,7 +395,6 @@
 
         .filter-container { display: flex; gap: 10px; margin-bottom: 25px; }
         .filter-btn { background: var(--card); border: 1px solid var(--border); color: #8b949e; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
-        .filter-btn:hover { background: #21262d; }
         .filter-btn.active-filter { background: rgba(0, 255, 174, 0.1); color: var(--primary); border-color: var(--primary); }
         .filter-btn.active-filter.pb-btn { background: rgba(255, 215, 0, 0.1); color: var(--gold); border-color: var(--gold); }
 
@@ -346,7 +406,6 @@
         .stat-box:nth-child(2)::before { background: #3fb950; } 
         .stat-box:nth-child(3)::before { background: #a371f7; } 
         .stat-box:nth-child(4)::before { background: #8b949e; } 
-
         .stat-label { color: #8b949e; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; display: block; }
         .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin: 0; }
 
@@ -355,28 +414,40 @@
         .chart-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; }
         .chart-header { font-size: 0.9rem; color: #8b949e; font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; }
 
+        /* HEATMAP */
+        .heatmap-container { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .heatmap-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 15px; }
+        .heat-box { width: 14px; height: 14px; border-radius: 2px; background: #21262d; cursor: pointer; transition: 0.2s; }
+        .heat-box:hover { transform: scale(1.2); z-index: 10; border: 1px solid #fff; }
+        .heat-box.win { background: #00ffae; box-shadow: 0 0 5px rgba(0,255,174,0.5); }
+        .heat-box.loss { background: #ff4b4b; }
+        .heat-box.empty { background: #161b22; border: 1px solid #30363d; }
+
         /* Trade Cards */
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
         .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; transition: 0.2s; position: relative; overflow: hidden; }
         .trade-log-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        
         .trade-log-card.playbook-card { border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 0 15px rgba(255, 215, 0, 0.05); }
-        .pb-tag { color: var(--gold); font-size: 0.65rem; background: rgba(255, 215, 0, 0.1); padding: 3px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255, 215, 0, 0.2); }
-
-        .trade-img-preview { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s;}
-        .trade-img-preview:hover { opacity: 0.8; }
         
+        .card-actions { margin-left: auto; display: flex; gap: 5px; }
+        .action-btn { background: #21262d; border: 1px solid var(--border); color: #8b949e; border-radius: 6px; padding: 5px 8px; cursor: pointer; transition: 0.2s; }
+        .action-btn:hover { background: var(--primary); color: #000; border-color: var(--primary); }
+        .action-btn.delete:hover { background: #ff4b4b; color: #fff; border-color: #ff4b4b; }
+
+        .pb-tag { color: var(--gold); font-size: 0.65rem; background: rgba(255, 215, 0, 0.1); padding: 3px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255, 215, 0, 0.2); }
+        .trade-img-preview { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s;}
         .pair-badge { color: #fff; font-weight: 700; font-size: 1.1rem; }
         .outcome-tag { font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; font-weight: 800; text-transform: uppercase; border: 1px solid transparent; }
         .outcome-tag.win { background: rgba(0, 255, 174, 0.1); color: var(--primary); border-color: var(--primary); }
         .outcome-tag.loss { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border-color: #ff4b4b; }
-
         .card-meta { color: #8b949e; font-size: 0.8rem; margin: 10px 0; display: flex; align-items: center; gap: 10px;}
         .trade-reason { font-size: 0.9rem; line-height: 1.6; margin: 10px 0; color: #e6edf3; }
         .live-link { color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
         
-        .delete-btn { background: none; border: none; color: #484f58; cursor: pointer; float: right; padding: 5px; border-radius: 4px;}
-        .delete-btn:hover { color: #ff4b4b; background: rgba(255, 75, 75, 0.1); }
+        /* EDIT MODAL */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 3000; align-items: center; justify-content: center; }
+        .modal-box { background: var(--card); border: 1px solid var(--border); padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .modal-title { font-size: 1.2rem; font-weight: 900; color: #fff; margin-bottom: 20px; text-align: center; }
 
         .mobile-toggle { display: none; position: fixed; top: 20px; right: 20px; background: var(--card); border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 10px; z-index: 2000; cursor: pointer; }
         
@@ -392,6 +463,22 @@
 </head>
 <body>
     <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu-alt-right'></i></button>
+
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">EDIT TRADE</div>
+            <input type="text" id="editPair" class="side-input" disabled style="opacity:0.5; cursor:not-allowed;">
+            <select id="editOutcome" class="side-input">
+                <option>Pending</option><option>Win</option><option>Loss</option>
+            </select>
+            <input type="number" id="editPnL" class="side-input" placeholder="P&L ($)">
+            <textarea id="editReason" class="side-input" rows="4"></textarea>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="side-btn" onclick="saveEdit()" id="saveEditBtn">Update Trade</button>
+                <button class="side-btn" onclick="closeEditModal()" style="background:#21262d; color:#fff;">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <aside class="sidebar">
         <div style="color:var(--primary); font-weight:900; font-size:1.6rem; margin-bottom:25px; text-align:center; letter-spacing:-1px;">TEPPA<span style="color:#fff">PRO</span></div>
@@ -493,6 +580,14 @@
 
         <div id="tradeFeed" class="trade-grid">
             <p style="color:#8b949e;">Loading analytics...</p>
+        </div>
+
+        <div class="heatmap-container">
+            <div style="font-size:0.9rem; color:#8b949e; font-weight:700; display:flex; align-items:center; gap:10px;">
+                TRADING CONSISTENCY <span style="font-size:0.7rem; background:#21262d; padding:2px 6px; border-radius:4px;">LAST 60 DAYS</span>
+            </div>
+            <div id="heatmapGrid" class="heatmap-grid">
+                </div>
         </div>
     </main>
 </body>

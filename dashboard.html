@@ -13,12 +13,12 @@
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // --- SETTINGS ---
-        let ACCOUNT_GOAL = 10000; // Target Profit Goal ($)
+        // --- SETTINGS (UPDATED: Load from LocalStorage) ---
+        let ACCOUNT_GOAL = localStorage.getItem('tradingGoal') ? parseInt(localStorage.getItem('tradingGoal')) : 10000;
         
         // --- STATE ---
-        let activeFilter = 'all'; // 'all' or 'playbook'
-        let activeTimeframe = 'all'; // 'week', 'month', 'year', 'all'
+        let activeFilter = 'all'; 
+        let activeTimeframe = 'all'; 
         let sessionChart; 
         let equityChart; 
         let currentEditId = null; 
@@ -58,14 +58,14 @@
             if(sessionSelect) sessionSelect.value = session;
         }
 
-        // 4. Save Trade (NOW WITH STRATEGY)
+        // 4. Save Trade
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
             const pnl = document.getElementById('tradePnL').value; 
             const emotion = document.getElementById('tradeEmotion').value;
-            const strategy = document.getElementById('tradeStrategy').value; // Get Strategy
+            const strategy = document.getElementById('tradeStrategy').value;
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
             const isPlaybook = document.getElementById('playbookCheck').checked;
@@ -104,15 +104,14 @@
                     pair, type, reason, tradingview_link: chartLink, 
                     chart_screenshot: imageUrl, outcome, emotion,
                     session: currentSession, 
-                    strategy: strategy, // Saving Strategy
+                    strategy: strategy, 
                     is_playbook: isPlaybook,
                     pnl: finalPnL 
                 }
             ]);
 
             if (error) {
-                status.innerText = "Error: Check 'strategy' column exists in DB.";
-                console.error(error);
+                status.innerText = "Error saving.";
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
@@ -124,25 +123,21 @@
             }
         }
 
-        // --- NEW: TIMEFRAME FILTER LOGIC ---
+        // --- TIMEFRAME FILTER LOGIC ---
         function setTimeframe(tf) {
             activeTimeframe = tf;
-            // Update visual buttons
             document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active-tf'));
             document.getElementById(`tf-${tf}`).classList.add('active-tf');
-            loadTrades(activeFilter); // Reload with new time filter
+            loadTrades(activeFilter); 
         }
 
         function filterTradesByTime(trades) {
             if (activeTimeframe === 'all') return trades;
-
             const now = new Date();
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             
             return trades.filter(t => {
                 const tDate = new Date(t.created_at);
                 if (activeTimeframe === 'week') {
-                    // Simple "last 7 days" logic or "Start of Week"
                     const oneWeekAgo = new Date();
                     oneWeekAgo.setDate(now.getDate() - 7);
                     return tDate >= oneWeekAgo;
@@ -157,7 +152,7 @@
             });
         }
 
-        // 5. Load Trades (UPDATED)
+        // 5. Load Trades
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
             document.getElementById('btn-all').classList.toggle('active-filter', filterMode === 'all');
@@ -172,9 +167,7 @@
             const { data: rawTrades, error } = await query;
             if (error) return;
             
-            // APPLY TIMEFRAME FILTER
             const trades = filterTradesByTime(rawTrades);
-
             feed.innerHTML = '';
             
             // Analytics
@@ -187,7 +180,6 @@
             let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
             let profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
 
-            // Streak
             let currentStreak = 0;
             for (let i = 0; i < trades.length; i++) {
                 if(trades[i].outcome === 'Pending') continue;
@@ -195,7 +187,6 @@
                 else break; 
             }
 
-            // Session Stats
             let sessionStats = { "London": { wins: 0, losses: 0 }, "New York": { wins: 0, losses: 0 }, "Asian": { wins: 0, losses: 0 } };
             trades.forEach(t => {
                 if(!sessionStats[t.session]) sessionStats[t.session] = { wins: 0, losses: 0 };
@@ -203,10 +194,8 @@
                 if(t.outcome === 'Loss') sessionStats[t.session].losses++;
             });
 
-            // UPDATE GOAL TRACKER
-            updateGoalTracker(netPnL);
+            updateGoalTracker(netPnL); // Update Goal UI
 
-            // Update DOM
             const pnlEl = document.getElementById('netPnLStat');
             pnlEl.innerText = "$" + netPnL.toLocaleString();
             pnlEl.style.color = netPnL >= 0 ? '#00ffae' : '#ff4b4b';
@@ -255,14 +244,23 @@
             });
         }
 
-        // --- NEW GOAL TRACKER ---
+        // --- NEW: EDIT GOAL FUNCTION ---
+        function editGoal() {
+            const newGoal = prompt("Enter your new Account Goal ($):", ACCOUNT_GOAL);
+            if (newGoal && !isNaN(newGoal)) {
+                ACCOUNT_GOAL = parseInt(newGoal);
+                localStorage.setItem('tradingGoal', ACCOUNT_GOAL); // Save to browser
+                loadTrades(activeFilter); // Refresh UI
+            }
+        }
+
         function updateGoalTracker(currentPnL) {
             const percentage = Math.min(Math.max((currentPnL / ACCOUNT_GOAL) * 100, 0), 100);
             document.getElementById('goalFill').style.width = percentage + "%";
-            document.getElementById('goalText').innerText = `$${currentPnL.toLocaleString()} / $${ACCOUNT_GOAL.toLocaleString()} Goal`;
+            document.getElementById('goalText').innerHTML = `$${currentPnL.toLocaleString()} / $${ACCOUNT_GOAL.toLocaleString()} Goal <i class='bx bx-pencil' style='cursor:pointer; margin-left:5px;' onclick='editGoal()'></i>`;
         }
 
-        // --- EDIT LOGIC (UPDATED WITH STRATEGY) ---
+        // --- EDIT LOGIC ---
         function openEditModal(tradeDataStr) {
             const trade = JSON.parse(decodeURIComponent(tradeDataStr));
             currentEditId = trade.id;
@@ -271,11 +269,8 @@
             document.getElementById('editPnL').value = trade.pnl;
             document.getElementById('editReason').value = trade.reason;
             document.getElementById('editSession').value = trade.session || "New York"; 
-            
-            // Set Strategy
             const stratSelect = document.getElementById('editStrategy');
             if(stratSelect) stratSelect.value = trade.strategy || "Extreme";
-
             document.getElementById('editModal').style.display = 'flex';
         }
 
@@ -290,19 +285,14 @@
             const pnl = parseFloat(document.getElementById('editPnL').value) || 0;
             const reason = document.getElementById('editReason').value;
             const session = document.getElementById('editSession').value; 
-            const strategy = document.getElementById('editStrategy').value; // Get Strategy
+            const strategy = document.getElementById('editStrategy').value; 
 
             document.getElementById('saveEditBtn').innerText = "Saving...";
-            
-            const { error } = await supabaseClient
-                .from('trades')
-                .update({ outcome, pnl, reason, session, strategy })
-                .eq('id', currentEditId);
-            
+            const { error } = await supabaseClient.from('trades').update({ outcome, pnl, reason, session, strategy }).eq('id', currentEditId);
             document.getElementById('saveEditBtn').innerText = "Update Trade";
             
             if (!error) { closeEditModal(); loadTrades(activeFilter); } 
-            else { alert("Error updating. Check 'strategy' column."); }
+            else { alert("Error updating trade"); }
         }
 
         // --- VISUALS ---
@@ -409,7 +399,6 @@
             }
         }
         
-        // MT4 Import (Keep this logic)
         function handleFileImport(input) {
             const file = input.files[0];
             if (!file) return;
@@ -446,7 +435,7 @@
                         pair: pair, type: typeText === 'buy' ? 'Buy' : 'Sell',
                         outcome: outcome, pnl: pnl, session: session,
                         reason: "Imported from MT4/5", created_at: tradeDate.toISOString(),
-                        emotion: 'Neutral', is_playbook: false, strategy: 'Pro Trend' // Default for imports
+                        emotion: 'Neutral', is_playbook: false, strategy: 'Pro Trend'
                     });
                 });
 
@@ -674,7 +663,7 @@
         <div class="goal-container">
             <div class="goal-header">
                 <span>ACCOUNT GOAL PROGRESS</span>
-                <span id="goalText">$0 / $10,000 Goal</span>
+                <span id="goalText">$0 / $10,000 Goal <i class='bx bx-pencil' style="cursor:pointer; margin-left:5px;" onclick="editGoal()"></i></span>
             </div>
             <div class="goal-bar-bg">
                 <div id="goalFill" class="goal-fill"></div>

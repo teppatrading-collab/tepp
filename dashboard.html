@@ -21,7 +21,7 @@
         let activeTimeframe = 'all'; 
         let sessionChart; 
         let equityChart; 
-        let psychChart; // NEW CHART
+        let psychChart;
         let currentEditId = null; 
 
         // 1. Auth Check
@@ -57,14 +57,46 @@
             if(sessionSelect) sessionSelect.value = session;
         }
 
-        // 4. Save Trade
+        // --- NEW: STRATEGY TOGGLE LOGIC ---
+        function toggleStrategy(btn) {
+            btn.classList.toggle('active-strat');
+        }
+
+        function getSelectedStrategies(containerId) {
+            const container = document.getElementById(containerId);
+            const activeBtns = container.querySelectorAll('.strat-btn.active-strat');
+            // Extract text from each active button and join with commas
+            return Array.from(activeBtns).map(b => b.innerText).join(', ');
+        }
+
+        function setStrategies(containerId, strategyString) {
+            const container = document.getElementById(containerId);
+            const allBtns = container.querySelectorAll('.strat-btn');
+            
+            // Reset all first
+            allBtns.forEach(b => b.classList.remove('active-strat'));
+            
+            if(!strategyString) return;
+
+            const savedStrats = strategyString.split(', ');
+            allBtns.forEach(b => {
+                if(savedStrats.includes(b.innerText)) {
+                    b.classList.add('active-strat');
+                }
+            });
+        }
+
+        // 4. Save Trade (UPDATED FOR MULTI-SELECT)
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
             const pnl = document.getElementById('tradePnL').value; 
             const emotion = document.getElementById('tradeEmotion').value;
-            const strategy = document.getElementById('tradeStrategy').value;
+            
+            // GET MULTI STRATEGIES
+            const strategy = getSelectedStrategies('newStrategyContainer'); 
+
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
             const isPlaybook = document.getElementById('playbookCheck').checked;
@@ -109,6 +141,10 @@
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
                 document.getElementById('playbookCheck').checked = false;
+                
+                // Reset strategy buttons
+                document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat'));
+
                 setDefaultSession(); 
             }
         }
@@ -173,16 +209,13 @@
             }
 
             let sessionStats = { "London": { wins: 0, losses: 0 }, "New York": { wins: 0, losses: 0 }, "Asian": { wins: 0, losses: 0 } };
-            // NEW: Psych Stats
             let psychStats = { "Confident": 0, "FOMO": 0, "Aggressive": 0, "Neutral": 0 };
 
             trades.forEach(t => {
-                // Session calc
                 if(!sessionStats[t.session]) sessionStats[t.session] = { wins: 0, losses: 0 };
                 if(t.outcome === 'Win') sessionStats[t.session].wins++;
                 if(t.outcome === 'Loss') sessionStats[t.session].losses++;
                 
-                // Psych calc
                 const em = t.emotion || "Neutral";
                 if(psychStats[em] === undefined) psychStats[em] = 0;
                 psychStats[em] += (t.pnl || 0);
@@ -200,7 +233,7 @@
             document.getElementById('streakStat').innerText = currentStreak + " W";
             
             updateSessionChart(sessionStats);
-            updatePsychChart(psychStats); // NEW CHART CALL
+            updatePsychChart(psychStats);
             updateEquityChart(trades);
             renderHeatmap(trades); 
 
@@ -212,13 +245,22 @@
                 const pnlColor = (trade.pnl || 0) >= 0 ? '#00ffae' : '#ff4b4b';
                 const pnlText = (trade.pnl || 0) >= 0 ? `+$${trade.pnl}` : `-$${Math.abs(trade.pnl)}`;
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
+                
+                // RENDER MULTIPLE BADGES
+                let strategyBadges = '';
+                if(trade.strategy) {
+                    const strats = trade.strategy.split(', ');
+                    strats.forEach(s => {
+                        strategyBadges += `<span class="strategy-badge">${s}</span>`;
+                    });
+                }
 
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="pair-badge">${trade.pair}</span>
                         <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
                              ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
-                             ${trade.strategy ? `<span class="strategy-badge">${trade.strategy}</span>` : ''}
+                             ${strategyBadges}
                              <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <div class="card-actions">
@@ -263,11 +305,10 @@
             document.getElementById('editPnL').value = trade.pnl;
             document.getElementById('editReason').value = trade.reason;
             document.getElementById('editSession').value = trade.session || "New York"; 
-            const stratSelect = document.getElementById('editStrategy');
-            if(stratSelect) stratSelect.value = trade.strategy || "Extreme";
-            
-            // Load emotion for edit
             document.getElementById('editEmotion').value = trade.emotion || "Neutral";
+            
+            // PRE-SELECT TAGS FOR EDIT
+            setStrategies('editStrategyContainer', trade.strategy);
 
             document.getElementById('editModal').style.display = 'flex';
         }
@@ -279,8 +320,10 @@
             const pnl = parseFloat(document.getElementById('editPnL').value) || 0;
             const reason = document.getElementById('editReason').value;
             const session = document.getElementById('editSession').value; 
-            const strategy = document.getElementById('editStrategy').value; 
-            const emotion = document.getElementById('editEmotion').value; // Get Emotion
+            const emotion = document.getElementById('editEmotion').value; 
+            
+            // GET MULTI STRATEGIES (EDIT)
+            const strategy = getSelectedStrategies('editStrategyContainer');
 
             document.getElementById('saveEditBtn').innerText = "Saving...";
             const { error } = await supabaseClient.from('trades').update({ outcome, pnl, reason, session, strategy, emotion }).eq('id', currentEditId);
@@ -384,13 +427,10 @@
             }
         }
 
-        // --- NEW PSYCHOLOGY CHART ---
         function updatePsychChart(stats) {
             const ctx = document.getElementById('psychChart').getContext('2d');
             const labels = Object.keys(stats);
             const data = Object.values(stats);
-            
-            // Color logic: Green for positive P&L, Red for negative
             const colors = data.map(val => val >= 0 ? '#00ffae' : '#ff4b4b');
 
             if (psychChart) {
@@ -498,6 +538,12 @@
         .playbook-option { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; font-size: 0.85rem; color: var(--gold); font-weight: bold; }
         .playbook-option input { accent-color: var(--gold); width: 16px; height: 16px; }
 
+        /* STRATEGY TAGS CONTAINER */
+        .strategy-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .strat-btn { font-size: 0.75rem; border: 1px solid var(--border); padding: 5px 10px; border-radius: 15px; cursor: pointer; color: #8b949e; background: var(--bg); transition: 0.2s; }
+        .strat-btn:hover { border-color: var(--primary); color: #fff; }
+        .strat-btn.active-strat { background: rgba(0, 255, 174, 0.2); color: var(--primary); border-color: var(--primary); }
+
         .goal-container { margin-bottom: 30px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
         .goal-header { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #8b949e; margin-bottom: 10px; }
         .goal-bar-bg { width: 100%; height: 12px; background: #21262d; border-radius: 6px; overflow: hidden; }
@@ -523,7 +569,6 @@
         .stat-label { color: #8b949e; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; display: block; }
         .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin: 0; }
 
-        /* CHARTS LAYOUT UPDATED */
         .equity-row { margin-bottom: 20px; }
         .analytics-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
         
@@ -591,23 +636,23 @@
                     </select>
                 </div>
                 <div style="flex:1;">
-                    <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Strategy</label>
-                    <select id="editStrategy" class="side-input">
-                        <option>Extreme</option>
-                        <option>Decisional</option>
-                        <option>SMT Trade</option>
-                        <option>Pro Trend</option>
-                        <option>Counter Trend</option>
-                        <option>Continuation</option>
-                        <option>Reversal</option>
+                    <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Emotion</label>
+                    <select id="editEmotion" class="side-input">
+                        <option>Confident</option><option>FOMO</option><option>Aggressive</option><option>Neutral</option>
                     </select>
                 </div>
             </div>
-            
-            <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Emotion</label>
-            <select id="editEmotion" class="side-input">
-                <option>Confident</option><option>FOMO</option><option>Aggressive</option><option>Neutral</option>
-            </select>
+
+            <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Strategies (Click to Toggle)</label>
+            <div id="editStrategyContainer" class="strategy-container">
+                <div class="strat-btn" onclick="toggleStrategy(this)">Extreme</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Decisional</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">SMT Trade</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Pro Trend</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Counter Trend</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Continuation</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Reversal</div>
+            </div>
 
             <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Outcome & P&L</label>
             <div style="display:flex; gap:10px;">
@@ -637,15 +682,16 @@
                 <option>London</option><option>New York</option><option>Asian</option>
             </select>
             
-            <select id="tradeStrategy" class="side-input">
-                <option value="Extreme">Extreme</option>
-                <option value="Decisional">Decisional</option>
-                <option value="SMT Trade">SMT Trade</option>
-                <option value="Pro Trend">Pro Trend</option>
-                <option value="Counter Trend">Counter Trend</option>
-                <option value="Continuation">Continuation</option>
-                <option value="Reversal">Reversal</option>
-            </select>
+            <label style="color:#8b949e; font-size:0.75rem; font-weight:bold; margin-bottom:5px; display:block;">Select Strategies:</label>
+            <div id="newStrategyContainer" class="strategy-container">
+                <div class="strat-btn" onclick="toggleStrategy(this)">Extreme</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Decisional</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">SMT Trade</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Pro Trend</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Counter Trend</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Continuation</div>
+                <div class="strat-btn" onclick="toggleStrategy(this)">Reversal</div>
+            </div>
 
             <div style="display:flex; gap:10px;">
                 <select id="tradeType" class="side-input" style="flex:1;"><option>Buy</option><option>Sell</option></select>

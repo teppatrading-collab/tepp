@@ -121,6 +121,102 @@
             border-radius: 10px; margin-bottom: 20px;
         }
 
+        /* --- PRICING SECTION --- */
+        .pricing { padding: 100px 5%; position: relative; border-top: 1px solid var(--border); }
+        .section-title { text-align: center; margin-bottom: 60px; }
+        .section-title h2 { font-size: 2.5rem; margin-bottom: 10px; }
+        .section-title p { color: var(--text-dim); }
+
+        .pricing-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 30px; max-width: 1100px; margin: 0 auto; 
+        }
+
+        .price-card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 16px; padding: 40px 30px; text-align: center;
+            transition: 0.3s; position: relative;
+        }
+        .price-card:hover { transform: translateY(-10px); border-color: var(--primary); }
+
+        .price-card.popular {
+            background: linear-gradient(145deg, rgba(45, 212, 191, 0.1), rgba(15, 23, 42, 0.8));
+            border: 1px solid var(--primary); transform: scale(1.05); z-index: 10;
+        }
+        .price-card.popular:hover { transform: scale(1.08); box-shadow: 0 0 40px rgba(45, 212, 191, 0.2); }
+
+        .popular-badge {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: #000; font-weight: 800; font-size: 0.7rem;
+            padding: 5px 15px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .price-title { font-size: 1.2rem; color: var(--text-dim); margin-bottom: 15px; }
+        .price-amount { font-size: 3rem; font-weight: 900; color: #fff; margin-bottom: 5px; }
+        .price-amount span { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
+
+        .price-features { list-style: none; margin: 30px 0; text-align: left; }
+        .price-features li { margin-bottom: 12px; color: #cbd5e1; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+        .price-features i { color: var(--primary); font-size: 1.1rem; }
+        .price-features i.bx-x { color: #475569; } 
+
+        .btn-price { display: block; width: 100%; padding: 12px; border-radius: 8px; font-weight: 700; text-decoration: none; transition: 0.2s; }
+        .btn-price.outline { border: 1px solid var(--border); color: #fff; background: transparent; }
+        .btn-price.outline:hover { border-color: #fff; }
+        .btn-price.fill { background: var(--primary); color: #000; border: none; }
+        .btn-price.fill:hover { opacity: 0.9; box-shadow: 0 0 20px rgba(45, 212, 191, 0.3); }
+
+        /* --- COMPOUND CALCULATOR SECTION --- */
+        .calculator-section {
+            padding: 80px 5%; background: rgba(15, 23, 42, 0.6);
+            border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+        .calc-container {
+            max-width: 800px; margin: 0 auto; background: #1e293b; 
+            padding: 40px; border-radius: 16px; border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .range-group { margin-bottom: 30px; text-align: left; }
+        .range-label { display: flex; justify-content: space-between; color: var(--text-dim); margin-bottom: 10px; font-size: 0.9rem; }
+        .range-val { color: var(--primary); font-weight: bold; }
+
+        input[type=range] {
+            width: 100%; -webkit-appearance: none; background: #0f172a; height: 8px; border-radius: 5px; outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px; background: var(--primary); 
+            border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px var(--primary);
+        }
+
+        .result-box { background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .result-title { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .result-amount { font-size: 2.5rem; font-weight: 900; color: #fff; margin-top: 5px; }
+
+        /* --- LIVE ACTIVITY POPUP (FOMO) --- */
+        .fomo-popup {
+            position: fixed; bottom: 20px; left: 20px; background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(10px); border: 1px solid var(--primary); border-radius: 10px;
+            padding: 15px; display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000;
+            transform: translateX(-150%); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .fomo-popup.show { transform: translateX(0); }
+        .fomo-icon {
+            width: 40px; height: 40px; background: rgba(45, 212, 191, 0.1); color: var(--primary);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+        }
+        .fomo-content h4 { font-size: 0.85rem; margin-bottom: 2px; color: #fff; }
+        .fomo-content p { font-size: 0.75rem; color: var(--text-dim); margin: 0; }
+
+        /* --- FOOTER --- */
+        footer { padding: 60px 5% 30px 5%; background: #0b1120; border-top: 1px solid var(--border); }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px; }
+        .footer-col h4 { color: #fff; margin-bottom: 20px; font-size: 1rem; }
+        .footer-col a { display: block; color: var(--text-dim); text-decoration: none; margin-bottom: 10px; font-size: 0.9rem; transition: 0.2s; }
+        .footer-col a:hover { color: var(--primary); }
+        .copyright { text-align: center; color: #475569; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;}
+
         /* --- AUTH MODAL --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -213,6 +309,117 @@
         </div>
     </section>
 
+    <section class="pricing">
+        <div class="section-title">
+            <h2>Invest In Your Edge</h2>
+            <p>Select the plan that fits your trading journey.</p>
+        </div>
+        
+        <div class="pricing-grid">
+            <div class="price-card">
+                <div class="price-title">Starter</div>
+                <div class="price-amount">$0<span>/mo</span></div>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">Perfect for new traders.</p>
+                <ul class="price-features">
+                    <li><i class='bx bx-check'></i> 50 Journal Entries</li>
+                    <li><i class='bx bx-check'></i> Basic Analytics</li>
+                    <li><i class='bx bx-x'></i> No Psychology AI</li>
+                    <li><i class='bx bx-x'></i> No Playbook Mode</li>
+                </ul>
+                <a href="#" onclick="openModal('Sign Up')" class="btn-price outline">Start Free</a>
+            </div>
+
+            <div class="price-card popular">
+                <div class="popular-badge">Most Popular</div>
+                <div class="price-title">Pro Trader</div>
+                <div class="price-amount">$29<span>/mo</span></div>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">For those scaling to 6-figures.</p>
+                <ul class="price-features">
+                    <li><i class='bx bx-check'></i> <strong>Unlimited</strong> Journaling</li>
+                    <li><i class='bx bx-check'></i> <strong>AI Psychology</strong> Engine</li>
+                    <li><i class='bx bx-check'></i> Full Playbook Gallery</li>
+                    <li><i class='bx bx-check'></i> Advanced Equity Curve</li>
+                </ul>
+                <a href="#" onclick="openModal('Sign Up')" class="btn-price fill">Go Pro</a>
+            </div>
+
+            <div class="price-card">
+                <div class="price-title">Lifetime</div>
+                <div class="price-amount">$299<span>/once</span></div>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">Pay once, own it forever.</p>
+                <ul class="price-features">
+                    <li><i class='bx bx-check'></i> <strong>Everything</strong> in Pro</li>
+                    <li><i class='bx bx-check'></i> Lifetime Updates</li>
+                    <li><i class='bx bx-check'></i> Mentorship Access</li>
+                    <li><i class='bx bx-check'></i> Private Discord Role</li>
+                </ul>
+                <a href="#" onclick="openModal('Sign Up')" class="btn-price outline">Get Lifetime</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="calculator-section">
+        <div class="section-title">
+            <h2>Visualize Your Growth</h2>
+            <p>See what consistency can do for your account.</p>
+        </div>
+        <div class="calc-container">
+            <div class="range-group">
+                <div class="range-label"><span>Starting Balance</span> <span class="range-val" id="dispBal">$1,000</span></div>
+                <input type="range" id="rngBal" min="100" max="100000" step="100" value="1000" oninput="calcGrowth()">
+            </div>
+            <div class="range-group">
+                <div class="range-label"><span>Monthly Return</span> <span class="range-val" id="dispRet">5%</span></div>
+                <input type="range" id="rngRet" min="1" max="20" step="1" value="5" oninput="calcGrowth()">
+            </div>
+            <div class="result-box">
+                <div class="result-title">Balance After 12 Months</div>
+                <div class="result-amount" id="resultAmnt">$1,795</div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin-top:5px;">Consistent growth beats lucky gambling.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <div class="logo" style="margin-bottom:15px;"><i class='bx bx-candles'></i> TEPPA <span>TRADING</span></div>
+                <p style="color:#94a3b8; font-size:0.9rem;">The #1 Journal for traders who treat trading like a business, not a casino.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Product</h4>
+                <a href="#">Journal</a>
+                <a href="#">Analytics</a>
+                <a href="#">Playbook</a>
+                <a href="#">Pricing</a>
+            </div>
+            <div class="footer-col">
+                <h4>Resources</h4>
+                <a href="#">Academy</a>
+                <a href="#">Blog</a>
+                <a href="#">Community</a>
+                <a href="#">Help Center</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Risk Disclosure</a>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2025 Teppa Trading. All rights reserved. Trading involves risk.
+        </div>
+    </footer>
+
+    <div id="fomoPopup" class="fomo-popup">
+        <div class="fomo-icon"><i class='bx bx-user-check'></i></div>
+        <div class="fomo-content">
+            <h4 id="fomoMsg">New Trader Joined</h4>
+            <p id="fomoTime">Just now</p>
+        </div>
+    </div>
+
     <div id="authModal" class="modal">
         <div class="modal-box">
             <h2 id="authTitle" style="color:#fff; margin-bottom:20px;">Login</h2>
@@ -255,6 +462,45 @@
             });
         });
         document.querySelectorAll('.card').forEach((el) => observer.observe(el));
+
+        // --- CALCULATOR LOGIC ---
+        function calcGrowth() {
+            const bal = parseInt(document.getElementById('rngBal').value);
+            const ret = parseInt(document.getElementById('rngRet').value);
+            
+            document.getElementById('dispBal').innerText = "$" + bal.toLocaleString();
+            document.getElementById('dispRet').innerText = ret + "%";
+
+            // Compound Interest Formula: A = P(1 + r)^t
+            const futureVal = bal * Math.pow((1 + ret/100), 12);
+            document.getElementById('resultAmnt').innerText = "$" + Math.floor(futureVal).toLocaleString();
+        }
+
+        // --- LIVE FOMO NOTIFICATIONS ---
+        const names = ["Alex from London", "Sarah from NY", "Mike from Dubai", "Trader_99", "J.Smith"];
+        const actions = ["just signed up", "logged a winning trade", "upgraded to Pro", "added a Playbook entry"];
+        
+        function showNotification() {
+            const popup = document.getElementById('fomoPopup');
+            const msg = document.getElementById('fomoMsg');
+            
+            // Random Content
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            const randomAction = actions[Math.floor(Math.random() * actions.length)];
+            
+            msg.innerText = `${randomName} ${randomAction}`;
+            
+            // Show
+            popup.classList.add('show');
+            
+            // Hide after 4 seconds
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 4000);
+        }
+
+        // Trigger notification every 15 seconds loop
+        setInterval(showNotification, 15000); 
 
         document.getElementById('submitAuth').onclick = async () => {
             const email = document.getElementById('email').value;

@@ -41,6 +41,7 @@
 
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('active');
+            // Add overlay effect on mobile if needed
         }
 
         function updateWidget() {
@@ -549,11 +550,11 @@
     </script>
 
     <style>
-        /* --- NEW SUBTLE PRO THEME --- */
+        /* --- PRO THEME: SOFT TEAL & SLATE --- */
         :root { 
             --primary: #2dd4bf; /* Soft Teal */
             --secondary: #818cf8; /* Soft Indigo */
-            --bg: #0f172a; /* Deep Slate Blue */
+            --bg: #0f172a; /* Deep Slate */
             --card: rgba(30, 41, 59, 0.8); /* Semi-transparent slate */
             --border: #334155; 
             --text: #f8fafc;
@@ -563,43 +564,41 @@
         body { 
             background: radial-gradient(circle at top right, #1e293b, #0f172a);
             color: var(--text); font-family: 'Inter', sans-serif; margin: 0; 
-            min-height: 100vh;
+            min-height: 100vh; overflow-x: hidden;
         }
         
+        /* Sidebar Scrollbar Hiding */
+        .sidebar::-webkit-scrollbar { display: none; }
+        .sidebar { -ms-overflow-style: none; scrollbar-width: none; }
+
         .sidebar { 
             width: 300px; height: 100vh; background: #0f172a; 
             border-right: 1px solid var(--border); padding: 25px; 
-            overflow-y: auto; transition: 0.3s; z-index: 1000; box-sizing: border-box;
+            overflow-y: auto; position: fixed; z-index: 1000; box-sizing: border-box;
+            transition: 0.3s ease;
         }
-        .main-content { margin-left: 300px; padding: 40px; max-width: 1600px; }
+        .main-content { margin-left: 300px; padding: 40px; max-width: 1600px; transition: 0.3s; }
         
         /* --- BRANDING --- */
         .brand-title {
             font-weight:900; font-size:1.5rem; margin-bottom:25px; text-align:center; letter-spacing:-0.5px; color: #fff; text-transform: uppercase;
         }
-        .brand-title span { 
-            color: var(--primary);
-        }
+        .brand-title span { color: var(--primary); }
 
         .sidebar-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
         .side-input { width: 100%; background: #0f172a; color: white; border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; transition: 0.2s;}
         .side-input:focus { border-color: var(--primary); outline: none; }
         
-        /* Teal Button */
         .side-btn { 
-            width: 100%; 
-            background: var(--primary);
+            width: 100%; background: var(--primary);
             color: #0f172a; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; 
         }
         .side-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* Strategy Buttons */
         .strategy-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
         .strat-btn { font-size: 0.75rem; border: 1px solid var(--border); padding: 5px 10px; border-radius: 15px; cursor: pointer; color: var(--text-dim); background: transparent; transition: 0.2s; }
         .strat-btn:hover { border-color: var(--primary); color: #fff; }
-        .strat-btn.active-strat { 
-            background: rgba(45, 212, 191, 0.15); color: var(--primary); border-color: var(--primary); 
-        }
+        .strat-btn.active-strat { background: rgba(45, 212, 191, 0.15); color: var(--primary); border-color: var(--primary); }
 
         .playbook-option { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; font-size: 0.85rem; color: #fbbf24; font-weight: bold; }
         .playbook-option input { accent-color: #fbbf24; width: 16px; height: 16px; }
@@ -668,12 +667,13 @@
         .modal-box { background: var(--card); border: 1px solid var(--border); padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         .modal-title { font-size: 1.2rem; font-weight: 900; color: #fff; margin-bottom: 20px; text-align: center; }
 
-        .mobile-toggle { display: none; position: fixed; top: 20px; right: 20px; background: var(--card); border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 10px; z-index: 2000; cursor: pointer; }
+        .mobile-toggle { display: none; position: fixed; top: 20px; right: 20px; background: var(--card); border: 1px solid var(--primary); color: #000; padding: 12px; border-radius: 10px; z-index: 2000; cursor: pointer; }
         
+        /* --- MOBILE LAYOUT --- */
         @media (max-width: 992px) {
             .mobile-toggle { display: block; }
             .sidebar { transform: translateX(-100%); width: 280px; }
-            .sidebar.active { transform: translateX(0); }
+            .sidebar.active { transform: translateX(0); box-shadow: 10px 0 50px rgba(0,0,0,0.5); }
             .main-content { margin-left: 0; padding: 80px 20px 20px 20px; }
             .stats-container { grid-template-columns: 1fr 1fr; }
             .analytics-row { grid-template-columns: 1fr; } 
@@ -681,7 +681,7 @@
     </style>
 </head>
 <body>
-    <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu-alt-right'></i></button>
+    <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu-alt-left'></i></button>
 
     <div id="calcModal" class="modal-overlay">
         <div class="modal-box">

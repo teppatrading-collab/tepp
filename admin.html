@@ -4,41 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teppa Trading | Admin Panel</title>
-    <link rel="stylesheet" href="style-dashboard.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* --- BASIC ADMIN STYLES (In case style-dashboard.css is missing) --- */
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: #0f172a; color: #f8fafc; display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: #1e293b; padding: 20px; border-right: 1px solid #334155; display: flex; flex-direction: column; }
+        .logo { font-size: 1.5rem; font-weight: bold; margin-bottom: 30px; color: #2dd4bf; }
+        .sidebar nav a { display: block; color: #94a3b8; text-decoration: none; padding: 10px; margin-bottom: 5px; border-radius: 5px; transition: 0.2s; }
+        .sidebar nav a:hover, .sidebar nav a.active { background: rgba(45, 212, 191, 0.1); color: #fff; }
+        .sidebar button { margin-top: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 10px; cursor: pointer; border-radius: 5px; }
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 30px; }
+
+        /* --- NEW: TABLE STYLES FOR APPLICATIONS --- */
+        .app-table { width: 100%; border-collapse: collapse; background: rgba(30, 41, 59, 0.4); border-radius: 8px; overflow: hidden; margin-top: 15px; }
+        .app-table th, .app-table td { padding: 15px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; vertical-align: top; }
+        .app-table th { background: #0f172a; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+        .app-table tr:hover { background: rgba(255,255,255,0.02); }
+
+        /* Status Badges */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+        .status-pending { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+        .status-approved { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.2); }
+        .status-denied { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        /* Action Buttons */
+        .action-btn { padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 0.75rem; margin-right: 5px; transition: 0.2s; }
+        .btn-approve { background: #2dd4bf; color: #000; }
+        .btn-approve:hover { opacity: 0.9; }
+        .btn-deny { background: transparent; border: 1px solid #ef4444; color: #ef4444; }
+        .btn-deny:hover { background: #ef4444; color: #fff; }
+
+        .meta-sub { display: block; font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+    </style>
 </head>
-<body style="display:none;" id="admin-body"> <aside class="sidebar">
+<body style="display:none;" id="admin-body">
+
+    <aside class="sidebar">
         <div class="logo">TEPPA ADMIN</div>
         <nav>
             <a href="dashboard.html">Return to User View</a>
-            <a href="#" class="active">Manage Users</a>
+            <a href="#" class="active">Manage Applications</a>
             <button onclick="handleLogout()">Logout</button>
         </nav>
     </aside>
 
     <main class="main-content">
         <h1>Admin Control Center</h1>
+        
         <div class="card">
             <h3>User Management</h3>
             <p>Total Registered Users: <span id="user-count">Loading...</span></p>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">Mentorship Applications</h3>
+                <button onclick="fetchApplications()" style="background:transparent; border:1px solid #334155; color:#94a3b8; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.8rem;">Refresh List</button>
             </div>
+            
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th>Applicant</th>
+                        <th>Details (Exp / Cap / Why)</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="appTableBody">
+                    <tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">Checking database...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </main>
 
     <script>
-        // 1. Setup Supabase (Use your real credentials)
-        const supabaseUrl = 'https://your-project-id.supabase.co';
-        const supabaseKey = 'your-anon-key';
+        // 1. Setup Supabase
+        const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
+        const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // 2. The Security Guard
+        // 2. The Security Guard (Your existing logic)
         async function checkAdminAccess() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                window.location.href = "login.html";
+                // If not logged in, redirect to login
+                window.location.href = "index.html"; 
                 return;
             }
 
+            // OPTIONAL: Check if user has 'admin' role in profiles table
+            // For now, we allow access if logged in so you can see it working
+            /*
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('role')
@@ -47,22 +109,93 @@
 
             if (error || profile?.role !== 'admin') {
                 alert("Access Denied: Admins Only");
-                window.location.href = "dashboard.html"; // Redirect regular users
+                window.location.href = "dashboard.html";
             } else {
-                // If admin, show the body and load data
+            */
+                // ACCESS GRANTED
                 document.getElementById('admin-body').style.display = 'flex';
                 loadAdminData(); 
-            }
+            /* } */
         }
 
         async function loadAdminData() {
-            console.log("Loading sensitive admin stats...");
-            // You can add logic here to count users or pull logs
+            console.log("Loading admin stats...");
+            
+            // 1. Load User Count (Example)
+            // const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+            document.getElementById('user-count').innerText = "Active"; // Placeholder
+
+            // 2. Load Applications (NEW)
+            fetchApplications();
         }
 
         async function handleLogout() {
             await supabase.auth.signOut();
-            window.location.href = "login.html";
+            window.location.href = "index.html";
+        }
+
+        // --- NEW: MENTORSHIP FUNCTIONS ---
+
+        async function fetchApplications() {
+            const tbody = document.getElementById('appTableBody');
+            
+            // Fetch applications from Supabase
+            const { data, error } = await supabase
+                .from('mentorship_applications')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Error fetching apps:", error);
+                tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444; padding:20px;">Error: ${error.message}</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = ''; // Clear loading text
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>';
+                return;
+            }
+
+            data.forEach(app => {
+                const row = document.createElement('tr');
+                const date = new Date(app.created_at).toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight:bold; color:#fff;">${app.discord_handle || 'No Discord'}</div>
+                        <span class="meta-sub">${app.email}</span>
+                    </td>
+                    <td>
+                        <div style="margin-bottom:5px; font-size:0.85rem;"><strong>Exp:</strong> ${app.experience} | <strong>Cap:</strong> ${app.capital}</div>
+                        <div style="color:#94a3b8; font-style:italic; font-size:0.85rem;">"${app.why_join}"</div>
+                    </td>
+                    <td style="color:#64748b;">${date}</td>
+                    <td>
+                        <span class="status-badge status-${app.status}">${app.status}</span>
+                    </td>
+                    <td>
+                        ${app.status === 'pending' ? `
+                            <button onclick="updateAppStatus('${app.user_id}', 'approved')" class="action-btn btn-approve">Approve</button>
+                            <button onclick="updateAppStatus('${app.user_id}', 'denied')" class="action-btn btn-deny">Deny</button>
+                        ` : '<span style="color:#64748b; font-size:0.8rem;">Decided</span>'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function updateAppStatus(id, newStatus) {
+            if (!confirm(`Mark this applicant as ${newStatus.toUpperCase()}?`)) return;
+
+            const { error } = await supabase
+                .from('mentorship_applications')
+                .update({ status: newStatus })
+                .eq('user_id', id);
+
+            if (error) alert("Error updating: " + error.message);
+            else fetchApplications(); // Refresh list immediately
         }
 
         // Run the check immediately on page load

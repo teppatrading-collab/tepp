@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teppa Trading | Dashboard</title>
+    <title>Teppa Trading | Pro Dashboard</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="style-dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,7 +19,6 @@
             } else if (session) {
                 const userEmail = document.getElementById('userEmail');
                 if (userEmail) userEmail.innerText = session.user.email;
-                document.documentElement.classList.add('authorized');
                 loadTrades(); 
             }
         });
@@ -28,19 +27,11 @@
             document.querySelector('.sidebar').classList.toggle('active');
         }
 
-        function updateFileName() {
-            const fileInput = document.getElementById('chartUpload');
-            const fileNameSpan = document.getElementById('fileName');
-            if (fileInput.files.length > 0) {
-                fileNameSpan.innerText = fileInput.files[0].name;
-                document.getElementById('uploadArea').style.borderColor = "#00ffae";
-                document.getElementById('uploadArea').style.color = "#00ffae";
-            }
-        }
-
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
+            const outcome = document.getElementById('tradeOutcome').value;
+            const emotion = document.getElementById('tradeEmotion').value;
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
             const fileInput = document.getElementById('chartUpload');
@@ -64,32 +55,24 @@
                     .from('chart-screenshots')
                     .upload(filePath, file);
 
-                if (uploadError) {
-                    status.innerText = "Upload Failed!";
-                    return;
+                if (!uploadError) {
+                    const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
+                    imageUrl = data.publicUrl;
                 }
-
-                const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
-                imageUrl = data.publicUrl;
             }
 
             const { error } = await supabaseClient.from('trades').insert([
-                { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl }
+                { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl, outcome, emotion }
             ]);
 
             if (error) {
                 status.innerText = "DB Error!";
             } else {
-                status.innerText = "✅ Trade Saved!";
-                setTimeout(() => status.innerText = "", 3000);
+                status.innerText = "✅ Saved!";
                 loadTrades(); 
+                // Reset form
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeReason').value = '';
-                document.getElementById('chartLink').value = '';
-                fileInput.value = '';
-                document.getElementById('fileName').innerText = "Attach Screenshot";
-                document.getElementById('uploadArea').style.borderColor = "#30363d";
-                document.getElementById('uploadArea').style.color = "#8b949e";
             }
         }
 
@@ -103,10 +86,12 @@
             if (error) return;
             feed.innerHTML = '';
             
-            if(!trades || trades.length === 0) {
-                feed.innerHTML = '<p style="color:#8b949e; padding: 20px;">No trades recorded yet...</p>';
-                return;
-            }
+            // Calculate Analytics
+            let wins = trades.filter(t => t.outcome === 'Win').length;
+            let total = trades.filter(t => t.outcome !== 'Pending').length;
+            let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
+            document.getElementById('winRateStat').innerText = winRate + "%";
+            document.getElementById('totalTradesStat').innerText = trades.length;
 
             trades.forEach(trade => {
                 const card = document.createElement('div');
@@ -114,194 +99,117 @@
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="pair-badge">${trade.pair}</span>
-                        <span class="type-tag ${trade.type.toLowerCase()}">${trade.type}</span>
-                        <button class="delete-btn" onclick="deleteTrade('${trade.id}')">
-                            <i class='bx bx-trash'></i>
-                        </button>
+                        <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
+                        <button class="delete-btn" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                     ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
                     <div class="card-meta">
-                        <small><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</small>
+                        <span><i class='bx bx-smile'></i> ${trade.emotion || 'Neutral'}</span> | 
+                        <span><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</span>
                     </div>
                     <p class="trade-reason">${trade.reason}</p>
-                    ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> View Live Chart</a>` : ''}
+                    ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> Chart Link</a>` : ''}
                 `;
                 feed.appendChild(card);
             });
         }
 
         async function deleteTrade(id) {
-            if (confirm("Permanently delete this journal entry?")) {
-                const { error } = await supabaseClient.from('trades').delete().eq('id', id);
-                if (error) {
-                    alert("Delete failed: " + error.message);
-                } else {
-                    loadTrades(); 
-                }
-            }
-        }
-
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-GB', { timeZone: 'UTC' });
-            const clockEl = document.getElementById('liveClock');
-            if(clockEl) clockEl.innerText = timeString + " UTC";
-        }
-        setInterval(updateClock, 1000);
-
-        function calculateRisk() {
-            const balance = document.getElementById('balance').value;
-            const riskPercent = document.getElementById('riskPercent').value;
-            const stopLoss = document.getElementById('stopLoss').value;
-            const resultEl = document.getElementById('calcResult');
-            if (balance && riskPercent && stopLoss) {
-                const riskAmount = balance * (riskPercent / 100);
-                const positionSize = (riskAmount / stopLoss).toFixed(2);
-                resultEl.innerHTML = `Lot: <strong>${positionSize}</strong> ($${riskAmount.toFixed(2)} Risk)`;
+            if (confirm("Delete this entry?")) {
+                await supabaseClient.from('trades').delete().eq('id', id);
+                loadTrades(); 
             }
         }
     </script>
 
     <style>
-        :root {
-            --primary: #00ffae;
-            --bg-dark: #0d1117;
-            --card-bg: #161b22;
-            --border: #30363d;
-            --text-main: #c9d1d9;
-            --text-dim: #8b949e;
-        }
-
-        /* Mobile Menu UI */
-        .mobile-toggle {
-            display: none;
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            background: var(--card-bg);
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 12px;
-            border-radius: 8px;
-            z-index: 3000;
-            cursor: pointer;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        /* Sidebar Styling Refinement */
-        .sidebar { background: #010409; border-right: 1px solid var(--border); }
-        .sidebar-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .sidebar-section h4 { color: var(--primary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        :root { --primary: #00ffae; --bg: #0d1117; --card: #161b22; --border: #30363d; }
         
-        .side-input, select, textarea { 
-            width: 100%; background: var(--bg-dark); color: white; border: 1px solid var(--border); 
-            padding: 10px; margin-bottom: 10px; border-radius: 8px; font-size: 0.85rem; outline: none; transition: 0.2s;
-        }
-        .side-input:focus { border-color: var(--primary); }
+        /* Analytics Styling */
+        .stats-container { display: flex; gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; flex: 1; text-align: center; }
+        .stat-box h3 { font-size: 1.5rem; color: var(--primary); margin: 5px 0; }
+        .stat-box span { color: #8b949e; font-size: 0.75rem; text-transform: uppercase; }
 
-        /* Trade Card Refinement */
-        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 25px; }
-        .trade-log-card { background: var(--card-bg); border: 1px solid var(--border); padding: 18px; border-radius: 16px; transition: 0.3s ease; position: relative; display: flex; flex-direction: column; }
-        .trade-log-card:hover { border-color: var(--primary); transform: translateY(-3px); }
+        /* Tags */
+        .outcome-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        .outcome-tag.win { background: rgba(0, 255, 174, 0.1); color: var(--primary); border: 1px solid var(--primary); }
+        .outcome-tag.loss { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border: 1px solid #ff4b4b; }
+        .outcome-tag.pending { background: #30363d; color: #8b949e; }
+
+        .mobile-toggle { display: none; position: fixed; top: 15px; right: 15px; background: var(--card); border: 1px solid var(--primary); color: var(--primary); padding: 8px; border-radius: 8px; z-index: 3000; }
         
-        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .pair-badge { color: var(--primary); font-weight: 800; font-size: 1rem; }
-        .type-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
-        .type-tag.buy { background: rgba(0, 255, 174, 0.1); color: var(--primary); border: 1px solid var(--primary); }
-        .type-tag.sell { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border: 1px solid #ff4b4b; }
-
-        .trade-img-preview { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); }
-        .trade-reason { font-size: 0.9rem; color: var(--text-main); line-height: 1.5; margin: 10px 0; flex-grow: 1; }
-        .card-meta { color: var(--text-dim); font-size: 0.75rem; margin-bottom: 5px; }
-        
-        .delete-btn { margin-left: auto; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.2rem; transition: 0.2s; }
-        .delete-btn:hover { color: #ff4b4b; }
-
-        .live-link { color: var(--primary); font-size: 0.8rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; width: fit-content; }
-        .live-link:hover { text-decoration: underline; }
-
-        /* Mobile Friendliness */
         @media (max-width: 992px) {
             .mobile-toggle { display: block; }
-            .sidebar { 
-                transform: translateX(-101%); 
-                width: 300px; 
-                position: fixed; 
-                z-index: 2500;
-                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            }
+            .sidebar { transform: translateX(-101%); width: 300px; position: fixed; z-index: 2500; transition: 0.4s; }
             .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0 !important; width: 100% !important; padding: 80px 15px 20px 15px !important; }
-            .trade-grid { grid-template-columns: 1fr; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 80px 15px !important; }
+            .stats-container { flex-direction: row; }
         }
     </style>
 </head>
 <body>
-    <button class="mobile-toggle" onclick="toggleSidebar()">
-        <i class='bx bx-menu-alt-right'></i>
-    </button>
+    <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu-alt-right'></i></button>
 
     <aside class="sidebar">
-        <div style="color:var(--primary); font-weight:900; font-size:1.5rem; margin-bottom:25px; text-align:center; letter-spacing: 1px;">TEPPA TRADING</div>
-        <div id="liveClock" class="clock-sidebar">00:00:00 UTC</div>
+        <div style="color:var(--primary); font-weight:900; font-size:1.5rem; margin-bottom:20px; text-align:center;">TEPPA PRO</div>
         
         <div class="sidebar-section">
-            <h4><i class='bx bx-calculator'></i> Risk Calculator</h4>
+            <h4><i class='bx bx-calculator'></i> Risk Calc</h4>
             <input type="number" id="balance" class="side-input" placeholder="Balance ($)">
-            <input type="number" id="riskPercent" class="side-input" placeholder="Risk %">
             <input type="number" id="stopLoss" class="side-input" placeholder="SL Pips">
-            <button class="side-btn" onclick="calculateRisk()" style="width:100%; background:var(--primary); color:black; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">Calculate Position</button>
-            <p id="calcResult" style="color:var(--primary); font-size:0.85rem; margin-top:10px; text-align:center;"></p>
+            <button class="side-btn" onclick="calculateRisk()" style="width:100%; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold;">Calculate</button>
+            <p id="calcResult" style="color:var(--primary); font-size:0.8rem; margin-top:10px; text-align:center;"></p>
         </div>
 
         <div class="sidebar-section">
-            <h4><i class='bx bx-edit-alt'></i> New Journal Entry</h4>
+            <h4><i class='bx bx-edit-alt'></i> New Entry</h4>
             <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. NAS100)">
-            <select id="tradeType">
-                <option value="Buy">Buy</option>
-                <option value="Sell">Sell</option>
+            <div style="display:flex; gap:5px;">
+                <select id="tradeType" class="side-input" style="flex:1;"><option>Buy</option><option>Sell</option></select>
+                <select id="tradeOutcome" class="side-input" style="flex:1;"><option>Pending</option><option>Win</option><option>Loss</option></select>
+            </div>
+            <select id="tradeEmotion" class="side-input">
+                <option>Confident</option><option>Fearful (FOMO)</option><option>Aggressive</option><option>Neutral</option>
             </select>
-            <input type="text" id="chartLink" class="side-input" placeholder="Chart Link (Optional)">
-            <textarea id="tradeReason" placeholder="Describe the setup and why you took it..." rows="3"></textarea>
-            
-            <label for="chartUpload" class="upload-label" id="uploadArea" style="display:flex; flex-direction:column; align-items:center; gap:5px; border:1px dashed var(--border); padding:15px; border-radius:8px; cursor:pointer; color:var(--text-dim); transition: 0.3s;">
-                <i class='bx bx-cloud-upload' style="font-size: 1.5rem;"></i>
-                <span id="fileName" style="font-size: 0.75rem;">Attach Screenshot</span>
-            </label>
-            <input type="file" id="chartUpload" accept="image/*" style="display: none;" onchange="updateFileName()">
-            
-            <button class="side-btn" onclick="saveTradeWithImage()" style="width:100%; background:var(--primary); color:black; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">Save Journal Entry</button>
-            <p id="journalStatus" style="font-size: 0.75rem; color:var(--primary); margin-top:10px; text-align: center; font-weight: 600;"></p>
+            <input type="text" id="chartLink" class="side-input" placeholder="Chart Link">
+            <textarea id="tradeReason" placeholder="Setup notes..." rows="2" class="side-input"></textarea>
+            <input type="file" id="chartUpload" accept="image/*" style="display:none;" onchange="document.getElementById('fileName').innerText=this.files[0].name">
+            <label for="chartUpload" id="fileName" style="display:block; border:1px dashed var(--border); padding:10px; border-radius:8px; text-align:center; font-size:0.7rem; cursor:pointer; margin-bottom:10px;">Attach Screenshot</label>
+            <button onclick="saveTradeWithImage()" style="width:100%; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold;">Save Trade</button>
+            <p id="journalStatus" style="font-size: 0.7rem; color:var(--primary); text-align:center; margin-top:5px;"></p>
+        </div>
+
+        <div class="sidebar-section" style="padding:0; overflow:hidden; height:200px;">
+            <div class="tradingview-widget-container">
+                <iframe src="https://www.tradingview-widget.com/embed-widget/events/?colorTheme=dark&isTransparent=true&width=100%&height=200&locale=en&importanceFilter=-1%2C0%2C1&currencyFilter=USD%2CEUR%2CGBP" frameborder="0" style="width:100%; height:200px;"></iframe>
+            </div>
         </div>
         
-        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="margin-top:auto; background:rgba(255, 75, 75, 0.1); border:1px solid #ff4b4b; color:#ff4b4b; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-weight: 600;">Logout</button>
+        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="background:none; border:1px solid #ff4b4b; color:#ff4b4b; width:100%; padding:8px; border-radius:8px; cursor:pointer;">Logout</button>
     </aside>
 
     <main class="main-content" style="margin-left: 280px; padding: 30px;">
-        <header style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:30px;">
-            <div>
-                <h1 style="margin:0; font-size:1.8rem; color:var(--primary); font-weight: 800;">Market Insights</h1>
-                <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 5px;">Track your analysis and execution</p>
-            </div>
-            <span id="userEmail" style="color:var(--text-dim); font-size:0.75rem; background: var(--card-bg); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);"></span>
+        <header style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h1 style="color:var(--primary); margin:0;">Dashboard</h1>
+            <span id="userEmail" style="color:#8b949e; font-size:0.8rem;"></span>
         </header>
+
+        <div class="stats-container">
+            <div class="stat-box"><span>Win Rate</span><h3 id="winRateStat">0%</h3></div>
+            <div class="stat-box"><span>Total Trades</span><h3 id="totalTradesStat">0</h3></div>
+        </div>
         
-        <div class="widget-card" style="margin-bottom:25px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background: var(--card-bg);">
+        <div class="widget-card" style="margin-bottom:25px; border-radius:12px; overflow:hidden;">
             <div class="tradingview-widget-container">
                 <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-                {"symbols": [{"proName": "FX_IDC:EURUSD", "title": "EUR/USD"},{"proName": "OANDA:NAS100USD", "title": "NAS100"},{"proName": "OANDA:XAUUSD", "title": "Gold"},{"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"}],"colorTheme": "dark","isTransparent": true,"displayMode": "adaptive","locale": "en"}
+                {"symbols": [{"proName": "OANDA:NAS100USD", "title": "NAS100"},{"proName": "OANDA:XAUUSD", "title": "Gold"},{"proName": "BITSTAMP:BTCUSD", "title": "BTC"}],"colorTheme": "dark","isTransparent": true,"displayMode": "adaptive","locale": "en"}
                 </script>
             </div>
         </div>
 
-        <h2 style="font-size:1.2rem; margin-top:40px; color:white; display:flex; align-items:center; gap:10px;">
-            <i class='bx bx-time-five' style="color: var(--primary);"></i> Recent Activity
-        </h2>
-        
-        <div id="tradeFeed" class="trade-grid">
-            <p style="color:var(--text-dim);">Loading journal entries...</p>
-        </div>
+        <h2 style="font-size:1.1rem; color:white; margin-bottom:15px;"><i class='bx bx-list-ul'></i> Recent Journal</h2>
+        <div id="tradeFeed" class="trade-grid"></div>
     </main>
 </body>
 </html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teppa Academy | Courses</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* --- COPYING YOUR DASHBOARD THEME --- */
+        :root { 
+            --primary: #2dd4bf; /* Soft Teal */
+            --secondary: #818cf8; /* Soft Indigo */
+            --bg: #0f172a; /* Deep Slate */
+            --card: rgba(30, 41, 59, 0.8); 
+            --border: #334155; 
+            --text: #f8fafc;
+            --text-dim: #94a3b8; 
+        }
+        
+        body { 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text); font-family: 'Inter', sans-serif; margin: 0; 
+            min-height: 100vh;
+        }
+
+        .navbar {
+            padding: 20px 5%; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(10px);
+        }
+        
+        .brand { font-weight: 900; font-size: 1.2rem; text-transform: uppercase; color: #fff; }
+        .brand span { color: var(--primary); }
+        
+        .nav-link { color: var(--text-dim); text-decoration: none; margin-left: 20px; font-size: 0.9rem; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary); }
+        .nav-link.active { color: #fff; font-weight: bold; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 5%; }
+        
+        .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
+        .section-title i { color: var(--primary); }
+
+        /* GRID SYSTEM */
+        .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+
+        /* COURSE CARD */
+        .course-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; transition: 0.3s;
+            position: relative;
+        }
+        .course-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        
+        .thumb-area { height: 180px; background: #1e293b; position: relative; }
+        .thumb-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        
+        .premium-lock {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: #fbbf24;
+            backdrop-filter: blur(3px); z-index: 2;
+        }
+        
+        .badge-free { position: absolute; top: 10px; right: 10px; background: var(--primary); color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .badge-pro { position: absolute; top: 10px; right: 10px; background: #fbbf24; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+
+        .card-body { padding: 20px; }
+        .c-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
+        .c-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
+        
+        .watch-btn {
+            display: block; width: 100%; padding: 10px; text-align: center;
+            background: var(--border); color: #fff; border-radius: 6px;
+            text-decoration: none; font-weight: 600; font-size: 0.85rem; transition: 0.2s;
+        }
+        .watch-btn:hover { background: var(--primary); color: #000; }
+        .watch-btn.locked { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        /* VIDEO MODAL */
+        .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
+        .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
+        .close-v { position: absolute; top: -40px; right: 0; color: #fff; font-size: 2rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">TEPPA <span>ACADEMY</span></div>
+        <div>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="courses.html" class="nav-link active">Courses</a>
+            <span id="userStatus" style="margin-left:20px; font-size:0.75rem; color:var(--text-dim); border:1px solid var(--border); padding:5px 10px; border-radius:15px;">Loading...</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="adminPanel" style="display:none; background:rgba(255,255,255,0.05); padding:20px; border-radius:12px; margin-bottom:40px; border:1px dashed var(--border);">
+            <h3 style="margin-top:0;">Admin Upload</h3>
+            <input type="text" id="cTitle" placeholder="Course Title" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
+            <input type="text" id="cDesc" placeholder="Description" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
+            <input type="text" id="cVideo" placeholder="YouTube Embed URL (e.g. https://www.youtube.com/embed/...)" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
+            <input type="text" id="cThumb" placeholder="Thumbnail Image URL" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
+            <label style="color:#fff; display:block; margin-bottom:10px;">
+                <input type="checkbox" id="cPremium"> Premium Only?
+            </label>
+            <button onclick="uploadCourse()" style="padding:10px 20px; background:var(--primary); border:none; cursor:pointer; font-weight:bold;">Upload Course</button>
+        </div>
+
+        <div class="section-title"><i class='bx bx-movie-play'></i> Free Foundations</div>
+        <div id="freeGrid" class="course-grid"></div>
+
+        <div class="section-title" style="margin-top:60px;"><i class='bx bxs-lock-alt'></i> Premium Masterclass</div>
+        <div id="proGrid" class="course-grid"></div>
+    </div>
+
+    <div id="videoModal" class="v-modal">
+        <div class="v-box">
+            <i class='bx bx-x close-v' onclick="document.getElementById('videoModal').style.display='none'; document.getElementById('vFrame').src='';"></i>
+            <div style="padding:56.25% 0 0 0; position:relative;">
+                <iframe id="vFrame" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
+    const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // --- CONFIG ---
+    // In a real app, you'd check this against a 'profiles' table in DB.
+    // For now, we default everyone to FREE unless specific email.
+    let userIsPro = false; 
+    let currentUserEmail = "";
+    
+    // ADMIN EMAIL (Replace with yours to see upload tools)
+    const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
+
+    async function init() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) window.location.href = "index.html";
+        
+        currentUserEmail = session.user.email;
+        
+        // 1. Check if user is admin
+        if(currentUserEmail === ADMIN_EMAIL) {
+            document.getElementById('adminPanel').style.display = 'block';
+            userIsPro = true; // Admin gets pro access
+        }
+
+        // 2. Determine Pro Status (Simple email check for demo, usually DB check)
+        // Example: If email contains "pro", they are pro. Change this logic later.
+        if (currentUserEmail.includes("pro") || currentUserEmail === ADMIN_EMAIL) {
+            userIsPro = true;
+            document.getElementById('userStatus').innerText = "PRO MEMBER";
+            document.getElementById('userStatus').style.borderColor = "#fbbf24";
+            document.getElementById('userStatus').style.color = "#fbbf24";
+        } else {
+            document.getElementById('userStatus').innerText = "FREE MEMBER";
+        }
+
+        loadCourses();
+    }
+    init();
+
+    async function loadCourses() {
+        const { data: courses, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+        if(error) return console.error(error);
+
+        const freeGrid = document.getElementById('freeGrid');
+        const proGrid = document.getElementById('proGrid');
+        freeGrid.innerHTML = "";
+        proGrid.innerHTML = "";
+
+        courses.forEach(course => {
+            const isLocked = course.is_premium && !userIsPro;
+            
+            const card = document.createElement('div');
+            card.className = 'course-card';
+            
+            // Thumbnail Logic
+            let thumbHTML = `<div class="thumb-area">
+                <img src="${course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
+                <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
+                ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
+            </div>`;
+
+            // Body Logic
+            let bodyHTML = `<div class="card-body">
+                <div class="c-title">${course.title}</div>
+                <div class="c-desc">${course.description}</div>
+                <button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">
+                    ${isLocked ? 'Locked' : 'Watch Now'}
+                </button>
+            </div>`;
+
+            card.innerHTML = thumbHTML + bodyHTML;
+
+            if(course.is_premium) proGrid.appendChild(card);
+            else freeGrid.appendChild(card);
+        });
+    }
+
+    function openVideo(url) {
+        document.getElementById('vFrame').src = url;
+        document.getElementById('videoModal').style.display = 'flex';
+    }
+
+    // --- ADMIN UPLOAD FUNCTION ---
+    async function uploadCourse() {
+        const title = document.getElementById('cTitle').value;
+        const desc = document.getElementById('cDesc').value;
+        const video = document.getElementById('cVideo').value;
+        const thumb = document.getElementById('cThumb').value;
+        const isPremium = document.getElementById('cPremium').checked;
+
+        if(!title || !video) return alert("Title and Video URL required");
+
+        const { error } = await supabase.from('courses').insert([{
+            title, description: desc, video_url: video, thumbnail: thumb, is_premium: isPremium
+        }]);
+
+        if(error) alert(error.message);
+        else {
+            alert("Course Uploaded!");
+            loadCourses();
+            // Clear inputs
+            document.getElementById('cTitle').value = "";
+        }
+    }
+</script>
+
+</body>
+</html>

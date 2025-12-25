@@ -11,6 +11,7 @@
     <script>
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
+        // Correct variable name to prevent crashes
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         // --- SETTINGS ---
@@ -26,8 +27,9 @@
 
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) window.location.replace("index.html");
-            else {
+            if (!session) {
+                window.location.replace("index.html");
+            } else {
                 document.getElementById('userEmail').innerText = session.user.email;
                 loadTrades();
                 setDefaultSession();

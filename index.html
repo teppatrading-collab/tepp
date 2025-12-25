@@ -22,7 +22,7 @@
     
     body { background-color: var(--bg); color: var(--text); overflow-x: hidden; }
 
-    /* --- GLASS NAVBAR --- */
+    /* --- RESPONSIVE NAVBAR --- */
     .navbar {
         position: fixed; top: 0; left: 0; width: 100%;
         padding: 15px 5%;
@@ -31,27 +31,28 @@
         backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(255,255,255,0.05);
         z-index: 1000;
+        transition: 0.3s ease;
     }
 
-    .brand-container { display: flex; align-items: center; gap: 12px; }
+    .brand-container { display: flex; align-items: center; gap: 10px; }
     
-    /* Logo Style */
     .nav-logo-img {
-        width: 40px; height: 40px;
+        width: 35px; height: 35px;
         border-radius: 50%; 
         border: 2px solid var(--primary);
         box-shadow: 0 0 10px var(--primary-glow);
         object-fit: cover;
     }
 
-    .logo { font-weight: 900; font-size: 1.4rem; letter-spacing: -0.5px; color: #fff; text-transform: uppercase; }
+    .logo { font-weight: 900; font-size: 1.2rem; letter-spacing: -0.5px; color: #fff; text-transform: uppercase; }
     .logo span { color: var(--primary); }
 
-    .nav-actions { display: flex; gap: 15px; }
+    .nav-actions { display: flex; gap: 10px; }
 
     .btn {
-        padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer;
-        transition: 0.3s; font-size: 0.9rem; border: none;
+        padding: 8px 18px; border-radius: 6px; font-weight: 700; cursor: pointer;
+        transition: 0.3s; font-size: 0.85rem; border: none;
+        white-space: nowrap;
     }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-outline:hover { border-color: var(--text); background: rgba(255,255,255,0.05); }
@@ -64,7 +65,7 @@
     /* --- HERO SECTION --- */
     .hero {
         display: flex; align-items: center; justify-content: space-between;
-        min-height: 100vh; padding: 140px 5% 50px 5%;
+        min-height: 100vh; padding: 120px 5% 50px 5%;
         background: radial-gradient(circle at 80% 20%, #1a2e26 0%, transparent 40%);
     }
 
@@ -78,7 +79,7 @@
     }
 
     .hero h1 {
-        font-size: 3.8rem; line-height: 1.1; font-weight: 800; margin-bottom: 25px;
+        font-size: 3.5rem; line-height: 1.1; font-weight: 800; margin-bottom: 25px;
         background: linear-gradient(to right, #fff, #94a3b8);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
@@ -135,10 +136,11 @@
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
         display: flex; justify-content: center; align-items: center; z-index: 2000;
+        padding: 20px; /* Prevent edge touching on mobile */
     }
     .modal-box {
         background: #161b22; border: 1px solid var(--border);
-        padding: 40px; border-radius: 16px; width: 90%; max-width: 400px;
+        padding: 40px; border-radius: 16px; width: 100%; max-width: 400px;
         text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.7);
     }
     .modal-box h2 { color: #fff; margin-bottom: 25px; font-size: 1.5rem; }
@@ -146,6 +148,7 @@
         width: 100%; padding: 14px; margin-bottom: 15px;
         background: #0d1117; border: 1px solid var(--border);
         color: white; border-radius: 8px; outline: none; transition: 0.2s;
+        box-sizing: border-box; /* Fix mobile padding issues */
     }
     .modal-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 255, 174, 0.1); }
 
@@ -155,15 +158,44 @@
     }
     .forgot-link:hover { color: var(--primary); text-decoration: underline; }
 
-    /* RESPONSIVE */
-    @media (max-width: 992px) {
-        .hero { flex-direction: column; text-align: center; padding-top: 120px; }
-        .hero-content { margin-bottom: 60px; }
-        .hero p { margin: 0 auto 30px auto; }
-        .dash-preview { transform: none; width: 100%; }
-        .hero h1 { font-size: 2.8rem; }
-        .nav-actions { display: none; } /* Hide buttons on very small screens or replace with hamburger if needed */
-        .navbar { justify-content: center; }
+    /* --- MOBILE BREAKPOINTS --- */
+    @media (max-width: 768px) {
+        /* Navbar */
+        .navbar { padding: 15px 5%; }
+        .logo { font-size: 1rem; }
+        .logo span { display: none; } /* Hide 'TRADING' text on very small screens to save space */
+        .btn { padding: 8px 12px; font-size: 0.8rem; }
+        
+        /* Hero */
+        .hero { 
+            flex-direction: column; 
+            text-align: center; 
+            padding-top: 100px; 
+            padding-bottom: 40px;
+        }
+        .hero h1 { font-size: 2.2rem; }
+        .hero p { font-size: 1rem; margin-bottom: 30px; }
+        .hero-content { margin-bottom: 40px; width: 100%; }
+        
+        /* Buttons Stack on Mobile Hero */
+        .hero-content div {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .hero-content button { width: 100%; }
+
+        /* Image */
+        .dash-preview { 
+            transform: none; 
+            width: 100%; 
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .hero-image { perspective: none; } /* Disable 3D on mobile for performance */
+
+        /* Features */
+        .features { padding: 60px 5%; }
+        .grid { grid-template-columns: 1fr; } /* Force single column */
     }
 </style>
 </head>
@@ -243,7 +275,6 @@ const supabaseClient = window.supabase.createClient(
   'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 )
 
-// Handle Login / Signup
 async function handleAuth() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -264,7 +295,6 @@ async function handleAuth() {
   }
 }
 
-// Handle Forgot Password
 document.getElementById('forgotBtn').onclick = async () => {
     const email = document.getElementById('email').value.trim();
     if(!email) {
@@ -272,7 +302,6 @@ document.getElementById('forgotBtn').onclick = async () => {
         return;
     }
     
-    // IMPORTANT: Make sure 'reset-password.html' is in your Supabase Auth > Redirect URLs
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password.html', 
     });
@@ -290,26 +319,24 @@ function updateUI(loggedIn) {
 document.getElementById('loginBtn').onclick = () => { 
     document.getElementById('authTitle').innerText='Login'; 
     document.getElementById('authModal').classList.remove('hidden'); 
-    document.getElementById('forgotBtn').style.display = 'block'; // Show forgot link on login
+    document.getElementById('forgotBtn').style.display = 'block'; 
 }
 
 document.getElementById('signupBtn').onclick = () => { 
     document.getElementById('authTitle').innerText='Sign Up'; 
     document.getElementById('authModal').classList.remove('hidden'); 
-    document.getElementById('forgotBtn').style.display = 'none'; // Hide on signup
+    document.getElementById('forgotBtn').style.display = 'none'; 
 }
 
 document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut();
 document.getElementById('submitAuth').onclick = handleAuth;
 document.getElementById('closeModal').onclick = () => document.getElementById('authModal').classList.add('hidden');
 
-// AUTH STATE CHECK
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         updateUI(true);
         const path = window.location.pathname;
         if (path.endsWith('index.html') || path === '/' || path.includes('teppatrading.com')) {
-            console.log("Session confirmed, redirecting...");
             window.location.replace("dashboard.html");
         }
     } else {

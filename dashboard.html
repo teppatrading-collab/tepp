@@ -17,13 +17,13 @@
             if (!session && event === 'INITIAL_SESSION') {
                 window.location.replace("index.html");
             } else if (session) {
-                document.getElementById('userEmail').innerText = session.user.email;
+                const userEmail = document.getElementById('userEmail');
+                if (userEmail) userEmail.innerText = session.user.email;
                 document.documentElement.classList.add('authorized');
                 loadTrades(); 
             }
         });
 
-        // Toggle Sidebar for Mobile
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('active');
         }
@@ -34,6 +34,7 @@
             if (fileInput.files.length > 0) {
                 fileNameSpan.innerText = fileInput.files[0].name;
                 document.getElementById('uploadArea').style.borderColor = "#00ffae";
+                document.getElementById('uploadArea').style.color = "#00ffae";
             }
         }
 
@@ -87,6 +88,8 @@
                 document.getElementById('chartLink').value = '';
                 fileInput.value = '';
                 document.getElementById('fileName').innerText = "Attach Screenshot";
+                document.getElementById('uploadArea').style.borderColor = "#30363d";
+                document.getElementById('uploadArea').style.color = "#8b949e";
             }
         }
 
@@ -100,8 +103,8 @@
             if (error) return;
             feed.innerHTML = '';
             
-            if(trades.length === 0) {
-                feed.innerHTML = '<p style="color:#8b949e; padding:20px;">No trades recorded yet...</p>';
+            if(!trades || trades.length === 0) {
+                feed.innerHTML = '<p style="color:#8b949e; padding: 20px;">No trades recorded yet...</p>';
                 return;
             }
 
@@ -110,16 +113,17 @@
                 card.className = 'trade-log-card';
                 card.innerHTML = `
                     <div class="card-header">
-                        <span style="color:#00ffae; font-weight:bold;">${trade.pair} (${trade.type})</span>
+                        <span class="pair-badge">${trade.pair}</span>
+                        <span class="type-tag ${trade.type.toLowerCase()}">${trade.type}</span>
                         <button class="delete-btn" onclick="deleteTrade('${trade.id}')">
                             <i class='bx bx-trash'></i>
                         </button>
                     </div>
                     ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
-                    <div style="margin-bottom: 5px;">
-                        <small style="color:#8b949e;"><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</small>
+                    <div class="card-meta">
+                        <small><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</small>
                     </div>
-                    <p style="font-size:0.85rem; margin:10px 0; line-height:1.4;">${trade.reason}</p>
+                    <p class="trade-reason">${trade.reason}</p>
                     ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> View Live Chart</a>` : ''}
                 `;
                 feed.appendChild(card);
@@ -149,111 +153,154 @@
             const balance = document.getElementById('balance').value;
             const riskPercent = document.getElementById('riskPercent').value;
             const stopLoss = document.getElementById('stopLoss').value;
+            const resultEl = document.getElementById('calcResult');
             if (balance && riskPercent && stopLoss) {
                 const riskAmount = balance * (riskPercent / 100);
                 const positionSize = (riskAmount / stopLoss).toFixed(2);
-                document.getElementById('calcResult').innerText = `Lot: ${positionSize} ($${riskAmount} Risk)`;
+                resultEl.innerHTML = `Lot: <strong>${positionSize}</strong> ($${riskAmount.toFixed(2)} Risk)`;
             }
         }
     </script>
 
     <style>
-        /* Mobile Menu Button */
+        :root {
+            --primary: #00ffae;
+            --bg-dark: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-dim: #8b949e;
+        }
+
+        /* Mobile Menu UI */
         .mobile-toggle {
             display: none;
             position: fixed;
             top: 15px;
             right: 15px;
-            background: #161b22;
-            border: 1px solid #00ffae;
-            color: #00ffae;
-            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 12px;
             border-radius: 8px;
             z-index: 3000;
             cursor: pointer;
             font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
-        .trade-log-card { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 12px; transition: 0.3s; position: relative; }
-        .trade-log-card:hover { border-color: #00ffae; }
-        .trade-img-preview { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid #30363d; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .delete-btn { background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.3); color: #ff4b4b; cursor: pointer; font-size: 1.2rem; padding: 8px; border-radius: 8px; display: flex; align-items: center; transition: 0.2s; }
-        .delete-btn:hover { background: #ff4b4b; color: white; border-color: #ff4b4b; }
+        /* Sidebar Styling Refinement */
+        .sidebar { background: #010409; border-right: 1px solid var(--border); }
+        .sidebar-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .sidebar-section h4 { color: var(--primary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
         
+        .side-input, select, textarea { 
+            width: 100%; background: var(--bg-dark); color: white; border: 1px solid var(--border); 
+            padding: 10px; margin-bottom: 10px; border-radius: 8px; font-size: 0.85rem; outline: none; transition: 0.2s;
+        }
+        .side-input:focus { border-color: var(--primary); }
+
+        /* Trade Card Refinement */
+        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 25px; }
+        .trade-log-card { background: var(--card-bg); border: 1px solid var(--border); padding: 18px; border-radius: 16px; transition: 0.3s ease; position: relative; display: flex; flex-direction: column; }
+        .trade-log-card:hover { border-color: var(--primary); transform: translateY(-3px); }
+        
+        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .pair-badge { color: var(--primary); font-weight: 800; font-size: 1rem; }
+        .type-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+        .type-tag.buy { background: rgba(0, 255, 174, 0.1); color: var(--primary); border: 1px solid var(--primary); }
+        .type-tag.sell { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border: 1px solid #ff4b4b; }
+
+        .trade-img-preview { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); }
+        .trade-reason { font-size: 0.9rem; color: var(--text-main); line-height: 1.5; margin: 10px 0; flex-grow: 1; }
+        .card-meta { color: var(--text-dim); font-size: 0.75rem; margin-bottom: 5px; }
+        
+        .delete-btn { margin-left: auto; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.2rem; transition: 0.2s; }
+        .delete-btn:hover { color: #ff4b4b; }
+
+        .live-link { color: var(--primary); font-size: 0.8rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; width: fit-content; }
+        .live-link:hover { text-decoration: underline; }
+
+        /* Mobile Friendliness */
         @media (max-width: 992px) {
             .mobile-toggle { display: block; }
             .sidebar { 
-                transform: translateX(-100%); 
-                width: 280px; 
+                transform: translateX(-101%); 
+                width: 300px; 
                 position: fixed; 
-                transition: 0.3s ease;
-                box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+                z-index: 2500;
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }
             .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0 !important; width: 100% !important; padding-top: 70px !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 80px 15px 20px 15px !important; }
             .trade-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <button class="mobile-toggle" onclick="toggleSidebar()">
-        <i class='bx bx-menu'></i>
+        <i class='bx bx-menu-alt-right'></i>
     </button>
 
     <aside class="sidebar">
-        <div style="color:#00ffae; font-weight:bold; font-size:1.4rem; margin-bottom:20px;">TEPPA TRADING</div>
+        <div style="color:var(--primary); font-weight:900; font-size:1.5rem; margin-bottom:25px; text-align:center; letter-spacing: 1px;">TEPPA TRADING</div>
         <div id="liveClock" class="clock-sidebar">00:00:00 UTC</div>
         
         <div class="sidebar-section">
-            <h4 style="color:#00ffae; font-size:0.9rem; margin-bottom:10px;"><i class='bx bx-calculator'></i> Risk Calculator</h4>
-            <input type="number" id="balance" placeholder="Balance ($)">
-            <input type="number" id="riskPercent" placeholder="Risk %">
-            <input type="number" id="stopLoss" placeholder="SL Pips">
-            <button class="side-btn" onclick="calculateRisk()" style="width:100%; background:#00ffae; color:black; border:none; padding:8px; border-radius:5px; font-weight:bold; cursor:pointer;">Calculate</button>
-            <p id="calcResult" style="color:#00ffae; font-size:0.8rem; margin-top:8px;"></p>
+            <h4><i class='bx bx-calculator'></i> Risk Calculator</h4>
+            <input type="number" id="balance" class="side-input" placeholder="Balance ($)">
+            <input type="number" id="riskPercent" class="side-input" placeholder="Risk %">
+            <input type="number" id="stopLoss" class="side-input" placeholder="SL Pips">
+            <button class="side-btn" onclick="calculateRisk()" style="width:100%; background:var(--primary); color:black; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;">Calculate Position</button>
+            <p id="calcResult" style="color:var(--primary); font-size:0.85rem; margin-top:10px; text-align:center;"></p>
         </div>
 
-        <div class="sidebar-section" style="margin-top:20px;">
-            <h4 style="color:#00ffae; font-size:0.9rem; margin-bottom:10px;"><i class='bx bx-edit-alt'></i> Journal</h4>
-            <input type="text" id="tradePair" placeholder="Pair">
-            <select id="tradeType" style="width:100%; background:#0d1117; color:white; border:1px solid #30363d; padding:8px; margin-bottom:10px; border-radius:5px;">
+        <div class="sidebar-section">
+            <h4><i class='bx bx-edit-alt'></i> New Journal Entry</h4>
+            <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. NAS100)">
+            <select id="tradeType">
                 <option value="Buy">Buy</option>
                 <option value="Sell">Sell</option>
             </select>
-            <input type="text" id="chartLink" placeholder="TV Link">
-            <textarea id="tradeReason" placeholder="Setup..." rows="3" style="width:100%; background:#0d1117; color:white; border:1px solid #30363d; padding:8px; border-radius:5px;"></textarea>
+            <input type="text" id="chartLink" class="side-input" placeholder="Chart Link (Optional)">
+            <textarea id="tradeReason" placeholder="Describe the setup and why you took it..." rows="3"></textarea>
             
-            <label for="chartUpload" class="upload-label" id="uploadArea" style="display:block; border:1px dashed #30363d; padding:10px; margin:10px 0; text-align:center; cursor:pointer; font-size:0.8rem;">
-                <span id="fileName">Attach Screenshot</span>
+            <label for="chartUpload" class="upload-label" id="uploadArea" style="display:flex; flex-direction:column; align-items:center; gap:5px; border:1px dashed var(--border); padding:15px; border-radius:8px; cursor:pointer; color:var(--text-dim); transition: 0.3s;">
+                <i class='bx bx-cloud-upload' style="font-size: 1.5rem;"></i>
+                <span id="fileName" style="font-size: 0.75rem;">Attach Screenshot</span>
             </label>
             <input type="file" id="chartUpload" accept="image/*" style="display: none;" onchange="updateFileName()">
             
-            <button class="side-btn" onclick="saveTradeWithImage()" style="width:100%; background:#00ffae; color:black; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">Save Trade</button>
-            <p id="journalStatus" style="font-size: 0.75rem; color:#00ffae; margin-top:8px; text-align: center;"></p>
+            <button class="side-btn" onclick="saveTradeWithImage()" style="width:100%; background:var(--primary); color:black; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">Save Journal Entry</button>
+            <p id="journalStatus" style="font-size: 0.75rem; color:var(--primary); margin-top:10px; text-align: center; font-weight: 600;"></p>
         </div>
         
-        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="margin-top:20px; background:none; border:1px solid #ff4b4b; color:#ff4b4b; width:100%; padding:8px; border-radius:5px; cursor:pointer;">Logout</button>
+        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="margin-top:auto; background:rgba(255, 75, 75, 0.1); border:1px solid #ff4b4b; color:#ff4b4b; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-weight: 600;">Logout</button>
     </aside>
 
-    <main class="main-content" style="margin-left: 280px; padding: 20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
-            <h1 style="margin:0; font-size:1.6rem; color:#00ffae;">Market Insights</h1>
-            <span id="userEmail" style="color:#8b949e; font-size:0.8rem;"></span>
-        </div>
+    <main class="main-content" style="margin-left: 280px; padding: 30px;">
+        <header style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:30px;">
+            <div>
+                <h1 style="margin:0; font-size:1.8rem; color:var(--primary); font-weight: 800;">Market Insights</h1>
+                <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 5px;">Track your analysis and execution</p>
+            </div>
+            <span id="userEmail" style="color:var(--text-dim); font-size:0.75rem; background: var(--card-bg); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);"></span>
+        </header>
         
-        <div class="widget-card" style="margin-bottom:20px; border:1px solid #30363d; border-radius:10px; overflow:hidden;">
+        <div class="widget-card" style="margin-bottom:25px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background: var(--card-bg);">
             <div class="tradingview-widget-container">
                 <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-                {"symbols": [{"proName": "FX_IDC:EURUSD", "title": "EUR/USD"},{"proName": "OANDA:NAS100USD", "title": "NAS100"},{"proName": "OANDA:XAUUSD", "title": "Gold"}],"colorTheme": "dark","isTransparent": true,"displayMode": "adaptive","locale": "en"}
+                {"symbols": [{"proName": "FX_IDC:EURUSD", "title": "EUR/USD"},{"proName": "OANDA:NAS100USD", "title": "NAS100"},{"proName": "OANDA:XAUUSD", "title": "Gold"},{"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"}],"colorTheme": "dark","isTransparent": true,"displayMode": "adaptive","locale": "en"}
                 </script>
             </div>
         </div>
 
-        <h2 style="font-size:1.3rem; margin-bottom:20px; color:white;"><i class='bx bx-history'></i> Trade Journal</h2>
+        <h2 style="font-size:1.2rem; margin-top:40px; color:white; display:flex; align-items:center; gap:10px;">
+            <i class='bx bx-time-five' style="color: var(--primary);"></i> Recent Activity
+        </h2>
+        
         <div id="tradeFeed" class="trade-grid">
-            <p style="color:#8b949e;">Loading entries...</p>
+            <p style="color:var(--text-dim);">Loading journal entries...</p>
         </div>
     </main>
 </body>

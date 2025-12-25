@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teppa AI | Psychology Engine</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root { 
+            --primary: #2dd4bf; --secondary: #818cf8; --bg: #0f172a; 
+            --card: rgba(30, 41, 59, 0.8); --border: #334155; --text: #f8fafc;
+        }
+        
+        body { 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh;
+        }
+
+        .navbar {
+            padding: 20px 5%; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(10px);
+        }
+        
+        .brand { font-weight: 900; font-size: 1.2rem; text-transform: uppercase; color: #fff; }
+        .brand span { color: var(--primary); }
+        
+        .nav-link { color: #94a3b8; text-decoration: none; margin-left: 20px; font-size: 0.9rem; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary); }
+        .nav-link.active { color: #fff; font-weight: bold; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 5%; }
+
+        /* AI REPORT CARD */
+        .ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+        
+        .ai-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 30px; position: relative; overflow: hidden;
+        }
+        .ai-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .insight-box {
+            background: rgba(45, 212, 191, 0.05); border: 1px dashed var(--primary);
+            padding: 20px; border-radius: 12px; margin-bottom: 20px;
+        }
+        .insight-title { font-size: 0.9rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .insight-text { font-size: 1rem; line-height: 1.6; color: #fff; }
+
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; }
+        .stat-label { color: #94a3b8; }
+        .stat-val { font-weight: bold; color: #fff; }
+
+        .loading-text { text-align: center; color: #94a3b8; margin-top: 50px; font-size: 1.2rem; }
+
+        @media (max-width: 768px) { .ai-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">TEPPA <span>AI</span></div>
+        <div>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="courses.html" class="nav-link">Academy</a>
+            <a href="#" class="nav-link active">Psychology</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 style="margin-bottom: 10px;">AI Trader Analysis</h1>
+        <p style="color:#94a3b8; margin-bottom: 40px;">Our algorithm scans your journal to find emotional patterns causing you losses.</p>
+
+        <div id="loading" class="loading-text">
+            <i class='bx bx-loader-alt bx-spin'></i> Analyzing your brain...
+        </div>
+
+        <div id="content" style="display:none;">
+            <div class="insight-box">
+                <div class="insight-title"><i class='bx bx-bot'></i> TEPPA AI SAYS:</div>
+                <div id="aiSummary" class="insight-text">Analyzing...</div>
+            </div>
+
+            <div class="ai-grid">
+                <div class="ai-card">
+                    <h3 style="margin-top:0;">Emotional P&L</h3>
+                    <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:20px;">Which emotions make (or lose) the most money?</p>
+                    <div style="height: 250px;">
+                        <canvas id="emotionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="ai-card">
+                    <h3 style="margin-top:0;">Mental Report Card</h3>
+                    <div id="reportCard"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
+    const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function initAI() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) window.location.href = "index.html";
+
+        // 1. Fetch All Trades
+        const { data: trades, error } = await supabaseClient.from('trades').select('*');
+        if(error || !trades.length) {
+            document.getElementById('loading').innerText = "No trades found to analyze. Start journaling first!";
+            return;
+        }
+
+        // 2. Process Data
+        const emotions = {};
+        let totalPnL = 0;
+        
+        trades.forEach(t => {
+            const em = t.emotion || "Neutral";
+            const pnl = t.pnl || 0;
+            if(!emotions[em]) emotions[em] = { count: 0, pnl: 0, wins: 0 };
+            
+            emotions[em].count++;
+            emotions[em].pnl += pnl;
+            if(pnl > 0) emotions[em].wins++;
+            totalPnL += pnl;
+        });
+
+        // 3. Find Best & Worst
+        let bestEmotion = "None"; let maxPnL = -Infinity;
+        let worstEmotion = "None"; let minPnL = Infinity;
+
+        for (const [em, stats] of Object.entries(emotions)) {
+            if(stats.pnl > maxPnL) { maxPnL = stats.pnl; bestEmotion = em; }
+            if(stats.pnl < minPnL) { minPnL = stats.pnl; worstEmotion = em; }
+        }
+
+        // 4. Generate AI Text
+        let aiText = `You have logged <b>${trades.length} trades</b>. `;
+        
+        if (minPnL < 0) {
+            aiText += `⚠️ <b>WARNING:</b> You trade poorly when you feel <b>${worstEmotion.toUpperCase()}</b> (Net Loss: $${minPnL}). You need to stop trading immediately when this feeling arises. <br><br>`;
+        } else {
+            aiText += `You are disciplined! No single emotion is causing major losses. <br><br>`;
+        }
+
+        if (maxPnL > 0) {
+            aiText += `✅ <b>STRENGTH:</b> You are most profitable when you are <b>${bestEmotion.toUpperCase()}</b>. Try to replicate that mental state.`;
+        }
+
+        document.getElementById('aiSummary').innerHTML = aiText;
+
+        // 5. Render Report Card
+        const reportHTML = Object.entries(emotions).map(([em, stats]) => {
+            const wr = ((stats.wins / stats.count) * 100).toFixed(0);
+            const color = stats.pnl >= 0 ? '#2dd4bf' : '#ef4444';
+            return `
+                <div class="stat-row">
+                    <span class="stat-label">${em} (${stats.count} trades)</span>
+                    <div style="text-align:right;">
+                        <div class="stat-val" style="color:${color}">$${stats.pnl}</div>
+                        <div style="font-size:0.7rem; color:#94a3b8;">${wr}% Win Rate</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('reportCard').innerHTML = reportHTML;
+
+        // 6. Render Chart
+        renderChart(emotions);
+
+        // Show Content
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+    }
+
+    function renderChart(dataObj) {
+        const ctx = document.getElementById('emotionChart').getContext('2d');
+        const labels = Object.keys(dataObj);
+        const data = Object.values(dataObj).map(x => x.pnl);
+        const colors = data.map(val => val >= 0 ? '#2dd4bf' : '#ef4444');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Net P&L ($)',
+                    data: data,
+                    backgroundColor: colors,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, 
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } } 
+                }
+            }
+        });
+    }
+
+    initAI();
+</script>
+
+</body>
+</html>

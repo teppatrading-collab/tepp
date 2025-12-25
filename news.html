@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teppa Trading | Market News</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root { 
+            --primary: #2dd4bf; --secondary: #818cf8; --bg: #0f172a; 
+            --card: rgba(30, 41, 59, 0.8); --border: #334155; --text: #f8fafc;
+        }
+        
+        body { 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh;
+        }
+
+        .navbar {
+            padding: 20px 5%; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(10px);
+        }
+        
+        .brand { font-weight: 900; font-size: 1.2rem; text-transform: uppercase; color: #fff; }
+        .brand span { color: var(--primary); }
+        
+        .nav-link { color: #94a3b8; text-decoration: none; margin-left: 20px; font-size: 0.9rem; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary); }
+        .nav-link.active { color: #fff; font-weight: bold; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 5%; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">TEPPA <span>NEWS</span></div>
+        <div>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="courses.html" class="nav-link">Academy</a>
+            <a href="news.html" class="nav-link active">News</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 style="display:flex; align-items:center; gap:10px;"><i class='bx bx-globe'></i> Economic Calendar</h2>
+        <p style="color:#94a3b8; margin-bottom:30px;">Track high-impact news events (CPI, NFP, FOMC) in real-time.</p>
+
+        <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+            {
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "width": "100%",
+            "height": "600",
+            "locale": "en",
+            "importanceFilter": "0,1",
+            "currencyFilter": "USD,EUR,GBP,JPY,AUD,CAD"
+            }
+            </script>
+        </div>
+        </div>
+
+</body>
+</html>

@@ -25,131 +25,154 @@
     /* --- GLASS NAVBAR --- */
     .navbar {
         position: fixed; top: 0; left: 0; width: 100%;
-        padding: 20px 5%;
+        padding: 15px 5%;
         display: flex; justify-content: space-between; align-items: center;
-        background: rgba(1, 4, 9, 0.8);
+        background: rgba(1, 4, 9, 0.85);
         backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(255,255,255,0.05);
         z-index: 1000;
     }
 
-    .logo { font-weight: 900; font-size: 1.5rem; letter-spacing: -1px; }
+    .brand-container { display: flex; align-items: center; gap: 12px; }
+    
+    .nav-logo-img {
+        width: 40px; height: 40px;
+        border-radius: 50%; /* Makes square images circular */
+        border: 2px solid var(--primary);
+        box-shadow: 0 0 10px var(--primary-glow);
+        object-fit: cover;
+    }
+
+    .logo { font-weight: 900; font-size: 1.4rem; letter-spacing: -0.5px; color: #fff; text-transform: uppercase; }
     .logo span { color: var(--primary); }
 
     .nav-actions { display: flex; gap: 15px; }
 
     .btn {
-        padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;
+        padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer;
         transition: 0.3s; font-size: 0.9rem; border: none;
     }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { border-color: var(--text); }
+    .btn-outline:hover { border-color: var(--text); background: rgba(255,255,255,0.05); }
+    
     .btn-primary { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary-glow); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 25px var(--primary-glow); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 25px var(--primary-glow); opacity: 0.9; }
 
     .hidden { display: none !important; }
 
     /* --- HERO SECTION --- */
     .hero {
         display: flex; align-items: center; justify-content: space-between;
-        min-height: 100vh; padding: 120px 5% 50px 5%;
-        background: radial-gradient(circle at top right, #1a2e26 0%, transparent 40%);
+        min-height: 100vh; padding: 140px 5% 50px 5%;
+        background: radial-gradient(circle at 80% 20%, #1a2e26 0%, transparent 40%);
     }
 
     .hero-content { max-width: 600px; z-index: 2; }
     
     .badge {
         background: rgba(0, 255, 174, 0.1); border: 1px solid var(--primary-glow);
-        color: var(--primary); padding: 5px 12px; border-radius: 20px;
+        color: var(--primary); padding: 6px 14px; border-radius: 20px;
         font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-        margin-bottom: 20px; display: inline-block;
+        margin-bottom: 25px; display: inline-block;
     }
 
     .hero h1 {
-        font-size: 3.5rem; line-height: 1.1; font-weight: 800; margin-bottom: 20px;
-        background: linear-gradient(to right, #fff, #8b949e);
+        font-size: 3.8rem; line-height: 1.1; font-weight: 800; margin-bottom: 25px;
+        background: linear-gradient(to right, #fff, #94a3b8);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
-    .hero p { color: var(--text-dim); font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px; max-width: 480px; }
+    .hero p { color: var(--text-dim); font-size: 1.1rem; line-height: 1.7; margin-bottom: 35px; max-width: 480px; }
 
     /* 3D IMAGE EFFECT */
     .hero-image {
         flex: 1; display: flex; justify-content: center;
-        perspective: 1000px;
+        perspective: 1200px;
     }
     .dash-preview {
-        width: 100%; max-width: 700px;
+        width: 100%; max-width: 750px;
         border-radius: 12px;
         border: 1px solid var(--border);
-        box-shadow: -20px 20px 60px rgba(0,0,0,0.5);
-        transform: rotateY(-10deg) rotateX(5deg);
+        box-shadow: -30px 30px 80px rgba(0,0,0,0.6);
+        transform: rotateY(-12deg) rotateX(6deg);
         transition: 0.5s ease;
     }
-    .dash-preview:hover { transform: rotateY(0deg) rotateX(0deg); }
+    .dash-preview:hover { transform: rotateY(0deg) rotateX(0deg) scale(1.02); }
 
     /* --- TRUST STRIP --- */
     .trust-strip {
         border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-        background: var(--card-bg); padding: 20px 0; text-align: center;
+        background: #090c10; padding: 25px 0; text-align: center;
     }
-    .trust-strip p { color: var(--text-dim); font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .trust-strip p { color: #484f58; font-size: 0.8rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
 
     /* --- FEATURES GRID --- */
-    .features { padding: 80px 5%; }
-    .section-title { text-align: center; margin-bottom: 50px; }
-    .section-title h2 { font-size: 2rem; margin-bottom: 10px; }
-    .section-title p { color: var(--text-dim); }
+    .features { padding: 100px 5%; background: linear-gradient(to bottom, var(--bg), #05070a); }
+    .section-title { text-align: center; margin-bottom: 60px; }
+    .section-title h2 { font-size: 2.2rem; margin-bottom: 15px; }
+    .section-title p { color: var(--text-dim); font-size: 1.1rem;}
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
     
     .feature-card {
         background: var(--card-bg); border: 1px solid var(--border);
-        padding: 30px; border-radius: 16px; transition: 0.3s;
+        padding: 40px 30px; border-radius: 16px; transition: 0.3s;
+        position: relative; overflow: hidden;
     }
-    .feature-card:hover { border-color: var(--primary); transform: translateY(-5px); }
+    .feature-card:hover { border-color: var(--primary); transform: translateY(-7px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     
     .icon-box {
-        width: 50px; height: 50px; background: rgba(0, 255, 174, 0.1);
-        color: var(--primary); font-size: 1.5rem; display: flex; align-items: center; justify-content: center;
-        border-radius: 10px; margin-bottom: 20px;
+        width: 55px; height: 55px; background: rgba(0, 255, 174, 0.05);
+        color: var(--primary); font-size: 1.8rem; display: flex; align-items: center; justify-content: center;
+        border-radius: 12px; margin-bottom: 25px; border: 1px solid rgba(0, 255, 174, 0.1);
     }
-    .feature-card h3 { font-size: 1.2rem; margin-bottom: 10px; }
-    .feature-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; }
+    .feature-card h3 { font-size: 1.3rem; margin-bottom: 15px; }
+    .feature-card p { color: var(--text-dim); font-size: 0.95rem; line-height: 1.6; }
 
     /* --- MODAL --- */
     .modal {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
         display: flex; justify-content: center; align-items: center; z-index: 2000;
     }
     .modal-box {
-        background: var(--card-bg); border: 1px solid var(--border);
+        background: #161b22; border: 1px solid var(--border);
         padding: 40px; border-radius: 16px; width: 90%; max-width: 400px;
-        text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.7);
     }
-    .modal-box h2 { color: var(--primary); margin-bottom: 20px; }
+    .modal-box h2 { color: #fff; margin-bottom: 25px; font-size: 1.5rem; }
     .modal-input {
-        width: 100%; padding: 12px; margin-bottom: 15px;
-        background: var(--bg); border: 1px solid var(--border);
-        color: white; border-radius: 8px; outline: none;
+        width: 100%; padding: 14px; margin-bottom: 15px;
+        background: #0d1117; border: 1px solid var(--border);
+        color: white; border-radius: 8px; outline: none; transition: 0.2s;
     }
-    .modal-input:focus { border-color: var(--primary); }
+    .modal-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 255, 174, 0.1); }
+
+    .forgot-link {
+        display: block; color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;
+        text-align: right; cursor: pointer; transition: 0.2s; text-decoration: none;
+    }
+    .forgot-link:hover { color: var(--primary); text-decoration: underline; }
 
     /* RESPONSIVE */
     @media (max-width: 992px) {
-        .hero { flex-direction: column; text-align: center; padding-top: 100px; }
-        .hero-content { margin-bottom: 50px; }
+        .hero { flex-direction: column; text-align: center; padding-top: 120px; }
+        .hero-content { margin-bottom: 60px; }
         .hero p { margin: 0 auto 30px auto; }
         .dash-preview { transform: none; width: 100%; }
-        .hero h1 { font-size: 2.5rem; }
+        .hero h1 { font-size: 2.8rem; }
+        .nav-actions { display: none; } /* Hide buttons on very small screens or replace with hamburger if needed */
+        .navbar { justify-content: center; }
     }
 </style>
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">TEPPA<span>PRO</span></div>
+    <div class="brand-container">
+        <img src="logo.png.jpg" alt="Teppa Logo" class="nav-logo-img">
+        <div class="logo">TEPPA <span>TRADING</span></div>
+    </div>
     <div class="nav-actions">
         <button id="loginBtn" class="btn btn-outline">Login</button>
         <button id="signupBtn" class="btn btn-primary">Sign Up</button>
@@ -164,7 +187,7 @@
         <p>The professional journaling terminal for serious traders. Track your equity, analyze your psychology, and build your Playbook.</p>
         <div style="display:flex; gap:15px; justify-content:center;">
              <button onclick="document.getElementById('signupBtn').click()" class="btn btn-primary">Start For Free</button>
-             <button class="btn btn-outline">View Demo</button>
+             <button class="btn btn-outline">Apply For Mentorship</button>
         </div>
     </div>
     <div class="hero-image">
@@ -205,8 +228,11 @@
     <h2 id="authTitle">Login</h2>
     <input id="email" class="modal-input" type="email" placeholder="Email Address">
     <input id="password" class="modal-input" type="password" placeholder="Password">
+    
+    <a id="forgotBtn" class="forgot-link">Forgot Password?</a>
+
     <button id="submitAuth" class="btn btn-primary" style="width:100%;">Submit</button>
-    <p id="closeModal" style="cursor:pointer; color:#8b949e; margin-top:15px; font-size:0.8rem;">Close</p>
+    <p id="closeModal" style="cursor:pointer; color:#8b949e; margin-top:20px; font-size:0.85rem;">Close</p>
   </div>
 </div>
 
@@ -216,6 +242,7 @@ const supabaseClient = window.supabase.createClient(
   'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
 )
 
+// Handle Login / Signup
 async function handleAuth() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -236,14 +263,40 @@ async function handleAuth() {
   }
 }
 
+// Handle Forgot Password
+document.getElementById('forgotBtn').onclick = async () => {
+    const email = document.getElementById('email').value.trim();
+    if(!email) {
+        alert("Please enter your email address in the field above first.");
+        return;
+    }
+    
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html', // You would create this page later
+    });
+
+    if(error) alert(error.message);
+    else alert("Check your email for the password reset link!");
+}
+
 function updateUI(loggedIn) {
   document.getElementById('loginBtn').classList.toggle('hidden', loggedIn);
   document.getElementById('signupBtn').classList.toggle('hidden', loggedIn);
   document.getElementById('logoutBtn').classList.toggle('hidden', !loggedIn);
 }
 
-document.getElementById('loginBtn').onclick = () => { document.getElementById('authTitle').innerText='Login'; document.getElementById('authModal').classList.remove('hidden'); }
-document.getElementById('signupBtn').onclick = () => { document.getElementById('authTitle').innerText='Sign Up'; document.getElementById('authModal').classList.remove('hidden'); }
+document.getElementById('loginBtn').onclick = () => { 
+    document.getElementById('authTitle').innerText='Login'; 
+    document.getElementById('authModal').classList.remove('hidden'); 
+    document.getElementById('forgotBtn').style.display = 'block'; // Show forgot link on login
+}
+
+document.getElementById('signupBtn').onclick = () => { 
+    document.getElementById('authTitle').innerText='Sign Up'; 
+    document.getElementById('authModal').classList.remove('hidden'); 
+    document.getElementById('forgotBtn').style.display = 'none'; // Hide on signup
+}
+
 document.getElementById('logoutBtn').onclick = () => supabaseClient.auth.signOut();
 document.getElementById('submitAuth').onclick = handleAuth;
 document.getElementById('closeModal').onclick = () => document.getElementById('authModal').classList.add('hidden');

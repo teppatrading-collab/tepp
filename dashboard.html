@@ -6,15 +6,17 @@
     <title>Teppa Trading | Pro Terminal</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
-        const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1aWZuYXlwa2VldWt5anZsYXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMTc3MjYsImV4cCI6MjA0OTc5MzcyNn0.t9znTC77FX9oN0cJl_gemS8F0iOdRhqtgRUNjN7iRes';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        let activeFilter = 'all'; // Controls whether we show All or Playbook
+        let activeFilter = 'all';
+        let allTrades = [];
+        let charts = {};
 
-        // 1. Auth Check
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
@@ -30,32 +32,43 @@
             document.querySelector('.sidebar').classList.toggle('active');
         }
 
-        // 2. Live Chart Sync Logic
         function updateWidget() {
             const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
             const widgetFrame = document.getElementById('tv-widget');
-            
-            // Updates the TradingView Mini Chart URL with the new symbol
             widgetFrame.src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","dateRange":"12M","colorTheme":"dark","trendLineColor":"rgba(0, 255, 174, 1)","underLineColor":"rgba(0, 255, 174, 0.3)","isTransparent":true,"autosize":true,"largeChartUrl":""}`;
         }
 
-        // 3. Session Detection
         function getMarketSession() {
-            const hour = new Date().getHours(); 
-            if (hour >= 8 && hour < 14) return "London";
-            if (hour >= 14 && hour < 21) return "New York";
+            const now = new Date();
+            const hour = now.getUTCHours();
+            if (hour >= 0 && hour < 8) return "Asian";
+            if (hour >= 8 && hour < 13) return "London";
+            if (hour >= 13 && hour < 20) return "New York";
             return "Asian";
         }
 
-        // 4. Save Trade (Updated for Playbook)
+        function calculatePips(entry, exit, pair) {
+            const diff = Math.abs(exit - entry);
+            if (pair.includes('JPY')) return (diff * 100).toFixed(1);
+            return (diff * 10000).toFixed(1);
+        }
+
         async function saveTradeWithImage() {
-            const pair = document.getElementById('tradePair').value;
+            const pair = document.getElementById('tradePair').value.toUpperCase();
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
             const emotion = document.getElementById('tradeEmotion').value;
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
-            const isPlaybook = document.getElementById('playbookCheck').checked; // Get checkbox
+            const isPlaybook = document.getElementById('playbookCheck').checked;
+            const timeframe = document.getElementById('tradeTimeframe').value;
+            const setup = document.getElementById('tradeSetup').value;
+            const entryPrice = parseFloat(document.getElementById('entryPrice').value) || null;
+            const exitPrice = parseFloat(document.getElementById('exitPrice').value) || null;
+            const lotSize = parseFloat(document.getElementById('lotSize').value) || null;
+            const riskReward = document.getElementById('riskReward').value || null;
+            const bias = document.getElementById('fundamentalBias').value;
+            
             const fileInput = document.getElementById('chartUpload');
             const status = document.getElementById('journalStatus');
             const currentSession = getMarketSession();
@@ -84,162 +97,327 @@
                 }
             }
 
+            const pips = (entryPrice && exitPrice) ? calculatePips(entryPrice, exitPrice, pair) : null;
+
             const { error } = await supabaseClient.from('trades').insert([
                 { 
                     pair, type, reason, tradingview_link: chartLink, 
                     chart_screenshot: imageUrl, outcome, emotion,
-                    session: currentSession,
-                    is_playbook: isPlaybook
+                    session: currentSession, is_playbook: isPlaybook,
+                    timeframe, setup_type: setup, entry_price: entryPrice,
+                    exit_price: exitPrice, lot_size: lotSize, pips,
+                    risk_reward: riskReward, fundamental_bias: bias
                 }
             ]);
 
             if (error) {
-                status.innerText = "DB Error! (Did you add is_playbook column?)";
+                console.error(error);
+                status.innerText = "❌ Error!";
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
-                // Reset form
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeReason').value = '';
+                document.getElementById('entryPrice').value = '';
+                document.getElementById('exitPrice').value = '';
+                document.getElementById('lotSize').value = '';
                 document.getElementById('playbookCheck').checked = false;
+                setTimeout(() => status.innerText = '', 3000);
             }
         }
 
-        // 5. Load Trades (With Playbook Filter)
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
-            
-            // Update Toggle Button Visuals
             document.getElementById('btn-all').classList.toggle('active-filter', filterMode === 'all');
             document.getElementById('btn-playbook').classList.toggle('active-filter', filterMode === 'playbook');
 
             const feed = document.getElementById('tradeFeed');
-            feed.innerHTML = '<p style="color:#8b949e;">Syncing trades...</p>';
+            feed.innerHTML = '<p style="color:#8b949e;">Loading...</p>';
 
-            let query = supabaseClient
-                .from('trades')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            // Apply Filter if "Playbook" is selected
-            if (filterMode === 'playbook') {
-                query = query.eq('is_playbook', true);
-            }
+            let query = supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
+            if (filterMode === 'playbook') query = query.eq('is_playbook', true);
 
             const { data: trades, error } = await query;
-
-            if (error) return;
+            if (error) { console.error(error); return; }
+            
+            allTrades = trades;
             feed.innerHTML = '';
-            
-            // Stats Calculation (Always based on ALL trades to keep true stats)
-            // Note: If you want stats to filter too, move this inside the query logic.
-            // For now, let's keep Global Stats.
-            
-            let wins = trades.filter(t => t.outcome === 'Win').length;
-            let total = trades.filter(t => t.outcome !== 'Pending').length;
-            let winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
-            
-            if(filterMode === 'all') {
-                document.getElementById('winRateStat').innerText = winRate + "%";
-                document.getElementById('totalTradesStat').innerText = trades.length;
+            calculateAllStats(trades);
+            renderCharts(trades);
+
+            if (trades.length === 0) {
+                feed.innerHTML = '<p style="color:#8b949e;">No trades yet!</p>';
+                return;
             }
 
             trades.forEach(trade => {
                 const card = document.createElement('div');
                 card.className = 'trade-log-card';
-                // Add gold border if it's a playbook trade
                 if (trade.is_playbook) card.classList.add('playbook-card');
+
+                const pipsDisplay = trade.pips ? `<span><i class='bx bx-trending-up'></i> ${trade.pips} pips</span> | ` : '';
+                const rrDisplay = trade.risk_reward ? `<span>R:R ${trade.risk_reward}</span> | ` : '';
 
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="pair-badge">${trade.pair}</span>
-                        <div style="display:flex; gap:5px;">
-                             ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
+                        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                             ${trade.is_playbook ? '<span class="pb-tag">🏆</span>' : ''}
                              <span class="session-badge">${trade.session || 'N/A'}</span>
                              <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <button class="delete-btn" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
                     </div>
-                    ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
+                    ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}')">` : ''}
                     <div class="card-meta">
-                        <span><i class='bx bx-smile'></i> ${trade.emotion || 'Neutral'}</span> | 
-                        <span><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</span>
+                        ${pipsDisplay}${rrDisplay}
+                        <span><i class='bx bx-smile'></i> ${trade.emotion || 'Neutral'}</span>
                     </div>
+                    <div class="card-meta">
+                        <span><i class='bx bx-calendar'></i> ${new Date(trade.created_at).toLocaleDateString()}</span> | 
+                        <span>${trade.timeframe || 'N/A'}</span> | 
+                        <span>${trade.setup_type || 'Setup'}</span>
+                    </div>
+                    ${trade.fundamental_bias ? `<div class="bias-tag ${trade.fundamental_bias.toLowerCase()}">${trade.fundamental_bias}</div>` : ''}
                     <p class="trade-reason">${trade.reason}</p>
-                    ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> Chart Link</a>` : ''}
+                    ${trade.tradingview_link ? `<a href="${trade.tradingview_link}" target="_blank" class="live-link"><i class='bx bx-link-external'></i> Chart</a>` : ''}
                 `;
                 feed.appendChild(card);
             });
         }
 
+        function calculateAllStats(trades) {
+            const completed = trades.filter(t => t.outcome !== 'Pending');
+            const wins = trades.filter(t => t.outcome === 'Win').length;
+            const total = completed.length;
+            const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
+
+            const totalPips = trades.reduce((sum, t) => {
+                if (t.pips && t.outcome === 'Win') return sum + parseFloat(t.pips);
+                if (t.pips && t.outcome === 'Loss') return sum - parseFloat(t.pips);
+                return sum;
+            }, 0);
+
+            const sessions = { Asian: {w:0,t:0}, London: {w:0,t:0}, 'New York': {w:0,t:0} };
+            completed.forEach(t => {
+                if (sessions[t.session]) {
+                    sessions[t.session].t++;
+                    if (t.outcome === 'Win') sessions[t.session].w++;
+                }
+            });
+
+            const pairs = {};
+            completed.forEach(t => {
+                if (!pairs[t.pair]) pairs[t.pair] = {w:0,t:0};
+                pairs[t.pair].t++;
+                if (t.outcome === 'Win') pairs[t.pair].w++;
+            });
+
+            let bestPair = 'N/A', bestWR = 0;
+            Object.keys(pairs).forEach(p => {
+                const wr = (pairs[p].w / pairs[p].t) * 100;
+                if (wr > bestWR && pairs[p].t >= 3) { bestWR = wr; bestPair = p; }
+            });
+
+            let winStreak = 0, lossStreak = 0, tempW = 0, tempL = 0;
+            completed.reverse().forEach(t => {
+                if (t.outcome === 'Win') { tempW++; tempL = 0; winStreak = Math.max(winStreak, tempW); }
+                else { tempL++; tempW = 0; lossStreak = Math.max(lossStreak, tempL); }
+            });
+
+            document.getElementById('winRateStat').innerText = winRate + "%";
+            document.getElementById('totalTradesStat').innerText = trades.length;
+            document.getElementById('totalPipsStat').innerText = totalPips > 0 ? `+${totalPips.toFixed(1)}` : totalPips.toFixed(1);
+            document.getElementById('bestPairStat').innerText = bestPair;
+            document.getElementById('winStreakStat').innerText = winStreak;
+            document.getElementById('lossStreakStat').innerText = lossStreak;
+
+            document.getElementById('asianWR').innerText = sessions.Asian.t > 0 ? `${((sessions.Asian.w/sessions.Asian.t)*100).toFixed(0)}%` : 'N/A';
+            document.getElementById('londonWR').innerText = sessions.London.t > 0 ? `${((sessions.London.w/sessions.London.t)*100).toFixed(0)}%` : 'N/A';
+            document.getElementById('newYorkWR').innerText = sessions['New York'].t > 0 ? `${((sessions['New York'].w/sessions['New York'].t)*100).toFixed(0)}%` : 'N/A';
+
+            generateInsights(trades, sessions, pairs);
+        }
+
+        function generateInsights(trades, sessions, pairs) {
+            const container = document.getElementById('insightsContainer');
+            container.innerHTML = '';
+            const insights = [];
+
+            let bestSess = null, bestSessWR = 0;
+            Object.keys(sessions).forEach(s => {
+                if (sessions[s].t >= 3) {
+                    const wr = (sessions[s].w / sessions[s].t) * 100;
+                    if (wr > bestSessWR) { bestSessWR = wr; bestSess = s; }
+                }
+            });
+            if (bestSess) insights.push(`📊 ${bestSess} session: ${bestSessWR.toFixed(0)}% win rate`);
+
+            const pairArr = Object.entries(pairs).sort((a,b) => (b[1].w/b[1].t) - (a[1].w/a[1].t));
+            if (pairArr.length && pairArr[0][1].t >= 3) {
+                insights.push(`💹 ${pairArr[0][0]} is your best pair: ${((pairArr[0][1].w/pairArr[0][1].t)*100).toFixed(0)}% WR`);
+            }
+
+            const recent = trades.slice(0,10).filter(t => t.outcome !== 'Pending');
+            if (recent.length >= 5) {
+                const recentWR = (recent.filter(t => t.outcome === 'Win').length / recent.length) * 100;
+                if (recentWR >= 70) insights.push(`🔥 Hot! ${recentWR.toFixed(0)}% in last 10`);
+                else if (recentWR <= 30) insights.push(`⚠️ Struggles: ${recentWR.toFixed(0)}% in last 10`);
+            }
+
+            if (!insights.length) insights.push('Complete more trades for insights');
+            insights.forEach(i => {
+                const d = document.createElement('div');
+                d.className = 'insight-card';
+                d.innerHTML = `<i class='bx bx-bulb'></i> ${i}`;
+                container.appendChild(d);
+            });
+        }
+
+        function renderCharts(trades) {
+            const completed = trades.filter(t => t.outcome !== 'Pending');
+            
+            const eqCtx = document.getElementById('equityChart');
+            if (charts.equity) charts.equity.destroy();
+            
+            let cum = 0;
+            const eqData = completed.reverse().map((t, i) => {
+                cum += t.outcome === 'Win' ? parseFloat(t.pips || 0) : -parseFloat(t.pips || 0);
+                return {x: i+1, y: cum};
+            });
+
+            charts.equity = new Chart(eqCtx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Pips',
+                        data: eqData,
+                        borderColor: '#00ffae',
+                        backgroundColor: 'rgba(0,255,174,0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: {display: false} },
+                    scales: {
+                        x: {display: false},
+                        y: {ticks: {color: '#8b949e'}, grid: {color: '#30363d'}}
+                    }
+                }
+            });
+
+            const sessCtx = document.getElementById('sessionChart');
+            if (charts.session) charts.session.destroy();
+            
+            const sessCounts = {Asian:0, London:0, 'New York':0};
+            completed.forEach(t => { if (sessCounts[t.session] !== undefined) sessCounts[t.session]++; });
+
+            charts.session = new Chart(sessCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(sessCounts),
+                    datasets: [{
+                        data: Object.values(sessCounts),
+                        backgroundColor: ['#ffd700', '#00ffae', '#ff6b6b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {legend: {labels: {color: '#c9d1d9'}}}
+                }
+            });
+        }
+
         async function deleteTrade(id) {
-            if (confirm("Delete this entry?")) {
+            if (confirm("Delete?")) {
                 await supabaseClient.from('trades').delete().eq('id', id);
                 loadTrades(activeFilter); 
             }
         }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
     </script>
 
     <style>
-        :root { --primary: #00ffae; --gold: #ffd700; --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; }
-        
-        /* Layout */
-        .sidebar { width: 300px; height: 100vh; background: #010409; position: fixed; border-right: 1px solid var(--border); padding: 25px; overflow-y: auto; transition: 0.3s; z-index: 1000; box-sizing: border-box;}
-        .main-content { margin-left: 300px; padding: 40px; }
-        
-        /* Sidebar Elements */
-        .sidebar-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
-        .side-input { width: 100%; background: var(--bg); color: white; border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; }
-        .side-btn { width: 100%; background: var(--primary); color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        
-        /* Playbook Checkbox */
-        .playbook-option { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer; font-size: 0.85rem; color: var(--gold); font-weight: bold; }
-        .playbook-option input { accent-color: var(--gold); width: 16px; height: 16px; }
-
-        /* Filter Toggle Buttons */
-        .filter-container { display: flex; gap: 10px; margin-bottom: 25px; }
-        .filter-btn { background: var(--card); border: 1px solid var(--border); color: #8b949e; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
-        .filter-btn.active-filter { background: rgba(0, 255, 174, 0.1); color: var(--primary); border-color: var(--primary); }
-        .filter-btn.active-filter.pb-btn { background: rgba(255, 215, 0, 0.1); color: var(--gold); border-color: var(--gold); }
-
-        /* Stats */
-        .stats-container { display: flex; gap: 20px; margin-bottom: 30px; }
-        .stat-box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 14px; flex: 1; text-align: center; }
-        .stat-box h3 { font-size: 1.8rem; color: var(--primary); margin: 8px 0 0 0; }
-
-        /* Trade Cards */
-        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
-        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; transition: 0.2s; position: relative; overflow: hidden; }
-        .trade-log-card:hover { border-color: var(--primary); }
-        
-        /* Playbook Specific Styles */
-        .trade-log-card.playbook-card { border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 0 15px rgba(255, 215, 0, 0.05); }
-        .pb-tag { color: var(--gold); font-size: 0.65rem; background: rgba(255, 215, 0, 0.1); padding: 3px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(255, 215, 0, 0.2); }
-
-        .trade-img-preview { width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; cursor: pointer; }
-        .pair-badge { color: var(--primary); font-weight: 800; font-size: 1.2rem; }
-        .session-badge { background: #30363d; color: #fff; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
-        
-        .outcome-tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; font-weight: 800; text-transform: uppercase; border: 1px solid transparent; }
-        .outcome-tag.win { background: rgba(0, 255, 174, 0.1); color: var(--primary); border-color: var(--primary); }
-        .outcome-tag.loss { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border-color: #ff4b4b; }
-
-        .card-meta { color: #8b949e; font-size: 0.8rem; margin: 10px 0; }
-        .trade-reason { font-size: 0.95rem; line-height: 1.5; margin: 10px 0; color: #e6edf3; }
-        .live-link { color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: bold; }
-        .delete-btn { background: none; border: none; color: #8b949e; cursor: pointer; float: right; }
-        .delete-btn:hover { color: #ff4b4b; }
-
-        /* Mobile Responsive */
-        .mobile-toggle { display: none; position: fixed; top: 20px; right: 20px; background: var(--card); border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 10px; z-index: 2000; cursor: pointer; }
-        
-        @media (max-width: 992px) {
-            .mobile-toggle { display: block; }
-            .sidebar { transform: translateX(-100%); width: 280px; }
-            .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 100px 20px 20px 20px; }
-            .stats-container { flex-direction: column; }
+        :root{--primary:#00ffae;--gold:#ffd700;--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9}
+        *{box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;margin:0}
+        .sidebar{width:320px;height:100vh;background:#010409;position:fixed;border-right:1px solid var(--border);padding:20px;overflow-y:auto;transition:0.3s;z-index:1000}
+        .main-content{margin-left:320px;padding:30px}
+        .sidebar-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:18px}
+        .side-input,.side-select{width:100%;background:var(--bg);color:white;border:1px solid var(--border);padding:10px;margin-bottom:10px;border-radius:8px;font-size:0.85rem}
+        .side-input:focus,.side-select:focus{outline:none;border-color:var(--primary)}
+        .side-btn{width:100%;background:var(--primary);color:#000;border:none;padding:12px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.9rem}
+        .side-btn:hover{opacity:0.9}
+        .input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .playbook-option{display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;font-size:0.82rem;color:var(--gold);font-weight:bold}
+        .playbook-option input{accent-color:var(--gold);width:16px;height:16px}
+        .tabs{display:flex;gap:8px;margin-bottom:25px;border-bottom:1px solid var(--border);overflow-x:auto}
+        .tab-btn{background:none;border:none;color:#8b949e;padding:12px 16px;cursor:pointer;font-weight:600;font-size:0.85rem;border-bottom:2px solid transparent;white-space:nowrap}
+        .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:25px}
+        .stat-box{background:var(--card);border:1px solid var(--border);padding:18px;border-radius:12px;text-align:center}
+        .stat-box h3{font-size:1.6rem;color:var(--primary);margin:8px 0 0}
+        .stat-box .label{color:#8b949e;font-size:0.7rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase}
+        .session-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:25px}
+        .session-card{background:var(--card);border:1px solid var(--border);padding:18px;border-radius:12px}
+        .session-card h4{margin:0 0 10px;font-size:0.85rem;color:#8b949e}
+        .session-card .wr{font-size:1.8rem;font-weight:bold;color:var(--primary)}
+        .charts-section{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:25px}
+        .chart-container{background:var(--card);border:1px solid var(--border);padding:20px;border-radius:12px}
+        .chart-container h4{margin:0 0 15px;color:var(--primary);font-size:0.9rem}
+        .chart-wrapper{height:250px}
+        .insights-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:25px}
+        .insight-card{background:linear-gradient(135deg,rgba(0,255,174,0.05),rgba(0,255,174,0.02));border:1px solid rgba(0,255,174,0.2);padding:15px;border-radius:10px;font-size:0.85rem;line-height:1.5}
+        .insight-card i{color:var(--gold);font-size:1.2rem;margin-right:8px}
+        .filter-container{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+        .filter-btn{background:var(--card);border:1px solid var(--border);color:#8b949e;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:600;font-size:0.8rem}
+        .filter-btn.active-filter{background:rgba(0,255,174,0.1);color:var(--primary);border-color:var(--primary)}
+        .filter-btn.pb-btn.active-filter{background:rgba(255,215,0,0.1);color:var(--gold);border-color:var(--gold)}
+        .trade-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+        .trade-log-card{background:var(--card);border:1px solid var(--border);padding:18px;border-radius:14px;transition:0.2s}
+        .trade-log-card:hover{border-color:var(--primary)}
+        .trade-log-card.playbook-card{border:1px solid rgba(255,215,0,0.3);box-shadow:0 0 15px rgba(255,215,0,0.05)}
+        .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+        .pair-badge{color:var(--primary);font-weight:800;font-size:1.15rem}
+        .session-badge{background:#30363d;color:#fff;font-size:0.65rem;padding:3px 8px;border-radius:4px;font-weight:bold}
+        .outcome-tag{font-size:0.65rem;padding:3px 8px;border-radius:4px;font-weight:800;text-transform:uppercase}
+        .outcome-tag.win{background:rgba(0,255,174,0.1);color:var(--primary);border:1px solid var(--primary)}
+        .outcome-tag.loss{background:rgba(255,75,75,0.1);color:#ff4b4b;border:1px solid #ff4b4b}
+        .outcome-tag.pending{background:rgba(255,215,0,0.1);color:var(--gold);border:1px solid var(--gold)}
+        .pb-tag{color:var(--gold);font-size:0.65rem;background:rgba(255,215,0,0.1);padding:3px 6px;border-radius:4px;font-weight:bold}
+        .bias-tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:bold;margin:8px 0}
+        .bias-tag.bullish{background:rgba(0,255,174,0.1);color:var(--primary)}
+        .bias-tag.bearish{background:rgba(255,75,75,0.1);color:#ff4b4b}
+        .trade-img-preview{width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:12px;cursor:pointer}
+        .card-meta{color:#8b949e;font-size:0.75rem;margin:8px 0}
+        .trade-reason{font-size:0.9rem;line-height:1.5;margin:10px 0;color:#e6edf3}
+        .live-link{color:var(--primary);text-decoration:none;font-size:0.8rem;font-weight:bold}
+        .delete-btn{background:none;border:none;color:#8b949e;cursor:pointer;font-size:1.2rem}
+        .delete-btn:hover{color:#ff4b4b}
+        .mobile-toggle{display:none;position:fixed;top:15px;right:15px;background:var(--card);border:1px solid var(--primary);color:var(--primary);padding:10px;border-radius:10px;z-index:2000;cursor:pointer;font-size:1.4rem}
+        @media(max-width:992px){
+            .mobile-toggle{display:block}
+            .sidebar{transform:translateX(-100%);width:300px}
+            .sidebar.active{transform:translateX(0)}
+            .main-content{margin-left:0;padding:70px 15px 15px}
+            .stats-grid{grid-template-columns:repeat(2,1fr)}
+            .charts-section{grid-template-columns:1fr}
+            .trade-grid{grid-template-columns:1fr}
+        }
+        @media(max-width:600px){
+            .stats-grid{grid-template-columns:1fr}
+            .input-row{grid-template-columns:1fr}
         }
     </style>
 </head>
@@ -247,61 +425,43 @@
     <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu-alt-right'></i></button>
 
     <aside class="sidebar">
-        <div style="color:var(--primary); font-weight:900; font-size:1.6rem; margin-bottom:25px; text-align:center;">TEPPA PRO</div>
+        <div style="color:var(--primary);font-weight:900;font-size:1.5rem;margin-bottom:20px;text-align:center">TEPPA PRO</div>
         
         <div class="sidebar-section">
-            <h4 style="margin:0 0 15px 0; color:var(--primary); font-size:0.75rem; letter-spacing:1px;">NEW JOURNAL ENTRY</h4>
+            <h4 style="margin:0 0 12px;color:var(--primary);font-size:0.75rem;letter-spacing:1px">NEW JOURNAL ENTRY</h4>
             
-            <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
+            <input type="text" id="tradePair" class="side-input" placeholder="Pair (EURUSD, NAS100)" onchange="updateWidget()">
             
-            <div style="display:flex; gap:5px;">
-                <select id="tradeType" class="side-input" style="flex:1;"><option>Buy</option><option>Sell</option></select>
-                <select id="tradeOutcome" class="side-input" style="flex:1;"><option>Pending</option><option>Win</option><option>Loss</option></select>
+            <div class="input-row">
+                <select id="tradeType" class="side-select"><option>Buy</option><option>Sell</option></select>
+                <select id="tradeOutcome" class="side-select"><option>Pending</option><option>Win</option><option>Loss</option></select>
             </div>
-            <select id="tradeEmotion" class="side-input">
-                <option>Confident</option><option>FOMO</option><option>Aggressive</option><option>Neutral</option>
+
+            <div class="input-row">
+                <input type="number" id="entryPrice" class="side-input" placeholder="Entry" step="0.00001">
+                <input type="number" id="exitPrice" class="side-input" placeholder="Exit" step="0.00001">
+            </div>
+
+            <div class="input-row">
+                <input type="number" id="lotSize" class="side-input" placeholder="Lot Size" step="0.01">
+                <input type="text" id="riskReward" class="side-input" placeholder="R:R (1:2)">
+            </div>
+
+            <select id="tradeTimeframe" class="side-select">
+                <option>M15</option><option>M30</option><option>H1</option><option>H4</option><option>D1</option><option>W1</option>
             </select>
-            <input type="text" id="chartLink" class="side-input" placeholder="Chart Link (Optional)">
-            <textarea id="tradeReason" placeholder="Setup notes..." rows="3" class="side-input" style="resize:none;"></textarea>
+
+            <select id="tradeSetup" class="side-select">
+                <option>Trend Continuation</option><option>Range Break</option><option>Support/Resistance</option>
+                <option>Fibonacci</option><option>MA Cross</option><option>Reversal</option><option>News Trade</option>
+            </select>
+
+            <select id="tradeEmotion" class="side-select">
+                <option>Confident</option><option>FOMO</option><option>Revenge</option><option>Fearful</option><option>Neutral</option>
+            </select>
+
+            <select id="fundamentalBias" class="side-select">
+                <option value="">No Bias</option><option>Bullish</option><option>Bearish</option>
+            </select>
             
-            <label class="playbook-option">
-                <input type="checkbox" id="playbookCheck"> 
-                <span>🏆 Add to Playbook</span>
-            </label>
-
-            <input type="file" id="chartUpload" accept="image/*" style="display:none;" onchange="document.getElementById('fileName').innerText=this.files[0].name">
-            <label for="chartUpload" id="fileName" style="display:block; border:1px dashed var(--border); padding:15px; border-radius:8px; text-align:center; font-size:0.75rem; cursor:pointer; margin-bottom:15px; color:#8b949e;">Attach Screenshot</label>
-            
-            <button class="side-btn" onclick="saveTradeWithImage()">Save Trade</button>
-            <p id="journalStatus" style="font-size: 0.75rem; color:var(--primary); text-align:center; margin-top:10px; font-weight:bold;"></p>
-        </div>
-
-        <div class="sidebar-section" style="padding:0; overflow:hidden; border:none; height: 300px; background:#000;">
-            <iframe id="tv-widget" src="https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22NAS100%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%2C%22dateRange%22%3A%2212M%22%2C%22colorTheme%22%3A%22dark%22%2C%22trendLineColor%22%3A%22rgba(0%2C%20255%2C%20174%2C%201)%22%2C%22underLineColor%22%3A%22rgba(0%2C%20255%2C%20174%2C%200.3)%22%2C%22isTransparent%22%3Atrue%2C%22autosize%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%7D" frameborder="0" style="width:100%; height:300px;"></iframe>
-        </div>
-        
-        <button onclick="supabaseClient.auth.signOut().then(() => window.location.replace('index.html'))" style="background:none; border:1px solid #ff4b4b; color:#ff4b4b; width:100%; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.8rem;">Logout</button>
-    </aside>
-
-    <main class="main-content">
-        <header style="margin-bottom:30px;">
-            <h1 style="color:var(--primary); margin:0;">Pro Dashboard</h1>
-            <span id="userEmail" style="color:#8b949e; font-size:0.85rem;"></span>
-        </header>
-
-        <div class="stats-container">
-            <div class="stat-box"><span style="color:#8b949e; font-size:0.75rem; font-weight:bold; letter-spacing:1px;">WIN RATE</span><h3 id="winRateStat">0%</h3></div>
-            <div class="stat-box"><span style="color:#8b949e; font-size:0.75rem; font-weight:bold; letter-spacing:1px;">TOTAL TRADES</span><h3 id="totalTradesStat">0</h3></div>
-        </div>
-        
-        <div class="filter-container">
-            <button id="btn-all" class="filter-btn active-filter" onclick="loadTrades('all')">All Trades</button>
-            <button id="btn-playbook" class="filter-btn pb-btn" onclick="loadTrades('playbook')">🏆 Playbook (Best)</button>
-        </div>
-
-        <div id="tradeFeed" class="trade-grid">
-            <p style="color:#8b949e;">Loading dashboard...</p>
-        </div>
-    </main>
-</body>
-</html>
+            <input type="text" id="chartLink" class

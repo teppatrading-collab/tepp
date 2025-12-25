@@ -122,7 +122,6 @@
                 document.getElementById('playbookCheck').checked = false;
                 document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat'));
                 setDefaultSession(); 
-                // Close sidebar on mobile after saving
                 if(window.innerWidth <= 768) toggleSidebar();
             }
         }
@@ -287,7 +286,26 @@
             document.getElementById('calcResult').innerHTML = `<div style="font-size:1.2rem; font-weight:bold; color:#fff;">$${amt.toFixed(2)} Risk</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${(amt/(sl*10)).toFixed(2)} Lots</div>`;
         }
 
-        function exportToCSV() { /* Simple CSV logic kept for brevity */ }
+        function exportToCSV() { 
+            if (!allTradesCache.length) { alert("No trades to export."); return; }
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Pair,Type,Outcome,PnL,Session,Emotion,Strategy,Note\n";
+            allTradesCache.forEach(t => {
+                const date = new Date(t.created_at).toLocaleDateString();
+                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
+                const cleanStrat = t.strategy ? t.strategy.replace(/,/g, " & ") : "";
+                const row = `${date},${t.pair},${t.type},${t.outcome},${t.pnl},${t.session},${t.emotion},${cleanStrat},${cleanNote}`;
+                csvContent += row + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "teppa_trading_journal.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
         function editGoal() {
             const g = prompt("New Goal:", ACCOUNT_GOAL);
             if(g && !isNaN(g)) { localStorage.setItem('tradingGoal', g); ACCOUNT_GOAL = parseInt(g); loadTrades(); }
@@ -329,7 +347,54 @@
         }
         async function deleteTrade(id) { if(confirm("Delete?")) { await supabaseClient.from('trades').delete().eq('id',id); loadTrades(); }}
         function handleFileImport(input) {
-            // Import logic maintained
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            document.getElementById('journalStatus').innerText = "Reading file...";
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const rows = doc.querySelectorAll('tr');
+                let batch = [];
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length < 10) return;
+                    const typeText = cells[2]?.innerText?.toLowerCase();
+                    if (typeText !== 'buy' && typeText !== 'sell') return;
+                    const closeTimeStr = cells[8]?.innerText;
+                    const pair = cells[4]?.innerText;
+                    const profitStr = cells[cells.length - 1]?.innerText?.replace(' ', '');
+                    if (!closeTimeStr || !pair || !profitStr) return;
+                    const pnl = parseFloat(profitStr);
+                    const outcome = pnl >= 0 ? 'Win' : 'Loss';
+                    const dateParts = closeTimeStr.split(' ');
+                    const ymd = dateParts[0].split('.');
+                    const hm = dateParts[1].split(':');
+                    const tradeDate = new Date(ymd[0], ymd[1]-1, ymd[2], hm[0], hm[1]);
+                    const hour = tradeDate.getHours();
+                    let session = "Asian";
+                    if (hour >= 8 && hour < 14) session = "London";
+                    if (hour >= 14 && hour < 21) session = "New York";
+
+                    batch.push({
+                        pair: pair, type: typeText === 'buy' ? 'Buy' : 'Sell',
+                        outcome: outcome, pnl: pnl, session: session,
+                        reason: "Imported from MT4/5", created_at: tradeDate.toISOString(),
+                        emotion: 'Neutral', is_playbook: false, strategy: 'Pro Trend'
+                    });
+                });
+
+                if (batch.length > 0) {
+                    const { error } = await supabaseClient.from('trades').insert(batch);
+                    if (!error) {
+                        document.getElementById('journalStatus').innerText = `✅ Imported ${batch.length} trades!`;
+                        loadTrades();
+                    }
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
         }
     </script>
 
@@ -388,6 +453,34 @@
         .share-stat { font-size: 2.5rem; font-weight: 800; margin: 10px 0; }
         .share-row { display: flex; justify-content: space-between; margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem; }
         .share-val { color: #fff; font-weight: bold; }
+
+        /* --- PROFESSIONAL FILTER BUTTONS (NEW) --- */
+        .filter-container {
+            display: flex; flex-wrap: wrap; gap: 15px; margin-top: 30px; margin-bottom: 25px; align-items: center;
+            padding: 10px; background: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid var(--border);
+        }
+        .filter-btn, .tf-btn {
+            background: transparent; border: 1px solid var(--border); color: #94a3b8; padding: 8px 16px;
+            border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease-in-out;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .filter-btn:hover, .tf-btn:hover { color: #fff; border-color: #fff; background: rgba(255, 255, 255, 0.05); }
+        
+        .filter-btn.active-filter, .tf-btn.active-tf {
+            background: rgba(45, 212, 191, 0.15); color: var(--primary); border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
+        }
+        
+        #btn-playbook { border-color: rgba(251, 191, 36, 0.5); color: #fbbf24; }
+        #btn-playbook:hover { background: rgba(251, 191, 36, 0.1); border-color: #fbbf24; }
+        #btn-playbook.active-filter {
+            background: #fbbf24; color: #0f172a; border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+        }
+
+        .tf-container { display: flex; gap: 5px; background: var(--card); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+        .tf-container .tf-btn { border: none; background: transparent; }
+        .tf-container .tf-btn.active-tf { background: var(--primary); color: #0f172a; box-shadow: none; }
 
         /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 992px) {
@@ -530,7 +623,7 @@
             <div id="calendarGrid" class="calendar-grid"></div>
         </div>
 
-        <div class="filter-container" style="margin-top:40px;">
+        <div class="filter-container">
             <div style="display:flex; gap:10px;">
                 <button id="btn-all" class="filter-btn active-filter" onclick="loadTrades('all')">All Trades</button>
                 <button id="btn-playbook" class="filter-btn" onclick="loadTrades('playbook')">🏆 Playbook</button>

@@ -35,9 +35,10 @@
 
     .brand-container { display: flex; align-items: center; gap: 12px; }
     
+    /* Logo Style */
     .nav-logo-img {
         width: 40px; height: 40px;
-        border-radius: 50%; /* Makes square images circular */
+        border-radius: 50%; 
         border: 2px solid var(--primary);
         box-shadow: 0 0 10px var(--primary-glow);
         object-fit: cover;
@@ -271,8 +272,9 @@ document.getElementById('forgotBtn').onclick = async () => {
         return;
     }
     
+    // IMPORTANT: Make sure 'reset-password.html' is in your Supabase Auth > Redirect URLs
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password.html', // You would create this page later
+        redirectTo: window.location.origin + '/reset-password.html', 
     });
 
     if(error) alert(error.message);

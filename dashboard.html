@@ -42,7 +42,7 @@
         let currentEditId = null; 
         let allTradesCache = []; 
         let currentGhostTrade = null;
-        let currentReplayTrade = null; 
+        let currentReplayTrade = null; // Stores data for the active replay session
 
         // ==================================================================
         // 2. AUTHENTICATION & SUBSCRIPTION CHECK
@@ -73,20 +73,39 @@
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
-                // document.getElementById('btn-teppa-nav').style.display = 'flex'; // Un-comment if you want to hide this too
-                // document.getElementById('btn-doctor-nav').style.display = 'flex'; // Un-comment if you want to hide this too
                 document.getElementById('proBadge').style.display = 'inline-block';
                 
                 loadLeaderboard(); 
             }
             
-            // NOTE: We now show Doctor and Teppa Engine to EVERYONE by default (below)
+            // We show Doctor and Teppa Engine to EVERYONE by default now
             document.getElementById('btn-teppa-nav').style.display = 'flex';
             document.getElementById('btn-doctor-nav').style.display = 'flex';
         }
 
         // ==================================================================
-        // 3. FEATURE: PROFESSIONAL REPLAY TERMINAL (TARGET FINDER)
+        // 3. UI HELPER: FOLDER TOGGLE
+        // ==================================================================
+        function toggleFolder(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.folder-icon');
+            const arrow = header.querySelector('.folder-arrow');
+            
+            if (content.style.maxHeight) {
+                // Close Folder
+                content.style.maxHeight = null;
+                if(icon) { icon.className = 'bx bx-folder folder-icon'; }
+                if(arrow) { arrow.style.transform = 'rotate(0deg)'; }
+            } else {
+                // Open Folder
+                content.style.maxHeight = content.scrollHeight + "px";
+                if(icon) { icon.className = 'bx bx-folder-open folder-icon'; }
+                if(arrow) { arrow.style.transform = 'rotate(180deg)'; }
+            }
+        }
+
+        // ==================================================================
+        // 4. FEATURE: PROFESSIONAL REPLAY TERMINAL (TARGET FINDER)
         // ==================================================================
         function openReplay(tradeDataStr) {
             // 1. Decode Data
@@ -186,7 +205,7 @@
         }
 
         // ==================================================================
-        // 4. FEATURE: TEPPA ENGINE (RISK CALCULATOR)
+        // 5. FEATURE: TEPPA ENGINE
         // ==================================================================
         function openTeppaEngine() {
             document.getElementById('teppaModal').style.display = 'flex';
@@ -223,7 +242,7 @@
         }
 
         // ==================================================================
-        // 5. FEATURE: PERFORMANCE DOCTOR (UPDATED FOR EVERYONE)
+        // 6. FEATURE: PERFORMANCE DOCTOR (Best Day/Time)
         // ==================================================================
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
@@ -263,23 +282,43 @@
                 if(pnl < minHrPnL) { minHrPnL = pnl; worstHour = h; }
             }
 
+            // 4. BEST DAY OF WEEK Analysis
+            const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dailyPnL = { "Monday": 0, "Tuesday": 0, "Wednesday": 0, "Thursday": 0, "Friday": 0 };
+            
+            chronTrades.forEach(t => {
+                const d = new Date(t.created_at);
+                const dayName = days[d.getDay()];
+                if(dailyPnL[dayName] !== undefined) {
+                    dailyPnL[dayName] += (t.pnl || 0);
+                }
+            });
+
+            let bestDay = Object.keys(dailyPnL).reduce((a, b) => dailyPnL[a] > dailyPnL[b] ? a : b);
+            let worstDay = Object.keys(dailyPnL).reduce((a, b) => dailyPnL[a] < dailyPnL[b] ? a : b);
+
             const formatH = (h) => {
                 if(h === null) return "--";
                 const d = new Date(); d.setHours(h);
                 return d.toLocaleTimeString([], {hour: 'numeric', hour12: true});
             };
 
-            // 4. BEST SESSION Analysis
+            // 5. BEST SESSION Analysis
             const sessionPnL = {};
             chronTrades.forEach(t => {
                 if(!sessionPnL[t.session]) sessionPnL[t.session] = 0;
                 sessionPnL[t.session] += (t.pnl || 0);
             });
             
-            let bestSession = Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] > sessionPnL[b] ? a : b, "--");
-            let worstSession = Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] < sessionPnL[b] ? a : b, "--");
+            let bestSession = Object.keys(sessionPnL).length > 0 
+                ? Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] > sessionPnL[b] ? a : b) 
+                : "--";
+            
+            let worstSession = Object.keys(sessionPnL).length > 0 
+                ? Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] < sessionPnL[b] ? a : b) 
+                : "--";
 
-            // 5. Render Report (Unlocked for Everyone)
+            // 6. Render Report
             const diagnosisDiv = document.getElementById('doctorDiagnosis');
             
             let healthHTML = currentDD <= 0 
@@ -299,6 +338,10 @@
                     <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid var(--primary);">
                         <div style="font-size:0.7rem; color:#94a3b8; font-weight:bold; letter-spacing:1px; margin-bottom:10px;">🔥 POWER ZONE</div>
                         <div style="margin-bottom:8px;">
+                            <div style="font-size:0.75rem; color:#fff;">BEST DAY</div>
+                            <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${bestDay}</div>
+                        </div>
+                        <div style="margin-bottom:8px;">
                             <div style="font-size:0.75rem; color:#fff;">BEST TIME</div>
                             <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${formatH(bestHour)}</div>
                         </div>
@@ -310,6 +353,10 @@
 
                     <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #ef4444;">
                         <div style="font-size:0.7rem; color:#94a3b8; font-weight:bold; letter-spacing:1px; margin-bottom:10px;">⛔ AVOID ZONE</div>
+                        <div style="margin-bottom:8px;">
+                            <div style="font-size:0.75rem; color:#fff;">WORST DAY</div>
+                            <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${worstDay}</div>
+                        </div>
                         <div style="margin-bottom:8px;">
                             <div style="font-size:0.75rem; color:#fff;">WORST TIME</div>
                             <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${formatH(worstHour)}</div>
@@ -332,7 +379,7 @@
         }
 
         // ==================================================================
-        // 6. FEATURE: SMART MENTOR & GHOST
+        // 7. FEATURE: SMART MENTOR & GHOST
         // ==================================================================
         function openMentor() {
             const modal = document.getElementById('mentorModal');
@@ -409,7 +456,7 @@
         }
 
         // ==================================================================
-        // 7. UI UTILITIES (SIDEBAR, WIDGETS)
+        // 8. UI UTILITIES (SIDEBAR, WIDGETS)
         // ==================================================================
         function toggleSidebar() { 
             document.querySelector('.sidebar').classList.toggle('active'); 
@@ -461,9 +508,10 @@
         }
 
         // ==================================================================
-        // 8. DATA HANDLING (SAVE, LOAD, EDIT)
+        // 9. DATA HANDLING (SAVE, LOAD, EDIT)
         // ==================================================================
         async function saveTradeWithImage() {
+            // Retrieve inputs from the new Folder Structure
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
@@ -529,6 +577,7 @@
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
+                // Reset Fields
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeDate').value = ''; 
                 document.getElementById('tradeTime').value = ''; 
@@ -575,10 +624,11 @@
             document.getElementById('shareModal').style.display = 'none'; 
         }
 
-        // --- NEW: TOGGLE BACKTEST MODE ---
+        // --- TOGGLE BACKTEST MODE ---
         function toggleBacktestMode() {
             isBacktestMode = !isBacktestMode;
             const btn = document.getElementById('btn-backtest-toggle');
+            
             if (isBacktestMode) {
                 btn.classList.add('active-filter');
                 btn.innerHTML = "<i class='bx bx-show-alt'></i> REVEAL MODE";
@@ -596,6 +646,7 @@
 
             let query = supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
             if (filterMode === 'playbook') query = query.eq('is_playbook', true);
+
             const { data: rawTrades, error } = await query;
             if (error) return;
             
@@ -604,6 +655,7 @@
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
+            // Stats Calculations
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
@@ -647,6 +699,7 @@
                 
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
+                // Click Logic
                 card.onclick = (e) => {
                     if (isBacktestMode && !e.target.closest('button')) {
                         openReplay(tradeDataStr);
@@ -682,7 +735,7 @@
         }
 
         // ------------------------------------------------------------------
-        // 11. CHARTS & CALENDAR
+        // 10. CHARTS & CALENDAR
         // ------------------------------------------------------------------
         function renderCalendar(trades) {
             const container = document.getElementById('calendarGrid');
@@ -990,6 +1043,52 @@
             background: rgba(45, 212, 191, 0.15); 
             color: var(--primary); 
             border-color: var(--primary); 
+        }
+        
+        /* FOLDER SYSTEM STYLES */
+        .folder-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #0f172a;
+            overflow: hidden;
+        }
+        .folder-header {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #94a3b8;
+            transition: 0.2s;
+        }
+        .folder-header:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .folder-header .folder-icon {
+            font-size: 1.1rem;
+            margin-right: 8px;
+        }
+        .folder-arrow {
+            transition: transform 0.3s ease;
+        }
+        .folder-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 12px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        /* Space elements inside the folder */
+        .folder-content > * {
+            margin-top: 10px;
+        }
+        .folder-content > *:last-child {
+            margin-bottom: 10px;
         }
 
         /* ==================================================================
@@ -1536,37 +1635,85 @@
 
         <div class="sidebar-section">
             <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#94a3b8;">NEW ENTRY</h4>
-            <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
             
-            <input type="date" id="tradeDate" class="side-input">
-            <input type="time" id="tradeTime" class="side-input">
+            <div class="folder-item">
+                <div class="folder-header" onclick="toggleFolder(this)">
+                    <span><i class='bx bx-folder folder-icon'></i> Trade Details</span>
+                    <i class='bx bx-chevron-down folder-arrow'></i>
+                </div>
+                <div class="folder-content" style="max-height: 1000px;"> <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
+                    
+                    <div style="display:flex; gap:5px;">
+                        <input type="date" id="tradeDate" class="side-input" style="color-scheme: dark;">
+                        <input type="time" id="tradeTime" class="side-input" style="color-scheme: dark;">
+                    </div>
+
+                    <select id="tradeSession" class="side-input">
+                        <option>London</option>
+                        <option>New York</option>
+                        <option>Asian</option>
+                    </select>
+                    
+                    <div id="newStrategyContainer" class="strategy-container">
+                        <div class="strat-btn" onclick="toggleStrategy(this)">SMT</div>
+                        <div class="strat-btn" onclick="toggleStrategy(this)">Reversal</div>
+                        <div class="strat-btn" onclick="toggleStrategy(this)">Continuation</div>
+                        <div class="strat-btn" onclick="toggleStrategy(this)">Pro Trend</div>
+                        <div class="strat-btn" onclick="toggleStrategy(this)">Countertrend</div>
+                        <div class="strat-btn" onclick="toggleStrategy(this)">Extreme</div>
+                        <div class="strat-btn" onclick="toggleStrategy(this)">Decisional</div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <select id="tradeType" class="side-input"><option>Buy</option><option>Sell</option></select>
+                        <select id="tradeOutcome" class="side-input"><option>Pending</option><option>Win</option><option>Loss</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="folder-item">
+                <div class="folder-header" onclick="toggleFolder(this)">
+                    <span><i class='bx bx-folder folder-icon'></i> Analysis & Media</span>
+                    <i class='bx bx-chevron-down folder-arrow'></i>
+                </div>
+                <div class="folder-content">
+                    <input type="text" id="chartLink" class="side-input" placeholder="Chart Link">
+                    <textarea id="tradeReason" class="side-input" rows="2" placeholder="Notes..."></textarea>
+                    
+                    <input type="file" id="chartUpload" style="display:none;">
+                    <label for="chartUpload" class="side-btn" style="background:transparent; border:1px dashed var(--border); color:#94a3b8; text-align:center; display:block; margin:10px 0;">
+                        <i class='bx bx-camera'></i> Upload Screenshot
+                    </label>
+                </div>
+            </div>
+
+            <div class="folder-item">
+                <div class="folder-header" onclick="toggleFolder(this)">
+                    <span><i class='bx bx-folder folder-icon'></i> Results & Data</span>
+                    <i class='bx bx-chevron-down folder-arrow'></i>
+                </div>
+                <div class="folder-content">
+                    <input type="number" id="tradePnL" class="side-input" placeholder="PnL ($)">
+                    <select id="tradeEmotion" class="side-input">
+                        <option>Confident</option>
+                        <option>FOMO</option>
+                        <option>Neutral</option>
+                        <option>Hesitant</option>
+                        <option>Greedy</option>
+                    </select>
+                    <label class="playbook-option" style="display:flex; align-items:center; gap:5px; margin:10px 0; color:#fbbf24; font-weight:bold;">
+                        <input type="checkbox" id="playbookCheck"> <span>🏆 Add to Playbook</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="side-btn" onclick="saveTradeWithImage()" style="margin-top:15px;">Save Trade</button>
             
-            <select id="tradeSession" class="side-input"><option>London</option><option>New York</option><option>Asian</option></select>
-            <div id="newStrategyContainer" class="strategy-container">
-                <div class="strat-btn" onclick="toggleStrategy(this)">SMT</div>
-                <div class="strat-btn" onclick="toggleStrategy(this)">Reversal</div>
-                <div class="strat-btn" onclick="toggleStrategy(this)">Continuation</div>
-                <div class="strat-btn" onclick="toggleStrategy(this)">Pro Trend</div>
-                <div class="strat-btn" onclick="toggleStrategy(this)">Countertrend</div>
-                <div class="strat-btn" onclick="toggleStrategy(this)">Extreme</div>
-                <div class="strat-btn" onclick="toggleStrategy(this)">Decisional</div>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <select id="tradeType" class="side-input"><option>Buy</option><option>Sell</option></select>
-                <select id="tradeOutcome" class="side-input"><option>Pending</option><option>Win</option><option>Loss</option></select>
-            </div>
-            <input type="number" id="tradePnL" class="side-input" placeholder="PnL ($)">
-            <select id="tradeEmotion" class="side-input"><option>Confident</option><option>FOMO</option><option>Neutral</option></select>
-            <input type="text" id="chartLink" class="side-input" placeholder="Chart Link">
-            <textarea id="tradeReason" class="side-input" rows="2" placeholder="Notes..."></textarea>
-            <label class="playbook-option"><input type="checkbox" id="playbookCheck"> <span>🏆 Playbook</span></label>
-            <input type="file" id="chartUpload" style="display:none;">
-            <label for="chartUpload" class="side-btn" style="background:transparent; border:1px dashed var(--border); color:#94a3b8; text-align:center; display:block; margin-bottom:10px;">📸 Upload Screenshot</label>
-            <button class="side-btn" onclick="saveTradeWithImage()">Save Trade</button>
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button onclick="openCalcModal()" style="flex:1; padding:8px; background:#1e293b; color:#fff; border:1px solid var(--border); border-radius:6px; cursor:pointer;"><i class='bx bx-calculator'></i></button>
                 <button onclick="document.getElementById('importFile').click()" style="flex:1; padding:8px; background:#1e293b; color:#fff; border:1px solid var(--border); border-radius:6px; cursor:pointer;"><i class='bx bx-import'></i></button>
             </div>
+            
             <input type="file" id="importFile" style="display:none;" onchange="handleFileImport(this)">
             <p id="journalStatus" style="text-align:center; font-size:0.75rem; color:var(--primary); margin-top:5px;"></p>
         </div>

@@ -1,35 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Reset Password</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <title>Set New Password | Teppa Trading</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+        input { width: 100%; padding: 10px; margin: 10px 0; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #2dd4bf; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
-<body style="background:#000;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;">
-
-  <div>
-    <h2>Reset Password</h2>
-    <input id="password" type="password" placeholder="New password" />
-    <br><br>
-    <button id="resetBtn">Update Password</button>
-    <p id="msg"></p>
-  </div>
+<body>
+    <div class="card">
+        <h2>Create New Password</h2>
+        <p id="status" style="color: #94a3b8;">Type your new password below.</p>
+        <input id="password" type="password" placeholder="New password" />
+        <button id="resetBtn">Update Password</button>
+        <p id="msg"></p>
+    </div>
 
 <script>
-const supabase = supabaseJs.createClient(
-  "https://xuifnaypkeeukyjvlapi.supabase.co",
-  "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob"
-);
+    const supabaseClient = supabase.createClient(
+      "https://xuifnaypkeeukyjvlapi.supabase.co",
+      "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob"
+    );
 
-document.getElementById("resetBtn").onclick = async () => {
-  const password = document.getElementById("password").value;
+    document.getElementById("resetBtn").onclick = async () => {
+        const password = document.getElementById("password").value;
+        const msg = document.getElementById("msg");
 
-  const { error } = await supabase.auth.updateUser({ password });
+        if (password.length < 6) {
+            msg.textContent = "Password must be at least 6 characters.";
+            return;
+        }
 
-  document.getElementById("msg").textContent =
-    error ? error.message : "Password updated successfully!";
-};
+        const { error } = await supabaseClient.auth.updateUser({ password });
+
+        if (error) {
+            msg.textContent = error.message;
+            msg.style.color = "#ef4444";
+        } else {
+            msg.textContent = "Password updated! Redirecting...";
+            msg.style.color = "#2dd4bf";
+            setTimeout(() => { window.location.href = "index.html"; }, 2000);
+        }
+    };
 </script>
-
 </body>
 </html>

@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teppa Trading | Pro Terminal</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
     <script>
         // ------------------------------------------------------------------
-        // CONFIGURATION & VARIABLES
+        // 1. CONFIGURATION & STATE
         // ------------------------------------------------------------------
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
@@ -22,7 +23,7 @@
         
         let activeFilter = 'all'; 
         let activeTimeframe = 'all'; 
-        let isBacktestMode = false; 
+        let isBacktestMode = false; // Tracks if we are in "Replay Mode"
         
         let sessionChart;
         let equityChart;
@@ -31,10 +32,10 @@
         let currentEditId = null; 
         let allTradesCache = []; 
         let currentGhostTrade = null;
-        let currentReplayTrade = null; // Stores data for the active replay
+        let currentReplayTrade = null; // Stores data for the active replay session
 
         // ------------------------------------------------------------------
-        // AUTHENTICATION & PRO CHECK
+        // 2. AUTHENTICATION
         // ------------------------------------------------------------------
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -52,7 +53,7 @@
         async function checkProSubscription(userId) {
             const { data } = await supabaseClient.from('subscriptions').select('plan, status').eq('user_id', userId).single();
             
-            // IF USER IS PRO, UNHIDE FEATURES
+            // If user is PRO, unhide the advanced features
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
@@ -65,56 +66,55 @@
         }
 
         // ------------------------------------------------------------------
-        // FEATURE: LIVE CHART REPLAY (TARGET FINDER)
+        // 3. NEW FEATURE: TARGET FINDER REPLAY (PROFESSIONAL MODE)
         // ------------------------------------------------------------------
         function openReplay(tradeDataStr) {
-            // 1. Decode and Store Data
+            // Decode the trade data passed from the button
             currentReplayTrade = JSON.parse(decodeURIComponent(tradeDataStr));
             
-            // 2. Format the "Target Date" for the user to find
+            // Format the Date/Time for the "Target Finder" display
             const tradeDate = new Date(currentReplayTrade.created_at);
-            const dateString = tradeDate.toLocaleString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric', 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-            });
-
-            // 3. Update the UI Text
-            document.getElementById('replayTargetDate').innerHTML = `
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <i class='bx bx-target-lock' style="color:#ef4444; font-size:1.2rem;"></i> 
-                    <span>SCROLL CHART TO: <strong style="color:#fff; border-bottom:1px dashed #fff;">${dateString}</strong></span>
-                </div>
-            `;
-
-            // 4. Reset Modal State
-            document.getElementById('replayModal').style.display = 'flex';
-            document.getElementById('replayControls').style.display = 'flex';
-            document.getElementById('replayResult').style.display = 'none';
-
-            // 5. Clean Symbol for TradingView (Fixes "euro/usd" error)
+            const dateStr = tradeDate.toISOString().split('T')[0];
+            const timeStr = tradeDate.toLocaleTimeString('en-US', { hour12: false });
+            
+            // Clean the Pair Symbol for TradingView (Remove / or -)
             let rawPair = currentReplayTrade.pair || "BTCUSD";
             let cleanPair = rawPair.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
             
-            // Manual fixes for common nicknames
+            // Manual fixes for common user inputs
             if (cleanPair.includes("EURO")) cleanPair = cleanPair.replace("EURO", "EUR"); 
             if (cleanPair === "GOLD") cleanPair = "XAUUSD";
             if (cleanPair === "BITCOIN") cleanPair = "BTCUSD";
 
-            // 6. Load the Live Chart
+            // Update Telemetry Header in the Modal
+            document.getElementById('telemetryPair').innerText = cleanPair;
+            document.getElementById('telemetryDate').innerText = dateStr;
+            document.getElementById('telemetryTime').innerText = timeStr;
+            document.getElementById('telemetrySession').innerText = (currentReplayTrade.session || "--").toUpperCase();
+
+            const fullDateString = tradeDate.toLocaleString('en-US', { 
+                month: 'short', day: 'numeric', year: 'numeric', 
+                hour: 'numeric', minute: '2-digit', hour12: true 
+            });
+
+            document.getElementById('replayTargetDate').innerHTML = `TARGET: ${fullDateString}`;
+
+            // Reset the Order Ticket UI
+            document.getElementById('replayModal').style.display = 'flex';
+            document.getElementById('orderTicket').style.display = 'flex';
+            document.getElementById('executionLog').style.display = 'none';
+
+            // Initialize the TradingView Widget
             new TradingView.widget({
                 "width": "100%",
                 "height": "100%",
                 "symbol": cleanPair,
-                "interval": "60",
+                "interval": "60", // Default to 1H chart
                 "timezone": "Etc/UTC",
                 "theme": "dark",
                 "style": "1",
                 "locale": "en",
-                "toolbar_bg": "#f1f3f6",
+                "toolbar_bg": "#000000",
                 "enable_publishing": false,
                 "hide_side_toolbar": false,
                 "allow_symbol_change": true,
@@ -126,44 +126,52 @@
             const actualType = currentReplayTrade.type; // 'Buy' or 'Sell'
             const actualOutcome = currentReplayTrade.outcome; // 'Win' or 'Loss'
             
-            const resultBox = document.getElementById('replayResult');
-            const controls = document.getElementById('replayControls');
+            const ticket = document.getElementById('orderTicket');
+            const log = document.getElementById('executionLog');
             
-            let msg = "";
-            let color = "";
-            let icon = "";
+            let statusClass = "";
+            let statusText = "";
+            let pnlText = "";
 
+            // Check if the user's action matches the original trade direction
             if (action === actualType) {
-                // Direction Matches
                 if (actualOutcome === 'Win') {
-                    icon = "<i class='bx bxs-trophy'></i>";
-                    msg = `<strong>EXCELLENT EXECUTION!</strong><br>You identified the correct direction (${action}) and the trade was a Winner.`;
-                    color = "#2dd4bf"; // Green
+                    statusClass = "fill-win";
+                    statusText = "ORDER FILLED";
+                    pnlText = `TP HIT: +$${Math.abs(currentReplayTrade.pnl)}`;
                 } else {
-                    icon = "<i class='bx bx-check-shield'></i>";
-                    msg = `<strong>GOOD PROCESS, BAD OUTCOME</strong><br>You followed the system correctly (${action}), but the market didn't pay out this time.`;
-                    color = "#fbbf24"; // Orange
+                    statusClass = "fill-loss";
+                    statusText = "STOPPED OUT";
+                    pnlText = `SL HIT: -$${Math.abs(currentReplayTrade.pnl)}`;
                 }
             } else {
-                // Direction Mismatch
-                icon = "<i class='bx bx-x-circle'></i>";
-                msg = `<strong>DIRECTION MISMATCH</strong><br>You executed a ${action}, but the original trade was a ${actualType}. Review the setup again.`;
-                color = "#ef4444"; // Red
+                statusClass = "fill-warn";
+                statusText = "DIRECTION ERROR";
+                pnlText = `SYSTEM MISMATCH (Actual: ${actualType})`;
             }
 
-            resultBox.innerHTML = `<div style="font-size:2rem; margin-bottom:10px;">${icon}</div>${msg}`;
-            resultBox.style.borderTop = `4px solid ${color}`;
-            resultBox.style.display = 'block';
-            controls.style.display = 'none';
+            // Render the result as a log entry
+            log.innerHTML = `
+                <div class="log-entry">
+                    <span class="log-time">${new Date().toLocaleTimeString()}</span>
+                    <span class="log-action">${action.toUpperCase()} MARKET 1.00 Lot</span>
+                    <span class="log-status ${statusClass}">${statusText}</span>
+                    <span class="log-pnl">${pnlText}</span>
+                </div>
+            `;
+
+            // Switch view from Ticket to Log
+            ticket.style.display = 'none';
+            log.style.display = 'block';
         }
 
         function closeReplay() { 
             document.getElementById('replayModal').style.display = 'none'; 
-            document.getElementById('replay_chart_container').innerHTML = ""; // Clear chart to save memory
+            document.getElementById('replay_chart_container').innerHTML = ""; // Clear to save memory
         }
 
         // ------------------------------------------------------------------
-        // FEATURE: TEPPA ENGINE (Sizing)
+        // 4. FEATURE: TEPPA ENGINE (Formerly Kelly)
         // ------------------------------------------------------------------
         function openTeppaEngine() {
             document.getElementById('teppaModal').style.display = 'flex';
@@ -201,10 +209,13 @@
                 </div>
             `;
         }
-        function closeTeppaEngine() { document.getElementById('teppaModal').style.display = 'none'; }
+
+        function closeTeppaEngine() { 
+            document.getElementById('teppaModal').style.display = 'none'; 
+        }
 
         // ------------------------------------------------------------------
-        // FEATURE: DRAWDOWN DOCTOR
+        // 5. FEATURE: DRAWDOWN DOCTOR
         // ------------------------------------------------------------------
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
@@ -233,6 +244,7 @@
                         <p style="color:#94a3b8;">You are at your Equity Peak. No drawdown detected.</p>
                     </div>`;
             } else {
+                // Analyze last 10 trades for leaks
                 const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
                 let worstEmotion = "None";
                 
@@ -255,10 +267,13 @@
                 `;
             }
         }
-        function closeDoctor() { document.getElementById('doctorModal').style.display = 'none'; }
+
+        function closeDoctor() { 
+            document.getElementById('doctorModal').style.display = 'none'; 
+        }
 
         // ------------------------------------------------------------------
-        // FEATURE: SMART MENTOR & GHOST
+        // 6. FEATURE: SMART MENTOR
         // ------------------------------------------------------------------
         function openMentor() {
             const modal = document.getElementById('mentorModal');
@@ -280,19 +295,31 @@
                 msg.innerHTML = "<strong>✅ SYSTEM OPTIMAL:</strong> Your stats are stable.<br>Focus on 'Pro Trend' setups during the London Session overlap.<br><br>Current Win Streak: " + getStreak();
             }
         }
-        function closeMentor() { document.getElementById('mentorModal').style.display = 'none'; }
+
+        function closeMentor() { 
+            document.getElementById('mentorModal').style.display = 'none'; 
+        }
         
         function getStreak() {
             let streak = 0;
-            for(let t of allTradesCache) { if(t.outcome === 'Win') streak++; else break; }
+            for(let t of allTradesCache) { 
+                if(t.outcome === 'Win') streak++; 
+                else break; 
+            }
             return streak + " W";
         }
 
+        // ------------------------------------------------------------------
+        // 7. FEATURE: GHOST TRADE
+        // ------------------------------------------------------------------
         function openGhost() { 
             document.getElementById('ghostModal').style.display = 'flex'; 
             startGhostMode();
         }
-        function closeGhost() { document.getElementById('ghostModal').style.display = 'none'; }
+
+        function closeGhost() { 
+            document.getElementById('ghostModal').style.display = 'none'; 
+        }
 
         async function startGhostMode() {
             const validTrades = allTradesCache.filter(t => t.chart_screenshot && t.outcome !== 'Pending');
@@ -324,7 +351,7 @@
         }
 
         // ------------------------------------------------------------------
-        // FEATURE: LEADERBOARD
+        // 8. FEATURE: LEADERBOARD
         // ------------------------------------------------------------------
         async function loadLeaderboard() {
             const { data } = await supabaseClient.from('trades').select('pnl').order('pnl', {ascending:false}).limit(3);
@@ -335,7 +362,7 @@
         }
 
         // ------------------------------------------------------------------
-        // UTILITIES & HELPERS
+        // 9. GENERAL UTILITIES
         // ------------------------------------------------------------------
         function toggleSidebar() { 
             document.querySelector('.sidebar').classList.toggle('active'); 
@@ -355,7 +382,10 @@
                 "width": "100%", "height": "100%", "symbol": pair, "interval": "D", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "withdateranges": true, "hide_side_toolbar": false, "allow_symbol_change": true, "container_id": "tradingview_chart"
             });
         }
-        function closeAnalysis() { document.getElementById('analysisModal').style.display = 'none'; }
+
+        function closeAnalysis() { 
+            document.getElementById('analysisModal').style.display = 'none'; 
+        }
 
         function setDefaultSession() {
             const hour = new Date().getHours(); 
@@ -365,7 +395,9 @@
             document.getElementById('tradeSession').value = session;
         }
 
-        function toggleStrategy(btn) { btn.classList.toggle('active-strat'); }
+        function toggleStrategy(btn) { 
+            btn.classList.toggle('active-strat'); 
+        }
 
         function getSelectedStrategies(containerId) {
             const container = document.getElementById(containerId);
@@ -383,7 +415,7 @@
         }
 
         // ------------------------------------------------------------------
-        // DATA HANDLING: SAVE, LOAD, EDIT
+        // 10. TRADE MANAGEMENT (SAVE, LOAD, EDIT)
         // ------------------------------------------------------------------
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
@@ -399,7 +431,10 @@
             const status = document.getElementById('journalStatus');
             const currentSession = document.getElementById('tradeSession').value; 
             
-            if(!pair || !reason) { status.innerText = "Fill required fields!"; return; }
+            if(!pair || !reason) { 
+                status.innerText = "Fill required fields!"; 
+                return; 
+            }
 
             status.innerText = "Processing...";
             let imageUrl = null;
@@ -419,8 +454,9 @@
                 { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl, outcome, emotion, session: currentSession, strategy, is_playbook: isPlaybook, pnl: pnl ? parseFloat(pnl) : 0 }
             ]);
 
-            if (error) status.innerText = "Error saving.";
-            else {
+            if (error) {
+                status.innerText = "Error saving.";
+            } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
                 document.getElementById('tradePair').value = '';
@@ -462,7 +498,24 @@
             document.getElementById('shareStrat').innerText = trade.strategy || "No Strategy";
             document.getElementById('shareModal').style.display = 'flex';
         }
-        function closeShare() { document.getElementById('shareModal').style.display = 'none'; }
+
+        function closeShare() { 
+            document.getElementById('shareModal').style.display = 'none'; 
+        }
+
+        // --- NEW: TOGGLE BACKTEST MODE ---
+        function toggleBacktestMode() {
+            isBacktestMode = !isBacktestMode;
+            const btn = document.getElementById('btn-backtest-toggle');
+            if (isBacktestMode) {
+                btn.classList.add('active-filter');
+                btn.innerHTML = "<i class='bx bx-show'></i> REVEAL MODE";
+            } else {
+                btn.classList.remove('active-filter');
+                btn.innerHTML = "<i class='bx bx-hide'></i> BACKTEST MODE";
+            }
+            loadTrades(activeFilter); 
+        }
 
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
@@ -518,24 +571,34 @@
 
             trades.forEach(trade => {
                 const card = document.createElement('div');
+                const blurClass = isBacktestMode ? 'backtest-blur' : '';
                 card.className = `trade-log-card ${trade.is_playbook ? 'playbook-card' : ''}`;
+                
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
+                // Click Logic
+                card.onclick = (e) => {
+                    // Prevent replay modal if user clicks Edit/Delete/Share buttons
+                    if (isBacktestMode && !e.target.closest('button')) {
+                        openReplay(tradeDataStr);
+                    }
+                };
+
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="pair-badge">${trade.pair}</span>
                         <div style="display:flex; gap:5px; align-items:center;">
                              ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
-                             <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
+                             <span class="outcome-tag ${trade.outcome?.toLowerCase()} ${blurClass}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <div class="card-actions">
-                            <button class="action-btn" title="Replay on Chart" onclick="openReplay('${tradeDataStr}')"><i class='bx bx-play-circle'></i></button>
-                            <button class="action-btn" title="Share Trade" onclick="shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
-                            <button class="action-btn" onclick="openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
-                            <button class="action-btn delete" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
+                            <button class="action-btn" title="Replay on Chart" onclick="event.stopPropagation(); openReplay('${tradeDataStr}')"><i class='bx bx-play-circle'></i></button>
+                            <button class="action-btn" title="Share Trade" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
+                            <button class="action-btn" onclick="event.stopPropagation(); openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
+                            <button class="action-btn delete" onclick="event.stopPropagation(); deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
                         </div>
                     </div>
-                    <div style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${(trade.pnl || 0) >= 0 ? 'var(--primary)' : '#ef4444'}">
+                    <div class="${blurClass}" style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${(trade.pnl || 0) >= 0 ? 'var(--primary)' : '#ef4444'}">
                         ${(trade.pnl || 0) >= 0 ? '+' : '-'}$${Math.abs(trade.pnl || 0)}
                     </div>
                     ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
@@ -543,12 +606,15 @@
                         <span><i class='bx bx-time'></i> ${trade.session}</span> | <span><i class='bx bx-brain'></i> ${trade.emotion}</span>
                     </div>
                     <p class="trade-reason">${trade.reason}</p>
+                    ${isBacktestMode ? '<div class="click-reveal-hint" style="text-align:center; font-size:0.75rem; color:#94a3b8; margin-top:5px;">(Click to Enter Terminal)</div>' : ''}
                 `;
                 feed.appendChild(card);
             });
         }
 
-        // --- CALENDAR & CALCULATOR & CHARTS ---
+        // ------------------------------------------------------------------
+        // 11. CHARTS & CALENDAR
+        // ------------------------------------------------------------------
         function renderCalendar(trades) {
             const container = document.getElementById('calendarGrid');
             container.innerHTML = '';
@@ -586,6 +652,7 @@
 
         function openCalcModal() { document.getElementById('calcModal').style.display = 'flex'; }
         function closeCalcModal() { document.getElementById('calcModal').style.display = 'none'; }
+        
         function calculateRisk() {
             const bal = parseFloat(document.getElementById('calcBalance').value);
             const risk = parseFloat(document.getElementById('calcRisk').value);
@@ -595,26 +662,6 @@
             document.getElementById('calcResult').innerHTML = `<div style="font-size:1.2rem; font-weight:bold; color:#fff;">$${amt.toFixed(2)} Risk</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${(amt/(sl*10)).toFixed(2)} Lots</div>`;
         }
 
-        function exportToCSV() { 
-            if (!allTradesCache.length) { alert("No trades to export."); return; }
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Date,Pair,Type,Outcome,PnL,Session,Emotion,Strategy,Note\n";
-            allTradesCache.forEach(t => {
-                const date = new Date(t.created_at).toLocaleDateString();
-                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
-                const cleanStrat = t.strategy ? t.strategy.replace(/,/g, " & ") : "";
-                const row = `${date},${t.pair},${t.type},${t.outcome},${t.pnl},${t.session},${t.emotion},${cleanStrat},${cleanNote}`;
-                csvContent += row + "\n";
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "teppa_trading_journal.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        
         function editGoal() {
             const g = prompt("New Goal:", ACCOUNT_GOAL);
             if(g && !isNaN(g)) { localStorage.setItem('tradingGoal', g); ACCOUNT_GOAL = parseInt(g); loadTrades(); }
@@ -654,7 +701,14 @@
             if(psychChart) psychChart.destroy();
             psychChart = new Chart(ctx, { type:'bar', data:{labels:Object.keys(stats), datasets:[{data:Object.values(stats), backgroundColor:Object.values(stats).map(v=>v>=0?'#2dd4bf':'#ef4444')}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{grid:{color:'#334155'}}}}});
         }
-        async function deleteTrade(id) { if(confirm("Delete?")) { await supabaseClient.from('trades').delete().eq('id',id); loadTrades(); }}
+        
+        async function deleteTrade(id) { 
+            if(confirm("Delete?")) { 
+                await supabaseClient.from('trades').delete().eq('id',id); 
+                loadTrades(); 
+            }
+        }
+        
         function handleFileImport(input) {
             const file = input.files[0];
             if (!file) return;
@@ -712,14 +766,13 @@
         * { box-sizing: border-box; }
         body { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
-        /* SIDEBAR */
+        /* SIDEBAR & NAV */
         .sidebar { width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid var(--border); padding: 25px; overflow-y: auto; position: fixed; top: 0; left: 0; z-index: 1000; transition: transform 0.3s ease; }
         .sidebar::-webkit-scrollbar { display: none; }
         .main-content { margin-left: 280px; padding: 40px; max-width: 1600px; transition: margin-left 0.3s; }
         
         .brand-title { font-weight:900; font-size:1.5rem; margin-bottom:25px; text-align:center; color: #fff; text-transform: uppercase; }
         .brand-title span { color: var(--primary); }
-        
         .sidebar-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
         .side-input, select, textarea { width: 100%; background: #0f172a; color: white; border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; border-radius: 8px; font-size: 0.9rem; }
         .side-btn { width: 100%; background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
@@ -739,7 +792,11 @@
         .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin: 0; }
 
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; position: relative; overflow: hidden; }
+        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; position: relative; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
+        .trade-log-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+        
+        .backtest-blur { filter: blur(5px); pointer-events: none; user-select: none; transition: 0.3s; }
+        .trade-log-card.revealed .backtest-blur { filter: blur(0); pointer-events: auto; }
         
         /* CALENDAR */
         .calendar-section { margin-top: 40px; }
@@ -751,7 +808,6 @@
         .cal-loss { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        
         .overlay-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 900; }
         .mobile-toggle { display: none; position: fixed; top: 15px; left: 15px; background: var(--card); border: 1px solid var(--primary); color: #fff; padding: 10px; border-radius: 8px; z-index: 2000; cursor: pointer; font-size: 1.5rem; }
 
@@ -763,35 +819,37 @@
         .share-row { display: flex; justify-content: space-between; margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem; }
         .share-val { color: #fff; font-weight: bold; }
 
-        /* --- PROFESSIONAL FILTER BUTTONS (NEW) --- */
-        .filter-container {
-            display: flex; flex-wrap: wrap; gap: 15px; margin-top: 30px; margin-bottom: 25px; align-items: center;
-            padding: 10px; background: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid var(--border);
-        }
-        .filter-btn, .tf-btn {
-            background: transparent; border: 1px solid var(--border); color: #94a3b8; padding: 8px 16px;
-            border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease-in-out;
-            display: inline-flex; align-items: center; justify-content: center;
-        }
+        /* PROFESSIONAL REPLAY TERMINAL CSS */
+        .replay-telemetry-bar { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #94a3b8; display: flex; gap: 15px; }
+        .replay-telemetry-bar div { display: flex; gap: 5px; }
+        .replay-telemetry-bar span { color: #fff; font-weight: bold; }
+        
+        .order-ticket { background: #0f172a; padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .ticket-btn { font-family: 'JetBrains Mono', monospace; font-weight: bold; border: none; padding: 12px 20px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; flex-direction: column; align-items: center; width: 140px; transition: transform 0.1s; }
+        .btn-buy { background: #2dd4bf; color: #000; box-shadow: 0 4px 0 #14b8a6; }
+        .btn-buy:active { transform: translateY(2px); box-shadow: 0 2px 0 #14b8a6; }
+        .btn-sell { background: #ef4444; color: #fff; box-shadow: 0 4px 0 #b91c1c; }
+        .btn-sell:active { transform: translateY(2px); box-shadow: 0 2px 0 #b91c1c; }
+        
+        .execution-log { font-family: 'JetBrains Mono', monospace; background: #000; padding: 15px; border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 0.85rem; display: none; }
+        .log-entry { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .log-status { font-weight: bold; padding: 2px 6px; border-radius: 2px; }
+        .fill-win { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid #2dd4bf; }
+        .fill-loss { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+        .fill-warn { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
+
+        /* FILTER BUTTONS */
+        .filter-container { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 30px; margin-bottom: 25px; align-items: center; padding: 10px; background: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid var(--border); }
+        .filter-btn, .tf-btn { background: transparent; border: 1px solid var(--border); color: #94a3b8; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease-in-out; display: inline-flex; align-items: center; justify-content: center; }
         .filter-btn:hover, .tf-btn:hover { color: #fff; border-color: #fff; background: rgba(255, 255, 255, 0.05); }
-        
-        .filter-btn.active-filter, .tf-btn.active-tf {
-            background: rgba(45, 212, 191, 0.15); color: var(--primary); border-color: var(--primary);
-            box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
-        }
-        
+        .filter-btn.active-filter, .tf-btn.active-tf { background: rgba(45, 212, 191, 0.15); color: var(--primary); border-color: var(--primary); box-shadow: 0 0 10px rgba(45, 212, 191, 0.2); }
         #btn-playbook { border-color: rgba(251, 191, 36, 0.5); color: #fbbf24; }
         #btn-playbook:hover { background: rgba(251, 191, 36, 0.1); border-color: #fbbf24; }
-        #btn-playbook.active-filter {
-            background: #fbbf24; color: #0f172a; border-color: #fbbf24;
-            box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
-        }
-
+        #btn-playbook.active-filter { background: #fbbf24; color: #0f172a; border-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
         .tf-container { display: flex; gap: 5px; background: var(--card); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
         .tf-container .tf-btn { border: none; background: transparent; }
         .tf-container .tf-btn.active-tf { background: var(--primary); color: #0f172a; box-shadow: none; }
 
-        /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 992px) {
             .mobile-toggle { display: block; }
             .sidebar { transform: translateX(-100%); width: 280px; box-shadow: 5px 0 20px rgba(0,0,0,0.5); }
@@ -813,22 +871,39 @@
     <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu'></i></button>
 
     <div id="replayModal" class="modal-overlay">
-        <div style="width: 95%; height: 95vh; background: #000; border-radius: 12px; position: relative; overflow: hidden; border: 1px solid var(--border); display: flex; flex-direction: column;">
+        <div style="width: 95%; height: 95vh; background: #1e293b; border-radius: 8px; position: relative; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column;">
             
-            <div style="padding: 15px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
-                <div id="replayTargetDate" style="font-size: 0.9rem; color: #94a3b8;"></div>
-                <button onclick="closeReplay()" style="background:transparent; border:none; color:#fff; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
-            </div>
-
-            <div id="replay_chart_container" style="flex: 1; width:100%;"></div>
-
-            <div style="padding: 20px; background: #0f172a; border-top: 1px solid var(--border);">
-                <div id="replayControls" style="display:flex; justify-content:center; gap:20px;">
-                    <button onclick="executeReplayTrade('Buy')" style="padding:12px 50px; background:#2dd4bf; color:#000; border:none; font-weight:bold; font-size:1rem; border-radius:6px; cursor:pointer; box-shadow:0 4px 0 #14b8a6;">BUY MARKET</button>
-                    <button onclick="executeReplayTrade('Sell')" style="padding:12px 50px; background:#ef4444; color:#fff; border:none; font-weight:bold; font-size:1rem; border-radius:6px; cursor:pointer; box-shadow:0 4px 0 #b91c1c;">SELL MARKET</button>
+            <div style="padding: 10px 20px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+                <div class="replay-telemetry-bar">
+                    <div>PAIR: <span id="telemetryPair">--</span></div>
+                    <div>DATE: <span id="telemetryDate">--</span></div>
+                    <div>TIME: <span id="telemetryTime">--</span></div>
+                    <div>SESSION: <span id="telemetrySession">--</span></div>
                 </div>
-                <div id="replayResult" style="text-align:center; display:none; padding:20px; background:#1e293b; border-radius:8px;"></div>
+                <div id="replayTargetDate" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #fbbf24;"></div>
+                <button onclick="closeReplay()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
             </div>
+
+            <div id="replay_chart_container" style="flex: 1; width:100%; background: #000;"></div>
+
+            <div id="orderTicket" class="order-ticket">
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #94a3b8;">LOTS: <span style="color: #fff; border: 1px solid #334155; padding: 2px 8px; background:#000;">1.00</span></div>
+                    <div style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #94a3b8;">TYPE: <span style="color: #fff;">MARKET</span></div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="ticket-btn btn-buy" onclick="executeReplayTrade('Buy')">
+                        <span>BUY MKT</span>
+                        <span style="font-size: 0.7rem; opacity: 0.8;">ASK</span>
+                    </button>
+                    <button class="ticket-btn btn-sell" onclick="executeReplayTrade('Sell')">
+                        <span>SELL MKT</span>
+                        <span style="font-size: 0.7rem; opacity: 0.8;">BID</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="executionLog" class="execution-log"></div>
         </div>
     </div>
 
@@ -843,14 +918,14 @@
             <button onclick="closeMentor()" style="width:100%; padding:10px; background:var(--primary); color:#000; border:none; font-weight:bold; cursor:pointer;">Acknowledge</button>
         </div>
     </div>
-
+    
     <div id="teppaModal" class="modal-overlay">
         <div style="background:var(--card); padding:30px; border-radius:12px; width:400px; border:1px solid var(--primary);">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
                 <h3 style="margin:0; color:#fff;">📐 TEPPA ENGINE</h3>
                 <button onclick="closeTeppaEngine()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
             </div>
-            <div id="teppaResult">Loading data...</div>
+            <div id="teppaResult">Loading...</div>
         </div>
     </div>
 
@@ -860,7 +935,7 @@
                 <h3 style="margin:0; color:#fff;">🚑 DRAWDOWN DOCTOR</h3>
                 <button onclick="closeDoctor()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
             </div>
-            <div id="doctorDiagnosis">Analyzing Recent Losses...</div>
+            <div id="doctorDiagnosis">Analyzing...</div>
         </div>
     </div>
 
@@ -871,14 +946,14 @@
                 <button onclick="closeGhost()" style="background:transparent; border:none; color:#fff; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
             </div>
             <div id="ghost-chart-area" style="flex:1; background:#0f172a; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                <p style="color:#94a3b8;">Press Start to load a random historical scenario.</p>
+                <p style="color:#94a3b8;">Press Start to load scenario.</p>
             </div>
             <div id="ghost-result" style="text-align:center; height:30px; font-weight:bold; margin-top:10px;"></div>
             <div id="ghost-controls" style="display:none; justify-content:center; gap:20px; margin-top:10px;">
-                <button onclick="guessGhost('Buy')" style="padding:10px 40px; background:#2dd4bf; border:none; font-weight:bold; cursor:pointer;">LONG</button>
-                <button onclick="guessGhost('Sell')" style="padding:10px 40px; background:#ef4444; color:#fff; border:none; font-weight:bold; cursor:pointer;">SHORT</button>
+                <button onclick="guessGhost('Buy')" style="padding:10px 40px; background:#2dd4bf; border:none; font-weight:bold;">LONG</button>
+                <button onclick="guessGhost('Sell')" style="padding:10px 40px; background:#ef4444; color:#fff; border:none; font-weight:bold;">SHORT</button>
             </div>
-            <button onclick="startGhostMode()" style="width:100%; margin-top:10px; padding:10px; background:transparent; border:1px solid var(--border); color:#fff; cursor:pointer;">Load New Scenario</button>
+            <button onclick="startGhostMode()" style="width:100%; margin-top:10px; padding:10px; background:transparent; border:1px solid var(--border); color:#fff; cursor:pointer;">Load Scenario</button>
         </div>
     </div>
 
@@ -890,7 +965,6 @@
                 <div class="share-row"><span>Type</span> <span id="shareType" class="share-val">BUY</span></div>
                 <div id="sharePnL" class="share-stat">+$500</div>
                 <div class="share-row"><span>Strategy</span> <span id="shareStrat" class="share-val">Trend</span></div>
-                <div style="margin-top:20px; font-size:0.7rem; color:#555;">TEPPA TRADING TERMINAL</div>
             </div>
             <button onclick="closeShare()" style="width:100%; padding:15px; background:#1e293b; color:#fff; border:none; font-weight:bold; cursor:pointer;">Close</button>
         </div>
@@ -1018,6 +1092,11 @@
                 <button id="btn-all" class="filter-btn active-filter" onclick="loadTrades('all')">All Trades</button>
                 <button id="btn-playbook" class="filter-btn" onclick="loadTrades('playbook')">🏆 Playbook</button>
             </div>
+            
+            <button id="btn-backtest-toggle" class="filter-btn" onclick="toggleBacktestMode()">
+                <i class='bx bx-hide'></i> BACKTEST MODE
+            </button>
+
             <div class="tf-container">
                 <button id="tf-all" class="tf-btn active-tf" onclick="setTimeframe('all')">All</button>
                 <button id="tf-month" class="tf-btn" onclick="setTimeframe('month')">Month</button>

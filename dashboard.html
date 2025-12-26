@@ -10,49 +10,161 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
     <script>
+        // ------------------------------------------------------------------
+        // CONFIGURATION & VARIABLES
+        // ------------------------------------------------------------------
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         let ACCOUNT_GOAL = localStorage.getItem('tradingGoal') ? parseInt(localStorage.getItem('tradingGoal')) : 10000;
         let ACCOUNT_BALANCE = localStorage.getItem('accountBalance') ? parseFloat(localStorage.getItem('accountBalance')) : 1000;
+        
         let activeFilter = 'all'; 
         let activeTimeframe = 'all'; 
-        let sessionChart, equityChart, psychChart;
+        let isBacktestMode = false; 
+        
+        let sessionChart;
+        let equityChart;
+        let psychChart;
+        
         let currentEditId = null; 
         let allTradesCache = []; 
         let currentGhostTrade = null;
+        let currentReplayTrade = null; // Stores data for the active replay
 
+        // ------------------------------------------------------------------
+        // AUTHENTICATION & PRO CHECK
+        // ------------------------------------------------------------------
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) window.location.replace("index.html");
-            else {
+            if (!session) {
+                window.location.replace("index.html");
+            } else {
                 document.getElementById('userEmail').innerText = session.user.email;
-                checkProSubscription(session.user.id); // Check for Pro
+                checkProSubscription(session.user.id); 
                 loadTrades();
                 setDefaultSession();
             }
         }
         checkAuth();
 
-        // --- NEW: PRO CHECKER ---
         async function checkProSubscription(userId) {
             const { data } = await supabaseClient.from('subscriptions').select('plan, status').eq('user_id', userId).single();
-            // If Pro, show the hidden sidebar buttons and badge
+            
+            // IF USER IS PRO, UNHIDE FEATURES
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
-                
-                // ADDED THESE TWO (Hidden by default, shown for Pros):
                 document.getElementById('btn-teppa-nav').style.display = 'flex';
                 document.getElementById('btn-doctor-nav').style.display = 'flex';
-                
                 document.getElementById('proBadge').style.display = 'inline-block';
+                
                 loadLeaderboard(); 
             }
         }
 
-        // --- NEW: TEPPA ENGINE (Sizing Logic) ---
+        // ------------------------------------------------------------------
+        // FEATURE: LIVE CHART REPLAY (TARGET FINDER)
+        // ------------------------------------------------------------------
+        function openReplay(tradeDataStr) {
+            // 1. Decode and Store Data
+            currentReplayTrade = JSON.parse(decodeURIComponent(tradeDataStr));
+            
+            // 2. Format the "Target Date" for the user to find
+            const tradeDate = new Date(currentReplayTrade.created_at);
+            const dateString = tradeDate.toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric', 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+            });
+
+            // 3. Update the UI Text
+            document.getElementById('replayTargetDate').innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i class='bx bx-target-lock' style="color:#ef4444; font-size:1.2rem;"></i> 
+                    <span>SCROLL CHART TO: <strong style="color:#fff; border-bottom:1px dashed #fff;">${dateString}</strong></span>
+                </div>
+            `;
+
+            // 4. Reset Modal State
+            document.getElementById('replayModal').style.display = 'flex';
+            document.getElementById('replayControls').style.display = 'flex';
+            document.getElementById('replayResult').style.display = 'none';
+
+            // 5. Clean Symbol for TradingView (Fixes "euro/usd" error)
+            let rawPair = currentReplayTrade.pair || "BTCUSD";
+            let cleanPair = rawPair.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
+            
+            // Manual fixes for common nicknames
+            if (cleanPair.includes("EURO")) cleanPair = cleanPair.replace("EURO", "EUR"); 
+            if (cleanPair === "GOLD") cleanPair = "XAUUSD";
+            if (cleanPair === "BITCOIN") cleanPair = "BTCUSD";
+
+            // 6. Load the Live Chart
+            new TradingView.widget({
+                "width": "100%",
+                "height": "100%",
+                "symbol": cleanPair,
+                "interval": "60",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "replay_chart_container"
+            });
+        }
+
+        function executeReplayTrade(action) {
+            const actualType = currentReplayTrade.type; // 'Buy' or 'Sell'
+            const actualOutcome = currentReplayTrade.outcome; // 'Win' or 'Loss'
+            
+            const resultBox = document.getElementById('replayResult');
+            const controls = document.getElementById('replayControls');
+            
+            let msg = "";
+            let color = "";
+            let icon = "";
+
+            if (action === actualType) {
+                // Direction Matches
+                if (actualOutcome === 'Win') {
+                    icon = "<i class='bx bxs-trophy'></i>";
+                    msg = `<strong>EXCELLENT EXECUTION!</strong><br>You identified the correct direction (${action}) and the trade was a Winner.`;
+                    color = "#2dd4bf"; // Green
+                } else {
+                    icon = "<i class='bx bx-check-shield'></i>";
+                    msg = `<strong>GOOD PROCESS, BAD OUTCOME</strong><br>You followed the system correctly (${action}), but the market didn't pay out this time.`;
+                    color = "#fbbf24"; // Orange
+                }
+            } else {
+                // Direction Mismatch
+                icon = "<i class='bx bx-x-circle'></i>";
+                msg = `<strong>DIRECTION MISMATCH</strong><br>You executed a ${action}, but the original trade was a ${actualType}. Review the setup again.`;
+                color = "#ef4444"; // Red
+            }
+
+            resultBox.innerHTML = `<div style="font-size:2rem; margin-bottom:10px;">${icon}</div>${msg}`;
+            resultBox.style.borderTop = `4px solid ${color}`;
+            resultBox.style.display = 'block';
+            controls.style.display = 'none';
+        }
+
+        function closeReplay() { 
+            document.getElementById('replayModal').style.display = 'none'; 
+            document.getElementById('replay_chart_container').innerHTML = ""; // Clear chart to save memory
+        }
+
+        // ------------------------------------------------------------------
+        // FEATURE: TEPPA ENGINE (Sizing)
+        // ------------------------------------------------------------------
         function openTeppaEngine() {
             document.getElementById('teppaModal').style.display = 'flex';
             
@@ -69,10 +181,10 @@
             const avgLoss = Math.abs(losses.reduce((a,b)=>a+b.pnl,0) / losses.length);
             const riskReward = avgWin / avgLoss;
 
-            // Kelly Formula: K% = W - ( (1-W) / R )
+            // Kelly Formula
             let kellyDecimal = winRate - ((1 - winRate) / riskReward);
             
-            // Safety: Half-Kelly is standard recommendation
+            // Safety: Half-Kelly
             let safeKelly = (kellyDecimal * 50).toFixed(2); 
             if(safeKelly < 0) safeKelly = 0;
 
@@ -91,15 +203,16 @@
         }
         function closeTeppaEngine() { document.getElementById('teppaModal').style.display = 'none'; }
 
-        // --- NEW: DRAWDOWN DOCTOR ---
+        // ------------------------------------------------------------------
+        // FEATURE: DRAWDOWN DOCTOR
+        // ------------------------------------------------------------------
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
             
-            // 1. Find Current Drawdown from Peak
             let balance = 0;
             let peak = -Infinity;
             
-            // Sort Chronologically for Equity Curve calc
+            // Sort Chronologically
             const chronTrades = [...allTradesCache].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
             
             chronTrades.forEach(t => {
@@ -120,7 +233,6 @@
                         <p style="color:#94a3b8;">You are at your Equity Peak. No drawdown detected.</p>
                     </div>`;
             } else {
-                // Analyze last 10 trades for leaks
                 const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
                 let worstEmotion = "None";
                 
@@ -146,40 +258,8 @@
         function closeDoctor() { document.getElementById('doctorModal').style.display = 'none'; }
 
         // ------------------------------------------------------------------
-        // NEW: LIVE REPLAY FEATURE (BACKTESTING)
+        // FEATURE: SMART MENTOR & GHOST
         // ------------------------------------------------------------------
-        function openReplay(pair) {
-            document.getElementById('replayModal').style.display = 'flex';
-            
-            // --- SMART SYMBOL CLEANER ---
-            // 1. Force Uppercase (euro -> EURO)
-            // 2. Remove special chars (euro/usd -> EUROUSD)
-            let cleanPair = pair.toUpperCase().replace(/[^A-Z0-9]/g, '');
-
-            // 3. Fix common naming mistakes
-            if (cleanPair.includes("EURO")) cleanPair = cleanPair.replace("EURO", "EUR"); 
-            if (cleanPair === "GOLD") cleanPair = "XAUUSD";
-            if (cleanPair === "BITCOIN") cleanPair = "BTCUSD";
-
-            new TradingView.widget({
-                "width": "100%",
-                "height": "100%",
-                "symbol": cleanPair,
-                "interval": "D",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "hide_side_toolbar": false,
-                "allow_symbol_change": true,
-                "container_id": "replay_chart_container"
-            });
-        }
-        function closeReplay() { document.getElementById('replayModal').style.display = 'none'; }
-
-        // --- NEW: SMART MENTOR LOGIC ---
         function openMentor() {
             const modal = document.getElementById('mentorModal');
             modal.style.display = 'flex';
@@ -187,9 +267,8 @@
             const msg = document.getElementById('mentorMsg');
             const icon = document.getElementById('mentorIcon');
             
-            // Logic: Check for losses
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
-            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); // Last 2 hours
+            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); 
 
             if (recentLosses.length >= 2) {
                 icon.className = 'bx bx-error-circle';
@@ -209,7 +288,6 @@
             return streak + " W";
         }
 
-        // --- NEW: GHOST TRADE LOGIC ---
         function openGhost() { 
             document.getElementById('ghostModal').style.display = 'flex'; 
             startGhostMode();
@@ -245,9 +323,10 @@
             document.getElementById('ghost-controls').style.display = 'none';
         }
 
-        // --- NEW: LEADERBOARD LOGIC ---
+        // ------------------------------------------------------------------
+        // FEATURE: LEADERBOARD
+        // ------------------------------------------------------------------
         async function loadLeaderboard() {
-            // This runs in background for pros
             const { data } = await supabaseClient.from('trades').select('pnl').order('pnl', {ascending:false}).limit(3);
             if(data) {
                 const list = document.getElementById('leaderList');
@@ -255,7 +334,9 @@
             }
         }
 
-        // --- EXISTING UTILITIES ---
+        // ------------------------------------------------------------------
+        // UTILITIES & HELPERS
+        // ------------------------------------------------------------------
         function toggleSidebar() { 
             document.querySelector('.sidebar').classList.toggle('active'); 
             document.querySelector('.overlay-bg').classList.toggle('active');
@@ -301,6 +382,9 @@
             });
         }
 
+        // ------------------------------------------------------------------
+        // DATA HANDLING: SAVE, LOAD, EDIT
+        // ------------------------------------------------------------------
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
@@ -445,7 +529,7 @@
                              <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <div class="card-actions">
-                            <button class="action-btn" title="Replay on Chart" onclick="openReplay('${trade.pair}')"><i class='bx bx-play-circle'></i></button>
+                            <button class="action-btn" title="Replay on Chart" onclick="openReplay('${tradeDataStr}')"><i class='bx bx-play-circle'></i></button>
                             <button class="action-btn" title="Share Trade" onclick="shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
                             <button class="action-btn" onclick="openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
                             <button class="action-btn delete" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
@@ -464,6 +548,7 @@
             });
         }
 
+        // --- CALENDAR & CALCULATOR & CHARTS ---
         function renderCalendar(trades) {
             const container = document.getElementById('calendarGrid');
             container.innerHTML = '';
@@ -510,13 +595,13 @@
             document.getElementById('calcResult').innerHTML = `<div style="font-size:1.2rem; font-weight:bold; color:#fff;">$${amt.toFixed(2)} Risk</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${(amt/(sl*10)).toFixed(2)} Lots</div>`;
         }
 
-        function exportToCSV() { 
+        function exportToCSV() { 
             if (!allTradesCache.length) { alert("No trades to export."); return; }
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Date,Pair,Type,Outcome,PnL,Session,Emotion,Strategy,Note\n";
             allTradesCache.forEach(t => {
                 const date = new Date(t.created_at).toLocaleDateString();
-                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
+                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
                 const cleanStrat = t.strategy ? t.strategy.replace(/,/g, " & ") : "";
                 const row = `${date},${t.pair},${t.type},${t.outcome},${t.pnl},${t.session},${t.emotion},${cleanStrat},${cleanNote}`;
                 csvContent += row + "\n";
@@ -539,7 +624,7 @@
             document.getElementById('goalText').innerHTML = `$${pnl.toLocaleString()} / $${ACCOUNT_GOAL.toLocaleString()} Goal <i class='bx bx-pencil' onclick='editGoal()'></i>`;
         }
 
-        function openEditModal(str) { 
+        function openEditModal(str) { 
             const t = JSON.parse(decodeURIComponent(str)); currentEditId = t.id;
             document.getElementById('editPair').value = t.pair;
             document.getElementById('editPnL').value = t.pnl;
@@ -728,9 +813,22 @@
     <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu'></i></button>
 
     <div id="replayModal" class="modal-overlay">
-        <div style="width: 95%; height: 90vh; background: #000; border-radius: 12px; position: relative; overflow: hidden; border: 1px solid var(--border);">
-            <div id="replay_chart_container" style="width:100%; height:100%;"></div>
-            <button onclick="closeReplay()" style="position:absolute; top:10px; right:10px; background:var(--primary); color:#000; border:none; padding:8px 15px; font-weight:bold; cursor:pointer; border-radius:4px; z-index:10;">Close Replay</button>
+        <div style="width: 95%; height: 95vh; background: #000; border-radius: 12px; position: relative; overflow: hidden; border: 1px solid var(--border); display: flex; flex-direction: column;">
+            
+            <div style="padding: 15px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
+                <div id="replayTargetDate" style="font-size: 0.9rem; color: #94a3b8;"></div>
+                <button onclick="closeReplay()" style="background:transparent; border:none; color:#fff; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
+            </div>
+
+            <div id="replay_chart_container" style="flex: 1; width:100%;"></div>
+
+            <div style="padding: 20px; background: #0f172a; border-top: 1px solid var(--border);">
+                <div id="replayControls" style="display:flex; justify-content:center; gap:20px;">
+                    <button onclick="executeReplayTrade('Buy')" style="padding:12px 50px; background:#2dd4bf; color:#000; border:none; font-weight:bold; font-size:1rem; border-radius:6px; cursor:pointer; box-shadow:0 4px 0 #14b8a6;">BUY MARKET</button>
+                    <button onclick="executeReplayTrade('Sell')" style="padding:12px 50px; background:#ef4444; color:#fff; border:none; font-weight:bold; font-size:1rem; border-radius:6px; cursor:pointer; box-shadow:0 4px 0 #b91c1c;">SELL MARKET</button>
+                </div>
+                <div id="replayResult" style="text-align:center; display:none; padding:20px; background:#1e293b; border-radius:8px;"></div>
+            </div>
         </div>
     </div>
 

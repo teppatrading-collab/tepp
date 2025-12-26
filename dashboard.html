@@ -42,8 +42,9 @@
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
-                // ADDED THESE TWO:
-                document.getElementById('btn-kelly-nav').style.display = 'flex';
+                
+                // ADDED THESE TWO (Hidden by default, shown for Pros):
+                document.getElementById('btn-teppa-nav').style.display = 'flex';
                 document.getElementById('btn-doctor-nav').style.display = 'flex';
                 
                 document.getElementById('proBadge').style.display = 'inline-block';
@@ -51,56 +52,96 @@
             }
         }
 
-        // --- NEW: KELLY SIZING ENGINE ---
-        function openKelly() {
-            document.getElementById('kellyModal').style.display = 'flex';
+        // --- NEW: TEPPA ENGINE (Sizing Logic) ---
+        function openTeppaEngine() {
+            document.getElementById('teppaModal').style.display = 'flex';
+            
             const wins = allTradesCache.filter(t => t.outcome === 'Win');
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
             
             if(wins.length === 0 || losses.length === 0) {
-                document.getElementById('kellyResult').innerHTML = "Need both wins and losses to calculate.";
+                document.getElementById('teppaResult').innerHTML = "<p style='color:#94a3b8; text-align:center;'>Need at least 1 win and 1 loss to calculate.</p>";
                 return;
             }
+
             const winRate = wins.length / allTradesCache.length;
             const avgWin = wins.reduce((a,b)=>a+b.pnl,0) / wins.length;
             const avgLoss = Math.abs(losses.reduce((a,b)=>a+b.pnl,0) / losses.length);
             const riskReward = avgWin / avgLoss;
-            let kellyPct = (winRate - ((1 - winRate) / riskReward)) * 100;
-            const safeKelly = Math.max(0, (kellyPct / 2).toFixed(2)); // Half Kelly for safety
 
-            document.getElementById('kellyResult').innerHTML = `
+            // Kelly Formula: K% = W - ( (1-W) / R )
+            let kellyDecimal = winRate - ((1 - winRate) / riskReward);
+            
+            // Safety: Half-Kelly is standard recommendation
+            let safeKelly = (kellyDecimal * 50).toFixed(2); 
+            if(safeKelly < 0) safeKelly = 0;
+
+            document.getElementById('teppaResult').innerHTML = `
                 <div style="text-align:center; padding:20px;">
-                    <h2 style="color:var(--primary); font-size:3rem; margin:0;">${safeKelly}%</h2>
-                    <p style="color:#94a3b8;">OPTIMAL RISK PER TRADE</p>
-                    <div style="font-size:0.8rem; margin-top:15px;">Win Rate: ${(winRate*100).toFixed(1)}% | R-Ratio: 1:${riskReward.toFixed(2)}</div>
-                </div>`;
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px;">
+                        Win Rate: ${(winRate*100).toFixed(1)}% | Avg R:R: 1:${riskReward.toFixed(2)}
+                    </div>
+                    <div style="font-size:3.5rem; font-weight:800; color:var(--primary); margin:10px 0;">${safeKelly}%</div>
+                    <div style="font-size:0.9rem; color:#fff; font-weight:bold;">OPTIMAL RISK PER TRADE</div>
+                    <p style="font-size:0.8rem; color:#94a3b8; margin-top:15px;">
+                        ${safeKelly > 0 ? "✅ Edge is positive. You can scale size." : "⚠️ Edge is negative. Reduce risk immediately."}
+                    </p>
+                </div>
+            `;
         }
-        function closeKelly() { document.getElementById('kellyModal').style.display = 'none'; }
+        function closeTeppaEngine() { document.getElementById('teppaModal').style.display = 'none'; }
 
         // --- NEW: DRAWDOWN DOCTOR ---
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
-            const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
-            const diagnosisDiv = document.getElementById('doctorDiagnosis');
             
-            if(recentLosses.length === 0) {
-                diagnosisDiv.innerHTML = "<h3 style='color:var(--primary); text-align:center;'>System Healthy. No recent leaks.</h3>";
-                return;
-            }
+            // 1. Find Current Drawdown from Peak
+            let balance = 0;
+            let peak = -Infinity;
             
-            const emotions = {}; 
-            recentLosses.forEach(t => { emotions[t.emotion] = (emotions[t.emotion]||0)+1; });
-            const worstEmotion = Object.keys(emotions).length > 0 ? Object.keys(emotions).reduce((a,b)=>emotions[a]>emotions[b]?a:b) : "None";
+            // Sort Chronologically for Equity Curve calc
+            const chronTrades = [...allTradesCache].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+            
+            chronTrades.forEach(t => {
+                balance += (t.pnl || 0);
+                if(balance > peak) peak = balance;
+            });
+            
+            let currentDD = peak - balance;
+            let ddPercent = peak !== 0 ? ((currentDD / peak) * 100).toFixed(2) : 0;
 
-            diagnosisDiv.innerHTML = `
-                <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #ef4444; margin-bottom:10px;">
-                    <strong>🩸 BLEED DETECTED</strong><br>
-                    You have ${recentLosses.length} losses in your last 10 trades.
-                </div>
-                <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #fbbf24;">
-                    <strong>🧠 PSYCHOLOGY CHECK</strong><br>
-                    Primary Cause: <strong style="color:#fff;">${worstEmotion}</strong>
-                </div>`;
+            const diagnosisDiv = document.getElementById('doctorDiagnosis');
+
+            if(currentDD <= 0) {
+                diagnosisDiv.innerHTML = `
+                    <div style="text-align:center; padding:30px;">
+                        <i class='bx bxs-check-shield' style="font-size:4rem; color:var(--primary);"></i>
+                        <h3 style="color:#fff;">System Healthy</h3>
+                        <p style="color:#94a3b8;">You are at your Equity Peak. No drawdown detected.</p>
+                    </div>`;
+            } else {
+                // Analyze last 10 trades for leaks
+                const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
+                let worstEmotion = "None";
+                
+                if(recentLosses.length > 0) {
+                    const emotions = {}; 
+                    recentLosses.forEach(t => { emotions[t.emotion] = (emotions[t.emotion]||0)+1; });
+                    worstEmotion = Object.keys(emotions).reduce((a,b)=>emotions[a]>emotions[b]?a:b);
+                }
+
+                diagnosisDiv.innerHTML = `
+                    <div style="padding:20px; border-radius:12px; background:rgba(239,68,68,0.1); border:1px solid #ef4444; margin-bottom:20px; text-align:center;">
+                        <h2 style="color:#ef4444; margin:0; font-size:2.5rem;">-$${currentDD.toLocaleString()}</h2>
+                        <span style="color:#ef4444; font-weight:bold; font-size:0.9rem;">CURRENT DRAWDOWN (${ddPercent}%)</span>
+                    </div>
+                    <div style="background:#1e293b; padding:15px; border-radius:8px; margin-bottom:10px; border-left:4px solid #fbbf24;">
+                        <strong>🧠 Psychology Leak:</strong><br>
+                        Most frequent emotion during this slump: <strong style="color:#fff;">${worstEmotion}</strong>
+                    </div>
+                    <button onclick="alert('Recovery Plan Generated: Reduce risk by 50% until next win.')" style="width:100%; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">GENERATE RECOVERY PLAN</button>
+                `;
+            }
         }
         function closeDoctor() { document.getElementById('doctorModal').style.display = 'none'; }
 
@@ -112,8 +153,9 @@
             const msg = document.getElementById('mentorMsg');
             const icon = document.getElementById('mentorIcon');
             
+            // Logic: Check for losses
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
-            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); 
+            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); // Last 2 hours
 
             if (recentLosses.length >= 2) {
                 icon.className = 'bx bx-error-circle';
@@ -171,6 +213,7 @@
 
         // --- NEW: LEADERBOARD LOGIC ---
         async function loadLeaderboard() {
+            // This runs in background for pros
             const { data } = await supabaseClient.from('trades').select('pnl').order('pnl', {ascending:false}).limit(3);
             if(data) {
                 const list = document.getElementById('leaderList');
@@ -432,13 +475,13 @@
             document.getElementById('calcResult').innerHTML = `<div style="font-size:1.2rem; font-weight:bold; color:#fff;">$${amt.toFixed(2)} Risk</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${(amt/(sl*10)).toFixed(2)} Lots</div>`;
         }
 
-        function exportToCSV() { 
+        function exportToCSV() { 
             if (!allTradesCache.length) { alert("No trades to export."); return; }
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Date,Pair,Type,Outcome,PnL,Session,Emotion,Strategy,Note\n";
             allTradesCache.forEach(t => {
                 const date = new Date(t.created_at).toLocaleDateString();
-                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
+                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
                 const cleanStrat = t.strategy ? t.strategy.replace(/,/g, " & ") : "";
                 const row = `${date},${t.pair},${t.type},${t.outcome},${t.pnl},${t.session},${t.emotion},${cleanStrat},${cleanNote}`;
                 csvContent += row + "\n";
@@ -461,7 +504,7 @@
             document.getElementById('goalText').innerHTML = `$${pnl.toLocaleString()} / $${ACCOUNT_GOAL.toLocaleString()} Goal <i class='bx bx-pencil' onclick='editGoal()'></i>`;
         }
 
-        function openEditModal(str) { 
+        function openEditModal(str) { 
             const t = JSON.parse(decodeURIComponent(str)); currentEditId = t.id;
             document.getElementById('editPair').value = t.pair;
             document.getElementById('editPnL').value = t.pnl;
@@ -661,13 +704,13 @@
         </div>
     </div>
 
-    <div id="kellyModal" class="modal-overlay">
+    <div id="teppaModal" class="modal-overlay">
         <div style="background:var(--card); padding:30px; border-radius:12px; width:400px; border:1px solid var(--primary);">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h3 style="margin:0; color:#fff;">📐 KELLY OPTIMIZER</h3>
-                <button onclick="closeKelly()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
+                <h3 style="margin:0; color:#fff;">📐 TEPPA ENGINE</h3>
+                <button onclick="closeTeppaEngine()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
             </div>
-            <div id="kellyResult">Loading data...</div>
+            <div id="teppaResult">Loading data...</div>
         </div>
     </div>
 
@@ -749,7 +792,8 @@
         
         <button id="btn-mentor-nav" class="nav-btn" style="display:none; color:#fbbf24;" onclick="openMentor()"><i class='bx bx-bot'></i> SMART MENTOR</button>
         <button id="btn-ghost-nav" class="nav-btn" style="display:none; color:var(--primary);" onclick="openGhost()"><i class='bx bxs-ghost'></i> GHOST TRADE</button>
-        <button id="btn-kelly-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openKelly()"><i class='bx bx-slider-alt'></i> KELLY ENGINE</button>
+        
+        <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>
         <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
         
         <div style="height:20px;"></div>

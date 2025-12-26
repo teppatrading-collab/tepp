@@ -18,7 +18,6 @@
         let ACCOUNT_BALANCE = localStorage.getItem('accountBalance') ? parseFloat(localStorage.getItem('accountBalance')) : 1000;
         let activeFilter = 'all'; 
         let activeTimeframe = 'all'; 
-        let isBacktestMode = false; // NEW: Track backtest state
         let sessionChart, equityChart, psychChart;
         let currentEditId = null; 
         let allTradesCache = []; 
@@ -36,38 +35,27 @@
         }
         checkAuth();
 
-        // --- PRO CHECKER ---
+        // --- NEW: PRO CHECKER ---
         async function checkProSubscription(userId) {
             const { data } = await supabaseClient.from('subscriptions').select('plan, status').eq('user_id', userId).single();
             // If Pro, show the hidden sidebar buttons and badge
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
+                
+                // ADDED THESE TWO (Hidden by default, shown for Pros):
                 document.getElementById('btn-teppa-nav').style.display = 'flex';
                 document.getElementById('btn-doctor-nav').style.display = 'flex';
+                
                 document.getElementById('proBadge').style.display = 'inline-block';
                 loadLeaderboard(); 
             }
         }
 
-        // --- NEW: BACKTEST MODE TOGGLE ---
-        function toggleBacktestMode() {
-            isBacktestMode = !isBacktestMode;
-            const btn = document.getElementById('btn-backtest-toggle');
-            
-            if(isBacktestMode) {
-                btn.classList.add('active-filter');
-                btn.innerHTML = "<i class='bx bx-show-alt'></i> REVEAL MODE";
-            } else {
-                btn.classList.remove('active-filter');
-                btn.innerHTML = "<i class='bx bx-hide'></i> BACKTEST MODE";
-            }
-            loadTrades(activeFilter); // Reload trades to apply blurring
-        }
-
-        // --- TEPPA ENGINE (Sizing Logic) ---
+        // --- NEW: TEPPA ENGINE (Sizing Logic) ---
         function openTeppaEngine() {
             document.getElementById('teppaModal').style.display = 'flex';
+            
             const wins = allTradesCache.filter(t => t.outcome === 'Win');
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
             
@@ -80,7 +68,11 @@
             const avgWin = wins.reduce((a,b)=>a+b.pnl,0) / wins.length;
             const avgLoss = Math.abs(losses.reduce((a,b)=>a+b.pnl,0) / losses.length);
             const riskReward = avgWin / avgLoss;
+
+            // Kelly Formula: K% = W - ( (1-W) / R )
             let kellyDecimal = winRate - ((1 - winRate) / riskReward);
+            
+            // Safety: Half-Kelly is standard recommendation
             let safeKelly = (kellyDecimal * 50).toFixed(2); 
             if(safeKelly < 0) safeKelly = 0;
 
@@ -99,11 +91,15 @@
         }
         function closeTeppaEngine() { document.getElementById('teppaModal').style.display = 'none'; }
 
-        // --- DRAWDOWN DOCTOR ---
+        // --- NEW: DRAWDOWN DOCTOR ---
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
+            
+            // 1. Find Current Drawdown from Peak
             let balance = 0;
             let peak = -Infinity;
+            
+            // Sort Chronologically for Equity Curve calc
             const chronTrades = [...allTradesCache].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
             
             chronTrades.forEach(t => {
@@ -113,6 +109,7 @@
             
             let currentDD = peak - balance;
             let ddPercent = peak !== 0 ? ((currentDD / peak) * 100).toFixed(2) : 0;
+
             const diagnosisDiv = document.getElementById('doctorDiagnosis');
 
             if(currentDD <= 0) {
@@ -123,8 +120,10 @@
                         <p style="color:#94a3b8;">You are at your Equity Peak. No drawdown detected.</p>
                     </div>`;
             } else {
+                // Analyze last 10 trades for leaks
                 const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
                 let worstEmotion = "None";
+                
                 if(recentLosses.length > 0) {
                     const emotions = {}; 
                     recentLosses.forEach(t => { emotions[t.emotion] = (emotions[t.emotion]||0)+1; });
@@ -146,14 +145,17 @@
         }
         function closeDoctor() { document.getElementById('doctorModal').style.display = 'none'; }
 
-        // --- SMART MENTOR ---
+        // --- NEW: SMART MENTOR LOGIC ---
         function openMentor() {
             const modal = document.getElementById('mentorModal');
             modal.style.display = 'flex';
+            
             const msg = document.getElementById('mentorMsg');
             const icon = document.getElementById('mentorIcon');
+            
+            // Logic: Check for losses
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
-            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); 
+            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); // Last 2 hours
 
             if (recentLosses.length >= 2) {
                 icon.className = 'bx bx-error-circle';
@@ -173,8 +175,11 @@
             return streak + " W";
         }
 
-        // --- GHOST TRADE LOGIC ---
-        function openGhost() { document.getElementById('ghostModal').style.display = 'flex'; startGhostMode(); }
+        // --- NEW: GHOST TRADE LOGIC ---
+        function openGhost() { 
+            document.getElementById('ghostModal').style.display = 'flex'; 
+            startGhostMode();
+        }
         function closeGhost() { document.getElementById('ghostModal').style.display = 'none'; }
 
         async function startGhostMode() {
@@ -185,6 +190,7 @@
             }
             const randomIdx = Math.floor(Math.random() * validTrades.length);
             currentGhostTrade = validTrades[randomIdx];
+
             document.getElementById('ghost-chart-area').innerHTML = `<img src="${currentGhostTrade.chart_screenshot}" style="width:100%; height:100%; object-fit:contain;">`;
             document.getElementById('ghost-controls').style.display = 'flex';
             document.getElementById('ghost-result').innerText = "";
@@ -205,8 +211,9 @@
             document.getElementById('ghost-controls').style.display = 'none';
         }
 
-        // --- LEADERBOARD LOGIC ---
+        // --- NEW: LEADERBOARD LOGIC ---
         async function loadLeaderboard() {
+            // This runs in background for pros
             const { data } = await supabaseClient.from('trades').select('pnl').order('pnl', {ascending:false}).limit(3);
             if(data) {
                 const list = document.getElementById('leaderList');
@@ -215,18 +222,128 @@
         }
 
         // --- EXISTING UTILITIES ---
-        function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('active'); document.querySelector('.overlay-bg').classList.toggle('active'); }
-        function updateWidget() { const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100'; document.getElementById('tv-widget').src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","dateRange":"12M","colorTheme":"dark","trendLineColor":"rgba(45, 212, 191, 1)","underLineColor":"rgba(45, 212, 191, 0.3)","isTransparent":true,"autosize":true,"largeChartUrl":""}`; }
-        function openAnalysis() { const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100'; document.getElementById('analysisModal').style.display = 'flex'; new TradingView.widget({ "width": "100%", "height": "100%", "symbol": pair, "interval": "D", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "withdateranges": true, "hide_side_toolbar": false, "allow_symbol_change": true, "container_id": "tradingview_chart" }); }
+        function toggleSidebar() { 
+            document.querySelector('.sidebar').classList.toggle('active'); 
+            document.querySelector('.overlay-bg').classList.toggle('active');
+        }
+
+        function updateWidget() {
+            const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
+            const widgetFrame = document.getElementById('tv-widget');
+            widgetFrame.src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","dateRange":"12M","colorTheme":"dark","trendLineColor":"rgba(45, 212, 191, 1)","underLineColor":"rgba(45, 212, 191, 0.3)","isTransparent":true,"autosize":true,"largeChartUrl":""}`;
+        }
+
+        function openAnalysis() {
+            const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
+            document.getElementById('analysisModal').style.display = 'flex';
+            new TradingView.widget({
+                "width": "100%", "height": "100%", "symbol": pair, "interval": "D", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "withdateranges": true, "hide_side_toolbar": false, "allow_symbol_change": true, "container_id": "tradingview_chart"
+            });
+        }
         function closeAnalysis() { document.getElementById('analysisModal').style.display = 'none'; }
-        function setDefaultSession() { const hour = new Date().getHours(); let session = "Asian"; if (hour >= 8 && hour < 14) session = "London"; if (hour >= 14 && hour < 21) session = "New York"; document.getElementById('tradeSession').value = session; }
+
+        function setDefaultSession() {
+            const hour = new Date().getHours(); 
+            let session = "Asian";
+            if (hour >= 8 && hour < 14) session = "London";
+            if (hour >= 14 && hour < 21) session = "New York";
+            document.getElementById('tradeSession').value = session;
+        }
+
         function toggleStrategy(btn) { btn.classList.toggle('active-strat'); }
-        function getSelectedStrategies(id) { return Array.from(document.getElementById(id).querySelectorAll('.strat-btn.active-strat')).map(b => b.innerText).join(', '); }
-        function setStrategies(id, str) { document.getElementById(id).querySelectorAll('.strat-btn').forEach(b => { b.classList.remove('active-strat'); if(str && str.includes(b.innerText)) b.classList.add('active-strat'); }); }
-        async function saveTradeWithImage() { const pair = document.getElementById('tradePair').value; const type = document.getElementById('tradeType').value; const outcome = document.getElementById('tradeOutcome').value; const pnl = document.getElementById('tradePnL').value; const emotion = document.getElementById('tradeEmotion').value; const strategy = getSelectedStrategies('newStrategyContainer'); const reason = document.getElementById('tradeReason').value; const chartLink = document.getElementById('chartLink').value; const isPlaybook = document.getElementById('playbookCheck').checked; const fileInput = document.getElementById('chartUpload'); const status = document.getElementById('journalStatus'); const currentSession = document.getElementById('tradeSession').value; if(!pair || !reason) { status.innerText = "Fill required fields!"; return; } status.innerText = "Processing..."; let imageUrl = null; if (fileInput.files.length > 0) { const file = fileInput.files[0]; const fileExt = file.name.split('.').pop(); const filePath = `trades/${Math.random()}.${fileExt}`; let { error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(filePath, file); if (!uploadError) { const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath); imageUrl = data.publicUrl; } } const { error } = await supabaseClient.from('trades').insert([ { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl, outcome, emotion, session: currentSession, strategy, is_playbook: isPlaybook, pnl: pnl ? parseFloat(pnl) : 0 } ]); if (error) status.innerText = "Error saving."; else { status.innerText = "✅ Saved!"; loadTrades(); document.getElementById('tradePair').value = ''; document.getElementById('tradeReason').value = ''; document.getElementById('tradePnL').value = ''; document.getElementById('playbookCheck').checked = false; document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat')); setDefaultSession(); if(window.innerWidth <= 768) toggleSidebar(); } }
-        function setTimeframe(tf) { activeTimeframe = tf; document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active-tf')); document.getElementById(`tf-${tf}`).classList.add('active-tf'); loadTrades(activeFilter); }
-        function filterTradesByTime(trades) { if (activeTimeframe === 'all') return trades; const now = new Date(); return trades.filter(t => { const tDate = new Date(t.created_at); if (activeTimeframe === 'week') { const d = new Date(); d.setDate(now.getDate()-7); return tDate >= d; } if (activeTimeframe === 'month') return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear(); if (activeTimeframe === 'year') return tDate.getFullYear() === now.getFullYear(); return true; }); }
-        function shareTrade(tradeDataStr) { const trade = JSON.parse(decodeURIComponent(tradeDataStr)); document.getElementById('sharePair').innerText = trade.pair; document.getElementById('shareType').innerText = trade.type.toUpperCase(); document.getElementById('shareType').style.color = trade.type === 'Buy' ? '#2dd4bf' : '#ef4444'; document.getElementById('sharePnL').innerText = (trade.pnl >= 0 ? "+$" : "-$") + Math.abs(trade.pnl); document.getElementById('sharePnL').style.color = trade.pnl >= 0 ? '#2dd4bf' : '#ef4444'; document.getElementById('shareStrat').innerText = trade.strategy || "No Strategy"; document.getElementById('shareModal').style.display = 'flex'; }
+
+        function getSelectedStrategies(containerId) {
+            const container = document.getElementById(containerId);
+            return Array.from(container.querySelectorAll('.strat-btn.active-strat')).map(b => b.innerText).join(', ');
+        }
+
+        function setStrategies(containerId, strategyString) {
+            const container = document.getElementById(containerId);
+            container.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('active-strat'));
+            if(!strategyString) return;
+            const savedStrats = strategyString.split(', ');
+            container.querySelectorAll('.strat-btn').forEach(b => {
+                if(savedStrats.includes(b.innerText)) b.classList.add('active-strat');
+            });
+        }
+
+        async function saveTradeWithImage() {
+            const pair = document.getElementById('tradePair').value;
+            const type = document.getElementById('tradeType').value;
+            const outcome = document.getElementById('tradeOutcome').value;
+            const pnl = document.getElementById('tradePnL').value; 
+            const emotion = document.getElementById('tradeEmotion').value;
+            const strategy = getSelectedStrategies('newStrategyContainer'); 
+            const reason = document.getElementById('tradeReason').value;
+            const chartLink = document.getElementById('chartLink').value;
+            const isPlaybook = document.getElementById('playbookCheck').checked;
+            const fileInput = document.getElementById('chartUpload');
+            const status = document.getElementById('journalStatus');
+            const currentSession = document.getElementById('tradeSession').value; 
+            
+            if(!pair || !reason) { status.innerText = "Fill required fields!"; return; }
+
+            status.innerText = "Processing...";
+            let imageUrl = null;
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const filePath = `trades/${Math.random()}.${fileExt}`;
+                let { error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(filePath, file);
+                if (!uploadError) {
+                    const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
+                    imageUrl = data.publicUrl;
+                }
+            }
+
+            const { error } = await supabaseClient.from('trades').insert([
+                { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl, outcome, emotion, session: currentSession, strategy, is_playbook: isPlaybook, pnl: pnl ? parseFloat(pnl) : 0 }
+            ]);
+
+            if (error) status.innerText = "Error saving.";
+            else {
+                status.innerText = "✅ Saved!";
+                loadTrades(); 
+                document.getElementById('tradePair').value = '';
+                document.getElementById('tradeReason').value = '';
+                document.getElementById('tradePnL').value = ''; 
+                document.getElementById('playbookCheck').checked = false;
+                document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat'));
+                setDefaultSession(); 
+                if(window.innerWidth <= 768) toggleSidebar();
+            }
+        }
+
+        function setTimeframe(tf) {
+            activeTimeframe = tf;
+            document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active-tf'));
+            document.getElementById(`tf-${tf}`).classList.add('active-tf');
+            loadTrades(activeFilter); 
+        }
+
+        function filterTradesByTime(trades) {
+            if (activeTimeframe === 'all') return trades;
+            const now = new Date();
+            return trades.filter(t => {
+                const tDate = new Date(t.created_at);
+                if (activeTimeframe === 'week') { const d = new Date(); d.setDate(now.getDate()-7); return tDate >= d; }
+                if (activeTimeframe === 'month') return tDate.getMonth() === now.getMonth() && tDate.getFullYear() === now.getFullYear();
+                if (activeTimeframe === 'year') return tDate.getFullYear() === now.getFullYear();
+                return true;
+            });
+        }
+
+        function shareTrade(tradeDataStr) {
+            const trade = JSON.parse(decodeURIComponent(tradeDataStr));
+            document.getElementById('sharePair').innerText = trade.pair;
+            document.getElementById('shareType').innerText = trade.type.toUpperCase();
+            document.getElementById('shareType').style.color = trade.type === 'Buy' ? '#2dd4bf' : '#ef4444';
+            document.getElementById('sharePnL').innerText = (trade.pnl >= 0 ? "+$" : "-$") + Math.abs(trade.pnl);
+            document.getElementById('sharePnL').style.color = trade.pnl >= 0 ? '#2dd4bf' : '#ef4444';
+            document.getElementById('shareStrat').innerText = trade.strategy || "No Strategy";
+            document.getElementById('shareModal').style.display = 'flex';
+        }
         function closeShare() { document.getElementById('shareModal').style.display = 'none'; }
 
         async function loadTrades(filterMode = 'all') {
@@ -283,17 +400,7 @@
 
             trades.forEach(trade => {
                 const card = document.createElement('div');
-                // Backtest Mode Logic: Add Blur Class
-                const blurClass = isBacktestMode ? 'backtest-blur' : '';
-                
                 card.className = `trade-log-card ${trade.is_playbook ? 'playbook-card' : ''}`;
-                // Toggle Reveal Logic
-                card.onclick = function() {
-                    if (isBacktestMode) {
-                        this.classList.add('revealed');
-                    }
-                };
-
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
                 card.innerHTML = `
@@ -301,15 +408,15 @@
                         <span class="pair-badge">${trade.pair}</span>
                         <div style="display:flex; gap:5px; align-items:center;">
                              ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
-                             <span class="outcome-tag ${trade.outcome?.toLowerCase()} ${blurClass}">${trade.outcome || 'Pending'}</span>
+                             <span class="outcome-tag ${trade.outcome?.toLowerCase()}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <div class="card-actions">
-                            <button class="action-btn" title="Share Trade" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
-                            <button class="action-btn" onclick="event.stopPropagation(); openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
-                            <button class="action-btn delete" onclick="event.stopPropagation(); deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
+                            <button class="action-btn" title="Share Trade" onclick="shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
+                            <button class="action-btn" onclick="openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
+                            <button class="action-btn delete" onclick="deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
                         </div>
                     </div>
-                    <div class="${blurClass}" style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${(trade.pnl || 0) >= 0 ? 'var(--primary)' : '#ef4444'}">
+                    <div style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${(trade.pnl || 0) >= 0 ? 'var(--primary)' : '#ef4444'}">
                         ${(trade.pnl || 0) >= 0 ? '+' : '-'}$${Math.abs(trade.pnl || 0)}
                     </div>
                     ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
@@ -317,7 +424,6 @@
                         <span><i class='bx bx-time'></i> ${trade.session}</span> | <span><i class='bx bx-brain'></i> ${trade.emotion}</span>
                     </div>
                     <p class="trade-reason">${trade.reason}</p>
-                    ${isBacktestMode ? '<div class="click-reveal-hint" style="text-align:center; font-size:0.75rem; color:#94a3b8; margin-top:5px;">(Click to Reveal)</div>' : ''}
                 `;
                 feed.appendChild(card);
             });
@@ -369,6 +475,26 @@
             document.getElementById('calcResult').innerHTML = `<div style="font-size:1.2rem; font-weight:bold; color:#fff;">$${amt.toFixed(2)} Risk</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${(amt/(sl*10)).toFixed(2)} Lots</div>`;
         }
 
+        function exportToCSV() { 
+            if (!allTradesCache.length) { alert("No trades to export."); return; }
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Pair,Type,Outcome,PnL,Session,Emotion,Strategy,Note\n";
+            allTradesCache.forEach(t => {
+                const date = new Date(t.created_at).toLocaleDateString();
+                const cleanNote = t.reason ? t.reason.replace(/,/g, " ") : ""; 
+                const cleanStrat = t.strategy ? t.strategy.replace(/,/g, " & ") : "";
+                const row = `${date},${t.pair},${t.type},${t.outcome},${t.pnl},${t.session},${t.emotion},${cleanStrat},${cleanNote}`;
+                csvContent += row + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "teppa_trading_journal.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
         function editGoal() {
             const g = prompt("New Goal:", ACCOUNT_GOAL);
             if(g && !isNaN(g)) { localStorage.setItem('tradingGoal', g); ACCOUNT_GOAL = parseInt(g); loadTrades(); }
@@ -378,7 +504,7 @@
             document.getElementById('goalText').innerHTML = `$${pnl.toLocaleString()} / $${ACCOUNT_GOAL.toLocaleString()} Goal <i class='bx bx-pencil' onclick='editGoal()'></i>`;
         }
 
-        function openEditModal(str) { 
+        function openEditModal(str) { 
             const t = JSON.parse(decodeURIComponent(str)); currentEditId = t.id;
             document.getElementById('editPair').value = t.pair;
             document.getElementById('editPnL').value = t.pnl;
@@ -493,11 +619,7 @@
         .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin: 0; }
 
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; position: relative; overflow: hidden; cursor: pointer; }
-        
-        /* NEW: BACKTEST BLUR LOGIC */
-        .backtest-blur { filter: blur(5px); user-select: none; pointer-events: none; transition: 0.3s; }
-        .trade-log-card.revealed .backtest-blur { filter: blur(0); pointer-events: auto; }
+        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; position: relative; overflow: hidden; }
         
         /* CALENDAR */
         .calendar-section { margin-top: 40px; }
@@ -521,7 +643,7 @@
         .share-row { display: flex; justify-content: space-between; margin-bottom: 10px; color: #94a3b8; font-size: 0.9rem; }
         .share-val { color: #fff; font-weight: bold; }
 
-        /* --- PROFESSIONAL FILTER BUTTONS --- */
+        /* --- PROFESSIONAL FILTER BUTTONS (NEW) --- */
         .filter-container {
             display: flex; flex-wrap: wrap; gap: 15px; margin-top: 30px; margin-bottom: 25px; align-items: center;
             padding: 10px; background: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid var(--border);
@@ -670,6 +792,7 @@
         
         <button id="btn-mentor-nav" class="nav-btn" style="display:none; color:#fbbf24;" onclick="openMentor()"><i class='bx bx-bot'></i> SMART MENTOR</button>
         <button id="btn-ghost-nav" class="nav-btn" style="display:none; color:var(--primary);" onclick="openGhost()"><i class='bx bxs-ghost'></i> GHOST TRADE</button>
+        
         <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>
         <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
         
@@ -755,11 +878,6 @@
                 <button id="btn-all" class="filter-btn active-filter" onclick="loadTrades('all')">All Trades</button>
                 <button id="btn-playbook" class="filter-btn" onclick="loadTrades('playbook')">🏆 Playbook</button>
             </div>
-            
-            <button id="btn-backtest-toggle" class="filter-btn" onclick="toggleBacktestMode()">
-                <i class='bx bx-hide'></i> BACKTEST MODE
-            </button>
-
             <div class="tf-container">
                 <button id="tf-all" class="tf-btn active-tf" onclick="setTimeframe('all')">All</button>
                 <button id="tf-month" class="tf-btn" onclick="setTimeframe('month')">Month</button>

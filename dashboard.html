@@ -42,10 +42,67 @@
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
+                // ADDED THESE TWO:
+                document.getElementById('btn-kelly-nav').style.display = 'flex';
+                document.getElementById('btn-doctor-nav').style.display = 'flex';
+                
                 document.getElementById('proBadge').style.display = 'inline-block';
-                loadLeaderboard(); // Pre-load leaderboard data
+                loadLeaderboard(); 
             }
         }
+
+        // --- NEW: KELLY SIZING ENGINE ---
+        function openKelly() {
+            document.getElementById('kellyModal').style.display = 'flex';
+            const wins = allTradesCache.filter(t => t.outcome === 'Win');
+            const losses = allTradesCache.filter(t => t.outcome === 'Loss');
+            
+            if(wins.length === 0 || losses.length === 0) {
+                document.getElementById('kellyResult').innerHTML = "Need both wins and losses to calculate.";
+                return;
+            }
+            const winRate = wins.length / allTradesCache.length;
+            const avgWin = wins.reduce((a,b)=>a+b.pnl,0) / wins.length;
+            const avgLoss = Math.abs(losses.reduce((a,b)=>a+b.pnl,0) / losses.length);
+            const riskReward = avgWin / avgLoss;
+            let kellyPct = (winRate - ((1 - winRate) / riskReward)) * 100;
+            const safeKelly = Math.max(0, (kellyPct / 2).toFixed(2)); // Half Kelly for safety
+
+            document.getElementById('kellyResult').innerHTML = `
+                <div style="text-align:center; padding:20px;">
+                    <h2 style="color:var(--primary); font-size:3rem; margin:0;">${safeKelly}%</h2>
+                    <p style="color:#94a3b8;">OPTIMAL RISK PER TRADE</p>
+                    <div style="font-size:0.8rem; margin-top:15px;">Win Rate: ${(winRate*100).toFixed(1)}% | R-Ratio: 1:${riskReward.toFixed(2)}</div>
+                </div>`;
+        }
+        function closeKelly() { document.getElementById('kellyModal').style.display = 'none'; }
+
+        // --- NEW: DRAWDOWN DOCTOR ---
+        function openDoctor() {
+            document.getElementById('doctorModal').style.display = 'flex';
+            const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
+            const diagnosisDiv = document.getElementById('doctorDiagnosis');
+            
+            if(recentLosses.length === 0) {
+                diagnosisDiv.innerHTML = "<h3 style='color:var(--primary); text-align:center;'>System Healthy. No recent leaks.</h3>";
+                return;
+            }
+            
+            const emotions = {}; 
+            recentLosses.forEach(t => { emotions[t.emotion] = (emotions[t.emotion]||0)+1; });
+            const worstEmotion = Object.keys(emotions).length > 0 ? Object.keys(emotions).reduce((a,b)=>emotions[a]>emotions[b]?a:b) : "None";
+
+            diagnosisDiv.innerHTML = `
+                <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #ef4444; margin-bottom:10px;">
+                    <strong>🩸 BLEED DETECTED</strong><br>
+                    You have ${recentLosses.length} losses in your last 10 trades.
+                </div>
+                <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #fbbf24;">
+                    <strong>🧠 PSYCHOLOGY CHECK</strong><br>
+                    Primary Cause: <strong style="color:#fff;">${worstEmotion}</strong>
+                </div>`;
+        }
+        function closeDoctor() { document.getElementById('doctorModal').style.display = 'none'; }
 
         // --- NEW: SMART MENTOR LOGIC ---
         function openMentor() {
@@ -55,9 +112,8 @@
             const msg = document.getElementById('mentorMsg');
             const icon = document.getElementById('mentorIcon');
             
-            // Logic: Check for losses
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
-            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); // Last 2 hours
+            const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); 
 
             if (recentLosses.length >= 2) {
                 icon.className = 'bx bx-error-circle';
@@ -115,7 +171,6 @@
 
         // --- NEW: LEADERBOARD LOGIC ---
         async function loadLeaderboard() {
-            // This runs in background for pros
             const { data } = await supabaseClient.from('trades').select('pnl').order('pnl', {ascending:false}).limit(3);
             if(data) {
                 const list = document.getElementById('leaderList');
@@ -606,6 +661,26 @@
         </div>
     </div>
 
+    <div id="kellyModal" class="modal-overlay">
+        <div style="background:var(--card); padding:30px; border-radius:12px; width:400px; border:1px solid var(--primary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; color:#fff;">📐 KELLY OPTIMIZER</h3>
+                <button onclick="closeKelly()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
+            </div>
+            <div id="kellyResult">Loading data...</div>
+        </div>
+    </div>
+
+    <div id="doctorModal" class="modal-overlay">
+        <div style="background:var(--card); padding:30px; border-radius:12px; width:400px; border:1px solid #ef4444;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; color:#fff;">🚑 DRAWDOWN DOCTOR</h3>
+                <button onclick="closeDoctor()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
+            </div>
+            <div id="doctorDiagnosis">Analyzing Recent Losses...</div>
+        </div>
+    </div>
+
     <div id="ghostModal" class="modal-overlay">
         <div style="background:#000; padding:20px; border-radius:12px; width:90%; height:90%; border:1px solid #334155; display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
@@ -674,6 +749,8 @@
         
         <button id="btn-mentor-nav" class="nav-btn" style="display:none; color:#fbbf24;" onclick="openMentor()"><i class='bx bx-bot'></i> SMART MENTOR</button>
         <button id="btn-ghost-nav" class="nav-btn" style="display:none; color:var(--primary);" onclick="openGhost()"><i class='bx bxs-ghost'></i> GHOST TRADE</button>
+        <button id="btn-kelly-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openKelly()"><i class='bx bx-slider-alt'></i> KELLY ENGINE</button>
+        <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
         
         <div style="height:20px;"></div>
 

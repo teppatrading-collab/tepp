@@ -42,7 +42,7 @@
         let currentEditId = null; 
         let allTradesCache = []; 
         let currentGhostTrade = null;
-        let currentReplayTrade = null; // Stores data for the active replay session
+        let currentReplayTrade = null; 
 
         // ==================================================================
         // 2. AUTHENTICATION & SUBSCRIPTION CHECK
@@ -73,12 +73,16 @@
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
-                document.getElementById('btn-teppa-nav').style.display = 'flex';
-                document.getElementById('btn-doctor-nav').style.display = 'flex';
+                // document.getElementById('btn-teppa-nav').style.display = 'flex'; // Un-comment if you want to hide this too
+                // document.getElementById('btn-doctor-nav').style.display = 'flex'; // Un-comment if you want to hide this too
                 document.getElementById('proBadge').style.display = 'inline-block';
                 
                 loadLeaderboard(); 
             }
+            
+            // NOTE: We now show Doctor and Teppa Engine to EVERYONE by default (below)
+            document.getElementById('btn-teppa-nav').style.display = 'flex';
+            document.getElementById('btn-doctor-nav').style.display = 'flex';
         }
 
         // ==================================================================
@@ -93,19 +97,14 @@
             const dateStr = tradeDate.toISOString().split('T')[0];
             const timeStr = tradeDate.toLocaleTimeString('en-US', { hour12: false });
             
-            // 3. Clean Symbol (Fixes "euro/usd" errors)
+            // 3. Clean Symbol
             let rawPair = currentReplayTrade.pair || "BTCUSD";
             let cleanPair = rawPair.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
-            
-            // Manual fixes for common nicknames
             if (cleanPair.includes("EURO")) cleanPair = cleanPair.replace("EURO", "EUR"); 
             if (cleanPair === "GOLD") cleanPair = "XAUUSD";
             if (cleanPair === "BITCOIN") cleanPair = "BTCUSD";
 
-            // 4. Generate Deep Link
-            const tvLink = `https://www.tradingview.com/chart/?symbol=${cleanPair}`;
-
-            // 5. Update Header UI
+            // 4. Update Header UI
             document.getElementById('telemetryPair').innerText = cleanPair;
             document.getElementById('telemetryDate').innerText = dateStr;
             document.getElementById('telemetryTime').innerText = timeStr;
@@ -116,26 +115,19 @@
                 hour: 'numeric', minute: '2-digit', hour12: true 
             });
 
-            document.getElementById('replayTargetDate').innerHTML = `
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <span>TARGET: <strong style="color:#fbbf24;">${fullDateString}</strong></span>
-                    <a href="${tvLink}" target="_blank" style="background:#2962FF; color:#fff; text-decoration:none; padding:5px 12px; border-radius:4px; font-weight:bold; font-size:0.75rem; display:flex; align-items:center; gap:5px;">
-                        <i class='bx bx-link-external'></i> USE REAL REPLAY
-                    </a>
-                </div>
-            `;
+            document.getElementById('replayTargetDate').innerHTML = `TARGET: ${fullDateString}`;
 
-            // 6. Reset Modal State
+            // 5. Reset Modal State
             document.getElementById('replayModal').style.display = 'flex';
             document.getElementById('orderTicket').style.display = 'flex';
             document.getElementById('executionLog').style.display = 'none';
 
-            // 7. Load Live Chart Widget
+            // 6. Load Live Chart
             new TradingView.widget({
                 "width": "100%",
                 "height": "100%",
                 "symbol": cleanPair,
-                "interval": "60", // Default to 1H
+                "interval": "60", 
                 "timezone": "Etc/UTC",
                 "theme": "dark",
                 "style": "1",
@@ -149,8 +141,8 @@
         }
 
         function executeReplayTrade(action) {
-            const actualType = currentReplayTrade.type; // 'Buy' or 'Sell'
-            const actualOutcome = currentReplayTrade.outcome; // 'Win' or 'Loss'
+            const actualType = currentReplayTrade.type; 
+            const actualOutcome = currentReplayTrade.outcome; 
             
             const ticket = document.getElementById('orderTicket');
             const log = document.getElementById('executionLog');
@@ -159,7 +151,6 @@
             let statusText = "";
             let pnlText = "";
 
-            // Check if user matched the trade
             if (action === actualType) {
                 if (actualOutcome === 'Win') {
                     statusClass = "fill-win";
@@ -176,7 +167,6 @@
                 pnlText = `SYSTEM MISMATCH (Actual: ${actualType})`;
             }
 
-            // Render Log Entry
             log.innerHTML = `
                 <div class="log-entry">
                     <span class="log-time">${new Date().toLocaleTimeString()}</span>
@@ -186,14 +176,13 @@
                 </div>
             `;
 
-            // Switch to Log View
             ticket.style.display = 'none';
             log.style.display = 'block';
         }
 
         function closeReplay() { 
             document.getElementById('replayModal').style.display = 'none'; 
-            document.getElementById('replay_chart_container').innerHTML = ""; // Clear memory
+            document.getElementById('replay_chart_container').innerHTML = ""; 
         }
 
         // ==================================================================
@@ -206,7 +195,7 @@
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
             
             if(wins.length === 0 || losses.length === 0) {
-                document.getElementById('teppaResult').innerHTML = "<p style='color:#94a3b8; text-align:center;'>Need at least 1 win and 1 loss.</p>";
+                document.getElementById('teppaResult').innerHTML = "<p style='color:#94a3b8; text-align:center;'>Need at least 1 win and 1 loss to calculate.</p>";
                 return;
             }
 
@@ -215,10 +204,7 @@
             const avgLoss = Math.abs(losses.reduce((a,b)=>a+b.pnl,0) / losses.length);
             const riskReward = avgWin / avgLoss;
 
-            // Kelly Criterion
             let kellyDecimal = winRate - ((1 - winRate) / riskReward);
-            
-            // Half-Kelly (Safer)
             let safeKelly = (kellyDecimal * 50).toFixed(2); 
             if(safeKelly < 0) safeKelly = 0;
 
@@ -237,57 +223,110 @@
         }
 
         // ==================================================================
-        // 5. FEATURE: DRAWDOWN DOCTOR
+        // 5. FEATURE: PERFORMANCE DOCTOR (UPDATED FOR EVERYONE)
         // ==================================================================
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
             
+            // 1. Basic Checks
+            if (allTradesCache.length === 0) {
+                document.getElementById('doctorDiagnosis').innerHTML = "<p style='text-align:center; color:#94a3b8;'>No trade data available yet.</p>";
+                return;
+            }
+
+            // 2. Drawdown Calculation
             let balance = 0;
             let peak = -Infinity;
-            
-            // Sort Chronologically
             const chronTrades = [...allTradesCache].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
             
             chronTrades.forEach(t => {
                 balance += (t.pnl || 0);
                 if(balance > peak) peak = balance;
             });
-            
             let currentDD = peak - balance;
             let ddPercent = peak !== 0 ? ((currentDD / peak) * 100).toFixed(2) : 0;
 
-            const diagnosisDiv = document.getElementById('doctorDiagnosis');
-
-            if(currentDD <= 0) {
-                diagnosisDiv.innerHTML = `
-                    <div style="text-align:center; padding:30px;">
-                        <i class='bx bxs-check-shield' style="font-size:4rem; color:var(--primary);"></i>
-                        <h3 style="color:#fff;">System Healthy</h3>
-                        <p style="color:#94a3b8;">You are at your Equity Peak.</p>
-                    </div>`;
-            } else {
-                // Find leakage cause
-                const recentLosses = allTradesCache.slice(0, 10).filter(t => t.outcome === 'Loss');
-                let worstEmotion = "None";
-                
-                if(recentLosses.length > 0) {
-                    const emotions = {}; 
-                    recentLosses.forEach(t => { emotions[t.emotion] = (emotions[t.emotion]||0)+1; });
-                    worstEmotion = Object.keys(emotions).reduce((a,b)=>emotions[a]>emotions[b]?a:b);
-                }
-
-                diagnosisDiv.innerHTML = `
-                    <div style="padding:20px; border-radius:12px; background:rgba(239,68,68,0.1); border:1px solid #ef4444; margin-bottom:20px; text-align:center;">
-                        <h2 style="color:#ef4444; margin:0; font-size:2.5rem;">-$${currentDD.toLocaleString()}</h2>
-                        <span style="color:#ef4444; font-weight:bold; font-size:0.9rem;">CURRENT DRAWDOWN (${ddPercent}%)</span>
-                    </div>
-                    <div style="background:#1e293b; padding:15px; border-radius:8px; margin-bottom:10px; border-left:4px solid #fbbf24;">
-                        <strong>🧠 Leak Detected:</strong> ${worstEmotion}
-                    </div>
-                    <button onclick="alert('Recovery Mode: Half Risk')" style="width:100%; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">ACTIVATE RECOVERY PLAN</button>
-                `;
+            // 3. BEST HOUR Analysis
+            const hourlyPnL = {};
+            chronTrades.forEach(t => {
+                const d = new Date(t.created_at);
+                const h = d.getHours();
+                if(!hourlyPnL[h]) hourlyPnL[h] = 0;
+                hourlyPnL[h] += (t.pnl || 0);
+            });
+            
+            let bestHour = null; let maxHrPnL = -Infinity;
+            let worstHour = null; let minHrPnL = Infinity;
+            
+            for (const [h, pnl] of Object.entries(hourlyPnL)) {
+                if(pnl > maxHrPnL) { maxHrPnL = pnl; bestHour = h; }
+                if(pnl < minHrPnL) { minHrPnL = pnl; worstHour = h; }
             }
+
+            const formatH = (h) => {
+                if(h === null) return "--";
+                const d = new Date(); d.setHours(h);
+                return d.toLocaleTimeString([], {hour: 'numeric', hour12: true});
+            };
+
+            // 4. BEST SESSION Analysis
+            const sessionPnL = {};
+            chronTrades.forEach(t => {
+                if(!sessionPnL[t.session]) sessionPnL[t.session] = 0;
+                sessionPnL[t.session] += (t.pnl || 0);
+            });
+            
+            let bestSession = Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] > sessionPnL[b] ? a : b, "--");
+            let worstSession = Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] < sessionPnL[b] ? a : b, "--");
+
+            // 5. Render Report (Unlocked for Everyone)
+            const diagnosisDiv = document.getElementById('doctorDiagnosis');
+            
+            let healthHTML = currentDD <= 0 
+                ? `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid var(--primary); border-radius:8px; background:rgba(45, 212, 191, 0.1);">
+                     <h3 style="margin:0; color:var(--primary);">SYSTEM HEALTHY</h3>
+                     <span style="font-size:0.8rem;">AT EQUITY PEAK</span>
+                   </div>`
+                : `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid #ef4444; border-radius:8px; background:rgba(239, 68, 68, 0.1);">
+                     <h3 style="margin:0; color:#ef4444;">-$${currentDD.toLocaleString()} DD</h3>
+                     <span style="font-size:0.8rem; color:#ef4444;">${ddPercent}% OFF PEAK</span>
+                   </div>`;
+
+            diagnosisDiv.innerHTML = `
+                ${healthHTML}
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid var(--primary);">
+                        <div style="font-size:0.7rem; color:#94a3b8; font-weight:bold; letter-spacing:1px; margin-bottom:10px;">🔥 POWER ZONE</div>
+                        <div style="margin-bottom:8px;">
+                            <div style="font-size:0.75rem; color:#fff;">BEST TIME</div>
+                            <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${formatH(bestHour)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; color:#fff;">BEST SESSION</div>
+                            <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${bestSession}</div>
+                        </div>
+                    </div>
+
+                    <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #ef4444;">
+                        <div style="font-size:0.7rem; color:#94a3b8; font-weight:bold; letter-spacing:1px; margin-bottom:10px;">⛔ AVOID ZONE</div>
+                        <div style="margin-bottom:8px;">
+                            <div style="font-size:0.75rem; color:#fff;">WORST TIME</div>
+                            <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${formatH(worstHour)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; color:#fff;">WORST SESSION</div>
+                            <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${worstSession}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top:15px; font-size:0.75rem; color:#64748b; text-align:center;">
+                    Data driven analysis based on your ${allTradesCache.length} logged trades.
+                </div>
+            `;
         }
+
         function closeDoctor() { 
             document.getElementById('doctorModal').style.display = 'none'; 
         }
@@ -339,7 +378,7 @@
         async function startGhostMode() {
             const validTrades = allTradesCache.filter(t => t.chart_screenshot && t.outcome !== 'Pending');
             if (validTrades.length === 0) {
-                document.getElementById('ghost-chart-area').innerHTML = "<p>No charts found.</p>";
+                document.getElementById('ghost-chart-area').innerHTML = "<p>No charts found in history.</p>";
                 return;
             }
             const randomIdx = Math.floor(Math.random() * validTrades.length);
@@ -422,14 +461,10 @@
         }
 
         // ==================================================================
-        // 8. DATA HANDLING (SAVE, LOAD, EDIT) - UPDATED FOR DATE/TIME
+        // 8. DATA HANDLING (SAVE, LOAD, EDIT)
         // ==================================================================
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
-            // NEW: Get Date and Time values
-            const dateInput = document.getElementById('tradeDate').value;
-            const timeInput = document.getElementById('tradeTime').value;
-            
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
             const pnl = document.getElementById('tradePnL').value; 
@@ -437,6 +472,11 @@
             const strategy = getSelectedStrategies('newStrategyContainer'); 
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
+            
+            // DATE & TIME HANDLING
+            const dateInput = document.getElementById('tradeDate').value;
+            const timeInput = document.getElementById('tradeTime').value;
+            
             const isPlaybook = document.getElementById('playbookCheck').checked;
             const fileInput = document.getElementById('chartUpload');
             const status = document.getElementById('journalStatus');
@@ -447,8 +487,8 @@
                 return; 
             }
 
-            // Construct Full ISO String if user provided date/time
-            let finalTimestamp = new Date().toISOString(); // Default to now
+            // Create timestamp from custom input OR current time
+            let finalTimestamp = new Date().toISOString();
             if (dateInput && timeInput) {
                 finalTimestamp = new Date(`${dateInput}T${timeInput}`).toISOString();
             }
@@ -480,7 +520,7 @@
                     strategy, 
                     is_playbook: isPlaybook, 
                     pnl: pnl ? parseFloat(pnl) : 0,
-                    created_at: finalTimestamp // USE CUSTOM DATE HERE
+                    created_at: finalTimestamp 
                 }
             ]);
 
@@ -489,10 +529,9 @@
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
-                // Clear Fields
                 document.getElementById('tradePair').value = '';
-                document.getElementById('tradeDate').value = ''; // Reset Date
-                document.getElementById('tradeTime').value = ''; // Reset Time
+                document.getElementById('tradeDate').value = ''; 
+                document.getElementById('tradeTime').value = ''; 
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
                 document.getElementById('playbookCheck').checked = false;
@@ -540,7 +579,6 @@
         function toggleBacktestMode() {
             isBacktestMode = !isBacktestMode;
             const btn = document.getElementById('btn-backtest-toggle');
-            
             if (isBacktestMode) {
                 btn.classList.add('active-filter');
                 btn.innerHTML = "<i class='bx bx-show-alt'></i> REVEAL MODE";
@@ -558,7 +596,6 @@
 
             let query = supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
             if (filterMode === 'playbook') query = query.eq('is_playbook', true);
-
             const { data: rawTrades, error } = await query;
             if (error) return;
             
@@ -567,7 +604,6 @@
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
-            // Stats Calculations
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
@@ -611,7 +647,6 @@
                 
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
-                // Click Logic
                 card.onclick = (e) => {
                     if (isBacktestMode && !e.target.closest('button')) {
                         openReplay(tradeDataStr);

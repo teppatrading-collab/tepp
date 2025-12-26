@@ -82,7 +82,7 @@
         }
 
         // ==================================================================
-        // 3. FEATURE: PROFESSIONAL REPLAY TERMINAL
+        // 3. FEATURE: PROFESSIONAL REPLAY TERMINAL (TARGET FINDER)
         // ==================================================================
         function openReplay(tradeDataStr) {
             // 1. Decode Data
@@ -102,7 +102,10 @@
             if (cleanPair === "GOLD") cleanPair = "XAUUSD";
             if (cleanPair === "BITCOIN") cleanPair = "BTCUSD";
 
-            // 4. Update Header UI
+            // 4. Generate Deep Link
+            const tvLink = `https://www.tradingview.com/chart/?symbol=${cleanPair}`;
+
+            // 5. Update Header UI
             document.getElementById('telemetryPair').innerText = cleanPair;
             document.getElementById('telemetryDate').innerText = dateStr;
             document.getElementById('telemetryTime').innerText = timeStr;
@@ -113,14 +116,21 @@
                 hour: 'numeric', minute: '2-digit', hour12: true 
             });
 
-            document.getElementById('replayTargetDate').innerHTML = `TARGET: ${fullDateString}`;
+            document.getElementById('replayTargetDate').innerHTML = `
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <span>TARGET: <strong style="color:#fbbf24;">${fullDateString}</strong></span>
+                    <a href="${tvLink}" target="_blank" style="background:#2962FF; color:#fff; text-decoration:none; padding:5px 12px; border-radius:4px; font-weight:bold; font-size:0.75rem; display:flex; align-items:center; gap:5px;">
+                        <i class='bx bx-link-external'></i> USE REAL REPLAY
+                    </a>
+                </div>
+            `;
 
-            // 5. Reset Modal State
+            // 6. Reset Modal State
             document.getElementById('replayModal').style.display = 'flex';
             document.getElementById('orderTicket').style.display = 'flex';
             document.getElementById('executionLog').style.display = 'none';
 
-            // 6. Load Live Chart
+            // 7. Load Live Chart Widget
             new TradingView.widget({
                 "width": "100%",
                 "height": "100%",
@@ -412,10 +422,14 @@
         }
 
         // ==================================================================
-        // 8. DATA HANDLING (SAVE, LOAD, EDIT)
+        // 8. DATA HANDLING (SAVE, LOAD, EDIT) - UPDATED FOR DATE/TIME
         // ==================================================================
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
+            // NEW: Get Date and Time values
+            const dateInput = document.getElementById('tradeDate').value;
+            const timeInput = document.getElementById('tradeTime').value;
+            
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
             const pnl = document.getElementById('tradePnL').value; 
@@ -433,6 +447,12 @@
                 return; 
             }
 
+            // Construct Full ISO String if user provided date/time
+            let finalTimestamp = new Date().toISOString(); // Default to now
+            if (dateInput && timeInput) {
+                finalTimestamp = new Date(`${dateInput}T${timeInput}`).toISOString();
+            }
+
             status.innerText = "Processing...";
             let imageUrl = null;
 
@@ -448,7 +468,20 @@
             }
 
             const { error } = await supabaseClient.from('trades').insert([
-                { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl, outcome, emotion, session: currentSession, strategy, is_playbook: isPlaybook, pnl: pnl ? parseFloat(pnl) : 0 }
+                { 
+                    pair, 
+                    type, 
+                    reason, 
+                    tradingview_link: chartLink, 
+                    chart_screenshot: imageUrl, 
+                    outcome, 
+                    emotion, 
+                    session: currentSession, 
+                    strategy, 
+                    is_playbook: isPlaybook, 
+                    pnl: pnl ? parseFloat(pnl) : 0,
+                    created_at: finalTimestamp // USE CUSTOM DATE HERE
+                }
             ]);
 
             if (error) {
@@ -456,7 +489,10 @@
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
+                // Clear Fields
                 document.getElementById('tradePair').value = '';
+                document.getElementById('tradeDate').value = ''; // Reset Date
+                document.getElementById('tradeTime').value = ''; // Reset Time
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
                 document.getElementById('playbookCheck').checked = false;
@@ -495,6 +531,7 @@
             document.getElementById('shareStrat').innerText = trade.strategy || "No Strategy";
             document.getElementById('shareModal').style.display = 'flex';
         }
+
         function closeShare() { 
             document.getElementById('shareModal').style.display = 'none'; 
         }
@@ -521,6 +558,7 @@
 
             let query = supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
             if (filterMode === 'playbook') query = query.eq('is_playbook', true);
+
             const { data: rawTrades, error } = await query;
             if (error) return;
             
@@ -573,7 +611,7 @@
                 
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
-                // Card Click Logic: If Replay Mode, Open Terminal
+                // Click Logic
                 card.onclick = (e) => {
                     if (isBacktestMode && !e.target.closest('button')) {
                         openReplay(tradeDataStr);
@@ -588,8 +626,8 @@
                              <span class="outcome-tag ${trade.outcome?.toLowerCase()} ${blurClass}">${trade.outcome || 'Pending'}</span>
                         </div>
                         <div class="card-actions">
-                            <button class="action-btn" title="Replay" onclick="event.stopPropagation(); openReplay('${tradeDataStr}')"><i class='bx bx-play-circle'></i></button>
-                            <button class="action-btn" title="Share" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
+                            <button class="action-btn" title="Replay on Chart" onclick="event.stopPropagation(); openReplay('${tradeDataStr}')"><i class='bx bx-play-circle'></i></button>
+                            <button class="action-btn" title="Share Trade" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
                             <button class="action-btn" onclick="event.stopPropagation(); openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
                             <button class="action-btn delete" onclick="event.stopPropagation(); deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
                         </div>
@@ -608,6 +646,9 @@
             });
         }
 
+        // ------------------------------------------------------------------
+        // 11. CHARTS & CALENDAR
+        // ------------------------------------------------------------------
         function renderCalendar(trades) {
             const container = document.getElementById('calendarGrid');
             container.innerHTML = '';
@@ -1461,6 +1502,10 @@
         <div class="sidebar-section">
             <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#94a3b8;">NEW ENTRY</h4>
             <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
+            
+            <input type="date" id="tradeDate" class="side-input">
+            <input type="time" id="tradeTime" class="side-input">
+            
             <select id="tradeSession" class="side-input"><option>London</option><option>New York</option><option>Asian</option></select>
             <div id="newStrategyContainer" class="strategy-container">
                 <div class="strat-btn" onclick="toggleStrategy(this)">SMT</div>

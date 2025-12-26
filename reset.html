@@ -8,13 +8,14 @@
         body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .card { background: #1e293b; padding: 30px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
         input { width: 100%; padding: 10px; margin: 10px 0; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #2dd4bf; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button { width: 100%; padding: 10px; background: #2dd4bf; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; opacity: 0.6; pointer-events: none; transition: 0.3s; }
+        button.active { opacity: 1; pointer-events: all; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Create New Password</h2>
-        <p id="status" style="color: #94a3b8;">Type your new password below.</p>
+        <p id="instruction" style="color: #94a3b8;">Checking link validity...</p>
         <input id="password" type="password" placeholder="New password" />
         <button id="resetBtn">Update Password</button>
         <p id="msg"></p>
@@ -26,22 +27,45 @@
       "sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob"
     );
 
+    // 1. Detect Recovery Session (Crucial for fixing errors)
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        const instruction = document.getElementById('instruction');
+        const btn = document.getElementById('resetBtn');
+
+        if (event === "PASSWORD_RECOVERY" || (session && session.user)) {
+            instruction.innerText = "Recovery session active. Enter new password.";
+            instruction.style.color = "#2dd4bf";
+            btn.classList.add('active'); // Enable the button
+        } else {
+            // Slight delay to allow URL hash processing
+            setTimeout(async () => {
+                const { data } = await supabaseClient.auth.getSession();
+                if (!data.session) {
+                    instruction.innerText = "Link expired or invalid. Please request a new one.";
+                    instruction.style.color = "#ef4444";
+                }
+            }, 1000);
+        }
+    });
+
+    // 2. Perform the Update
     document.getElementById("resetBtn").onclick = async () => {
         const password = document.getElementById("password").value;
         const msg = document.getElementById("msg");
 
         if (password.length < 6) {
             msg.textContent = "Password must be at least 6 characters.";
+            msg.style.color = "#ef4444";
             return;
         }
 
         const { error } = await supabaseClient.auth.updateUser({ password });
 
         if (error) {
-            msg.textContent = error.message;
+            msg.textContent = "Error: " + error.message;
             msg.style.color = "#ef4444";
         } else {
-            msg.textContent = "Password updated! Redirecting...";
+            msg.textContent = "✅ Password updated! Redirecting...";
             msg.style.color = "#2dd4bf";
             setTimeout(() => { window.location.href = "index.html"; }, 2000);
         }

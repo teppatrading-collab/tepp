@@ -145,14 +145,26 @@
         }
         function closeDoctor() { document.getElementById('doctorModal').style.display = 'none'; }
 
-        // --- NEW: LIVE CHART REPLAY LOGIC ---
+        // ------------------------------------------------------------------
+        // NEW: LIVE REPLAY FEATURE (BACKTESTING)
+        // ------------------------------------------------------------------
         function openReplay(pair) {
             document.getElementById('replayModal').style.display = 'flex';
-            // Inject new TradingView Widget for Replay
+            
+            // --- SMART SYMBOL CLEANER ---
+            // 1. Force Uppercase (euro -> EURO)
+            // 2. Remove special chars (euro/usd -> EUROUSD)
+            let cleanPair = pair.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+            // 3. Fix common naming mistakes
+            if (cleanPair.includes("EURO")) cleanPair = cleanPair.replace("EURO", "EUR"); 
+            if (cleanPair === "GOLD") cleanPair = "XAUUSD";
+            if (cleanPair === "BITCOIN") cleanPair = "BTCUSD";
+
             new TradingView.widget({
                 "width": "100%",
                 "height": "100%",
-                "symbol": pair,
+                "symbol": cleanPair,
                 "interval": "D",
                 "timezone": "Etc/UTC",
                 "theme": "dark",

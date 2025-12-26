@@ -1643,11 +1643,10 @@
                 </div>
                 <div class="folder-content" style="max-height: 1000px;"> <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
                     
-                    <div style="display:flex; gap:5px;">
-                        <input type="date" id="tradeDate" class="side-input" style="color-scheme: dark;">
-                        <input type="time" id="tradeTime" class="side-input" style="color-scheme: dark;">
-                    </div>
-
+                   <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+    <input type="date" id="tradeDate" class="side-input" style="flex: 1; min-width: 0; color-scheme: dark; margin: 0;">
+    <input type="time" id="tradeTime" class="side-input" style="flex: 1; min-width: 0; color-scheme: dark; margin: 0;">
+</div>
                     <select id="tradeSession" class="side-input">
                         <option>London</option>
                         <option>New York</option>

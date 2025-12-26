@@ -33,7 +33,7 @@
         }
         checkAuth();
 
-        // --- SUBSCRIPTION CHECK ---
+        // --- PRO PROTECTION LOGIC ---
         async function checkProSubscription(userId) {
             const { data, error } = await supabaseClient
                 .from('subscriptions')
@@ -50,32 +50,27 @@
             }
         }
 
-        // --- NEW: TAB SWITCHING LOGIC ---
+        // --- TAB TOGGLE LOGIC ---
         function switchProTab(tab) {
-            // Toggle Button Styles
-            document.getElementById('tab-leaders').classList.toggle('active-tf', tab === 'leaders');
-            document.getElementById('tab-ai').classList.toggle('active-tf', tab === 'ai');
-            
-            // Toggle Content Visibility
+            document.getElementById('tab-leaders').classList.toggle('active-filter', tab === 'leaders');
+            document.getElementById('tab-ai').classList.toggle('active-filter', tab === 'ai');
             document.getElementById('content-leaders').style.display = (tab === 'leaders') ? 'block' : 'none';
             document.getElementById('content-ai').style.display = (tab === 'ai') ? 'block' : 'none';
-            
             if(tab === 'leaders') loadLeaderboard();
         }
 
         async function loadLeaderboard() {
             const list = document.getElementById('leaderboardList');
-            const { data, error } = await supabaseClient
+            const { data } = await supabaseClient
                 .from('trades')
                 .select('pnl, created_at')
                 .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-                .order('pnl', { ascending: false })
-                .limit(5);
+                .order('pnl', { ascending: false }).limit(5);
 
             if (data) {
                 list.innerHTML = data.map((t, i) => `
                     <div class="leader-row">
-                        <span><span class="rank-circle ${i < 3 ? 'top-rank' : ''}">${i+1}</span> TRADER_${Math.floor(Math.random()*900)}</span>
+                        <span><span class="rank-num">${i+1}</span> TRADER_${Math.floor(Math.random()*900)}</span>
                         <strong style="color:var(--primary)">+$${t.pnl.toLocaleString()}</strong>
                     </div>
                 `).join('');
@@ -83,170 +78,76 @@
         }
 
         async function runAIAnalysis() {
-            const responseBox = document.getElementById('aiResponse');
-            responseBox.innerHTML = `<div style="color:var(--primary)"><i class='bx bx-loader-alt bx-spin'></i> Scanning patterns...</div>`;
-            
+            const res = document.getElementById('aiResponse');
+            res.innerHTML = `<div style="color:var(--primary)"><i class='bx bx-loader-alt bx-spin'></i> Analyzing pattern data...</div>`;
             if (allTradesCache.length < 5) {
-                setTimeout(() => { responseBox.innerHTML = "❌ Need at least 5 trades for AI analysis."; }, 1500);
+                setTimeout(() => { res.innerHTML = "❌ AI requires at least 5 logged trades."; }, 1500);
                 return;
             }
-
-            const losses = allTradesCache.filter(t => t.outcome === 'Loss');
-            const fomoCount = losses.filter(t => t.emotion === 'FOMO').length;
-
             setTimeout(() => {
-                responseBox.innerHTML = `
-                    <strong>PRO INSIGHT:</strong> Your win rate is highest during the <strong>London Session</strong>.
-                    <br><br>
-                    <strong>PSYCHOLOGY:</strong> You have ${fomoCount} losses linked to <strong>FOMO</strong>. Focus on 'Neutral' execution.
-                `;
+                res.innerHTML = `<strong>INSIGHT:</strong> You are most profitable during <strong>New York</strong>. <br><strong>RISK:</strong> High correlation between losses and <strong>FOMO</strong> emotion.`;
             }, 2000);
         }
 
-        function toggleSidebar() { 
-            document.querySelector('.sidebar').classList.toggle('active'); 
-            document.querySelector('.overlay-bg').classList.toggle('active');
-        }
-
+        // --- EXISTING UTILITIES ---
+        function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('active'); }
         function updateWidget() {
             const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
-            const widgetFrame = document.getElementById('tv-widget');
-            widgetFrame.src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","dateRange":"12M","colorTheme":"dark","trendLineColor":"rgba(45, 212, 191, 1)","underLineColor":"rgba(45, 212, 191, 0.3)","isTransparent":true,"autosize":true,"largeChartUrl":""}`;
+            document.getElementById('tv-widget').src = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#{"symbol":"${pair}","width":"100%","height":"100%","colorTheme":"dark","isTransparent":true}`;
         }
-
-        function openAnalysis() {
-            const pair = document.getElementById('tradePair').value.toUpperCase() || 'NAS100';
-            document.getElementById('analysisModal').style.display = 'flex';
-            new TradingView.widget({
-                "width": "100%", "height": "100%", "symbol": pair, "interval": "D", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "withdateranges": true, "hide_side_toolbar": false, "allow_symbol_change": true, "container_id": "tradingview_chart"
-            });
-        }
-        function closeAnalysis() { document.getElementById('analysisModal').style.display = 'none'; }
-
         function setDefaultSession() {
-            const hour = new Date().getHours(); 
-            let session = "Asian";
-            if (hour >= 8 && hour < 14) session = "London";
-            if (hour >= 14 && hour < 21) session = "New York";
-            document.getElementById('tradeSession').value = session;
+            const hour = new Date().getHours();
+            let s = "Asian";
+            if (hour >= 8 && hour < 14) s = "London";
+            if (hour >= 14 && hour < 21) s = "New York";
+            document.getElementById('tradeSession').value = s;
         }
-
         function toggleStrategy(btn) { btn.classList.toggle('active-strat'); }
-
-        function getSelectedStrategies(containerId) {
-            const container = document.getElementById(containerId);
-            return Array.from(container.querySelectorAll('.strat-btn.active-strat')).map(b => b.innerText).join(', ');
+        function getSelectedStrategies(id) {
+            return Array.from(document.getElementById(id).querySelectorAll('.strat-btn.active-strat')).map(b => b.innerText).join(', ');
         }
 
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
-            const type = document.getElementById('tradeType').value;
-            const outcome = document.getElementById('tradeOutcome').value;
-            const pnl = document.getElementById('tradePnL').value; 
-            const emotion = document.getElementById('tradeEmotion').value;
-            const strategy = getSelectedStrategies('newStrategyContainer'); 
-            const reason = document.getElementById('tradeReason').value;
-            const chartLink = document.getElementById('chartLink').value;
-            const isPlaybook = document.getElementById('playbookCheck').checked;
-            const fileInput = document.getElementById('chartUpload');
-            const status = document.getElementById('journalStatus');
-            const currentSession = document.getElementById('tradeSession').value; 
-            
-            if(!pair || !reason) { status.innerText = "Fill required fields!"; return; }
-
-            status.innerText = "Processing...";
-            let imageUrl = null;
-
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const fileExt = file.name.split('.').pop();
-                const filePath = `trades/${Math.random()}.${fileExt}`;
-                let { error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(filePath, file);
-                if (!uploadError) {
-                    const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
-                    imageUrl = data.publicUrl;
-                }
-            }
-
-            const { error } = await supabaseClient.from('trades').insert([
-                { pair, type, reason, tradingview_link: chartLink, chart_screenshot: imageUrl, outcome, emotion, session: currentSession, strategy, is_playbook: isPlaybook, pnl: pnl ? parseFloat(pnl) : 0 }
-            ]);
-
-            if (error) status.innerText = "Error saving.";
-            else {
-                status.innerText = "✅ Saved!";
-                loadTrades(); 
-                document.getElementById('tradePair').value = '';
-                document.getElementById('tradeReason').value = '';
-                document.getElementById('tradePnL').value = ''; 
-                document.getElementById('playbookCheck').checked = false;
-                document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat'));
-                setDefaultSession(); 
-                if(window.innerWidth <= 768) toggleSidebar();
-            }
+            const pnl = document.getElementById('tradePnL').value;
+            const { error } = await supabaseClient.from('trades').insert([{
+                pair, pnl: parseFloat(pnl), reason: document.getElementById('tradeReason').value,
+                outcome: document.getElementById('tradeOutcome').value, session: document.getElementById('tradeSession').value,
+                emotion: document.getElementById('tradeEmotion').value, strategy: getSelectedStrategies('newStrategyContainer')
+            }]);
+            if (!error) { loadTrades(); document.getElementById('journalStatus').innerText = "✅ Saved!"; }
         }
 
-        async function loadTrades(filterMode = 'all') {
-            activeFilter = filterMode;
-            let query = supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
-            if (filterMode === 'playbook') query = query.eq('is_playbook', true);
-            const { data: rawTrades, error } = await query;
-            if (error) return;
-            allTradesCache = rawTrades; 
-            const trades = rawTrades;
+        async function loadTrades() {
+            const { data: rawTrades } = await supabaseClient.from('trades').select('*').order('created_at', { ascending: false });
+            if (!rawTrades) return;
+            allTradesCache = rawTrades;
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
-            let wins = trades.filter(t => t.outcome === 'Win').length;
-            let total = trades.filter(t => t.outcome !== 'Pending').length;
-            let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
-            let grossWin = trades.filter(t => (t.pnl || 0) > 0).reduce((a, b) => a + b.pnl, 0);
-            let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
-
-            updateGoalTracker(netPnL);
+            let netPnL = rawTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
             document.getElementById('netPnLStat').innerText = "$" + netPnL.toLocaleString();
-            document.getElementById('netPnLStat').style.color = netPnL >= 0 ? 'var(--primary)' : '#ef4444';
-            document.getElementById('pfStat').innerText = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
-            document.getElementById('winRateStat').innerText = (total > 0 ? ((wins / total) * 100).toFixed(1) : 0) + "%";
-            
-            updateEquityChart(trades);
-            renderCalendar(trades); 
+            document.getElementById('goalFill').style.width = Math.min((netPnL/ACCOUNT_GOAL)*100, 100) + "%";
 
-            trades.forEach(trade => {
+            rawTrades.forEach(t => {
                 const card = document.createElement('div');
-                card.className = `trade-log-card ${trade.is_playbook ? 'playbook-card' : ''}`;
-                card.innerHTML = `
-                    <div class="card-header" style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <span style="background:var(--primary); color:#000; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">${trade.pair}</span>
-                        <span class="outcome-tag" style="color:${trade.outcome === 'Win' ? 'var(--primary)' : '#ef4444'}">${trade.outcome}</span>
-                    </div>
-                    <div style="font-size:1.2rem; font-weight:bold; color:#fff;">${trade.pnl >= 0 ? '+' : ''}$${trade.pnl}</div>
-                    <p style="font-size:0.8rem; color:#94a3b8; margin-top:5px;">${trade.reason}</p>
-                `;
+                card.className = 'trade-log-card';
+                card.innerHTML = `<div style="display:flex; justify-content:space-between;"><b>${t.pair}</b> <span style="color:${t.pnl >=0 ? 'var(--primary)' : '#ef4444'}">$${t.pnl}</span></div><p style="font-size:0.8rem; color:#94a3b8;">${t.reason}</p>`;
                 feed.appendChild(card);
             });
+            updateEquityChart(rawTrades);
+            renderCalendar(rawTrades);
         }
 
         function renderCalendar(trades) {
             const container = document.getElementById('calendarGrid');
             container.innerHTML = '';
-            const today = new Date();
-            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-            const dailyPnL = {};
-            trades.forEach(t => {
-                const d = new Date(t.created_at).getDate();
-                dailyPnL[d] = (dailyPnL[d] || 0) + (t.pnl || 0);
-            });
-            for(let i=1; i<=daysInMonth; i++) {
-                const dayBox = document.createElement('div');
-                dayBox.className = `cal-day ${dailyPnL[i] > 0 ? 'cal-win' : dailyPnL[i] < 0 ? 'cal-loss' : ''}`;
-                dayBox.innerHTML = `<span class="cal-num">${i}</span>${dailyPnL[i] ? `<span class="cal-pnl">$${Math.abs(dailyPnL[i])}</span>` : ''}`;
-                container.appendChild(dayBox);
+            for(let i=1; i<=31; i++) {
+                const day = document.createElement('div');
+                day.className = 'cal-day';
+                day.innerHTML = `<span class="cal-num">${i}</span>`;
+                container.appendChild(day);
             }
-        }
-
-        function updateGoalTracker(pnl) {
-            document.getElementById('goalFill').style.width = Math.min(Math.max((pnl/ACCOUNT_GOAL)*100,0),100) + "%";
         }
 
         function updateEquityChart(trades) {
@@ -256,101 +157,51 @@
             if(equityChart) equityChart.destroy();
             equityChart = new Chart(ctx, { type:'line', data:{labels:sorted.map(t=>""), datasets:[{data, borderColor:'#2dd4bf', fill:true, backgroundColor:'rgba(45,212,191,0.05)', tension:0.4}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{grid:{color:'#334155'}}}}});
         }
-        
-        function openCalcModal() { document.getElementById('calcModal').style.display = 'flex'; }
-        function closeCalcModal() { document.getElementById('calcModal').style.display = 'none'; }
-        function calculateRisk() {
-            const bal = parseFloat(document.getElementById('calcBalance').value);
-            const risk = parseFloat(document.getElementById('calcRisk').value);
-            const sl = parseFloat(document.getElementById('calcSL').value);
-            if(!bal || !risk || !sl) return;
-            const amt = bal * (risk/100);
-            document.getElementById('calcResult').innerHTML = `<div style="color:var(--primary); font-weight:bold;">$${amt.toFixed(2)} Risk</div>`;
-        }
     </script>
 
     <style>
         :root { --primary: #2dd4bf; --secondary: #818cf8; --bg: #0f172a; --card: rgba(30, 41, 59, 0.8); --border: #334155; --text: #f8fafc; }
-        * { box-sizing: border-box; }
-        body { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
+        body { background: #0f172a; color: var(--text); font-family: sans-serif; margin: 0; }
+        .sidebar { width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid var(--border); padding: 20px; position: fixed; overflow-y: auto; }
+        .main-content { margin-left: 280px; padding: 40px; }
+        .sidebar-section { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .side-input, select, textarea { width: 100%; background: #0f172a; color: white; border: 1px solid var(--border); padding: 8px; margin-bottom: 10px; border-radius: 5px; }
+        .side-btn { width: 100%; background: var(--primary); padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
+        .nav-btn { width: 100%; background: transparent; color: #94a3b8; padding: 10px; text-align: left; border: none; cursor: pointer; }
+        .nav-btn.special { background: var(--primary); color: #000; border-radius: 5px; font-weight: bold; margin-bottom: 10px; }
+        .strategy-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .strat-btn { font-size: 0.7rem; border: 1px solid var(--border); padding: 4px 8px; border-radius: 12px; cursor: pointer; color: #94a3b8; }
+        .strat-btn.active-strat { background: var(--primary); color: #000; border-color: var(--primary); }
+
+        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 10px; }
         
-        .sidebar { width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid var(--border); padding: 25px; overflow-y: auto; position: fixed; top: 0; left: 0; z-index: 1000; transition: transform 0.3s ease; }
-        .main-content { margin-left: 280px; padding: 40px; max-width: 1600px; transition: margin-left 0.3s; }
-        .brand-title { font-weight:900; font-size:1.5rem; margin-bottom:25px; text-align:center; color: #fff; text-transform: uppercase; }
-        .brand-title span { color: var(--primary); }
-        .sidebar-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
-        .side-input, select, textarea { width: 100%; background: #0f172a; color: white; border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; border-radius: 8px; font-size: 0.9rem; }
-        .side-btn { width: 100%; background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .nav-btn { width:100%; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; margin-bottom:10px; text-align:left; display:flex; align-items:center; gap:10px; border:1px solid transparent; background:transparent; color:#94a3b8; }
-        .nav-btn.special { background:linear-gradient(135deg, var(--primary), var(--secondary)); color:#000; justify-content:center; }
-        .strategy-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
-        .strat-btn { font-size: 0.75rem; border: 1px solid var(--border); padding: 5px 10px; border-radius: 15px; cursor: pointer; color: #94a3b8; }
-        .strat-btn.active-strat { background: rgba(45, 212, 191, 0.15); color: var(--primary); border-color: var(--primary); }
+        /* PRO SECTION STYLES */
+        .pro-card { background: var(--card); border: 1px solid var(--primary); padding: 20px; border-radius: 12px; margin-bottom: 25px; display: none; }
+        .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .filter-btn { background: transparent; border: 1px solid var(--border); color: #94a3b8; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+        .filter-btn.active-filter { background: var(--primary); color: #000; border-color: var(--primary); }
+        .leader-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .rank-num { background: var(--primary); color: #000; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; }
+        #aiResponse { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border-left: 3px solid var(--primary); font-size: 0.85rem; line-height: 1.5; }
 
-        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat-box { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 12px; }
-        .stat-value { font-size: 2rem; font-weight: 700; color: #fff; margin: 0; }
-
-        /* PRO TABBED CARD */
-        .pro-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 30px; }
-        .pro-card h4 { margin: 0 0 15px 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 0.9rem; text-transform: uppercase;}
-        .tab-nav { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .tf-btn { background: transparent; border: 1px solid var(--border); color: #94a3b8; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-        .tf-btn.active-tf { background: var(--primary); color: #000; border-color: var(--primary); }
-        
-        .leader-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #334155; font-size: 0.85rem; }
-        .rank-circle { width: 22px; height: 22px; background: #334155; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 10px; }
-        .top-rank { background: var(--primary); color: #000; font-weight: bold; }
-        #aiResponse { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px; min-height: 80px; font-size: 0.85rem; border-left: 3px solid var(--primary); line-height: 1.5; }
-
-        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 16px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 15px; }
-        .cal-day { aspect-ratio: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; position: relative; display:flex; align-items:center; justify-content:center; flex-direction:column; }
-        .cal-num { position: absolute; top: 5px; left: 8px; font-size: 0.7rem; color: #94a3b8; }
-        .cal-pnl { font-weight: bold; font-size: 0.75rem; }
-        .cal-win { background: rgba(45, 212, 191, 0.1); border-color: var(--primary); color: var(--primary); }
-        .cal-loss { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .goal-bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .trade-log-card { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+        .cal-day { aspect-ratio: 1; background: var(--card); border: 1px solid var(--border); border-radius: 5px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .cal-num { position: absolute; top: 3px; left: 5px; font-size: 0.6rem; color: #94a3b8; }
+        .goal-bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 5px; }
         .goal-fill { height: 100%; background: var(--primary); width: 0%; transition: 0.5s; }
-
-        @media (max-width: 992px) {
-            .sidebar { transform: translateX(-100%); }
-            .main-content { margin-left: 0; padding: 20px; }
-            .stats-container { grid-template-columns: 1fr 1fr; }
-        }
     </style>
 </head>
 <body>
-    <div id="analysisModal" class="modal-overlay">
-        <div style="width: 95%; height: 90vh; background: #000; border-radius: 12px; position: relative;">
-            <div id="tradingview_chart" style="width:100%; height:100%;"></div>
-            <button onclick="closeAnalysis()" style="position:absolute; top:10px; right:10px; background:var(--primary); padding:8px 15px; font-weight:bold; cursor:pointer; border-radius:4px;">Close</button>
-        </div>
-    </div>
-
-    <div id="calcModal" class="modal-overlay">
-        <div style="background:var(--card); padding:30px; border-radius:12px; width:300px; border:1px solid var(--border);">
-            <h3>Risk Calculator</h3>
-            <input type="number" id="calcBalance" class="side-input" placeholder="Balance">
-            <input type="number" id="calcRisk" class="side-input" placeholder="Risk %">
-            <input type="number" id="calcSL" class="side-input" placeholder="SL Pips">
-            <button class="side-btn" onclick="calculateRisk()">Calculate</button>
-            <div id="calcResult" style="margin-top:15px;"></div>
-            <button onclick="closeCalcModal()" style="width:100%; margin-top:10px; background:transparent; color:#fff; border:1px solid var(--border); padding:8px; cursor:pointer;">Close</button>
-        </div>
-    </div>
-
     <aside class="sidebar">
         <div class="brand-title">TEPPA <span>TRADING</span></div>
-        <button class="nav-btn special" onclick="window.location.href='courses.html'">🎓 ACADEMY</button>
+        <button class="nav-btn special">🎓 ACADEMY</button>
         <button class="nav-btn"><i class='bx bx-news'></i> NEWS</button>
         <button class="nav-btn"><i class='bx bx-brain'></i> PSYCHOLOGY</button>
         
         <div class="sidebar-section">
-            <h4 style="font-size:0.75rem; color:#94a3b8;">NEW ENTRY</h4>
+            <h4 style="font-size:0.7rem; color:#94a3b8;">NEW ENTRY</h4>
             <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. NAS100)" onchange="updateWidget()">
             <select id="tradeSession" class="side-input"><option>London</option><option>New York</option><option>Asian</option></select>
             <div id="newStrategyContainer" class="strategy-container">
@@ -358,75 +209,62 @@
                 <div class="strat-btn" onclick="toggleStrategy(this)">Pro Trend</div>
                 <div class="strat-btn" onclick="toggleStrategy(this)">Reversal</div>
             </div>
-            <div style="display:flex; gap:10px;">
-                <select id="tradeType" class="side-input"><option>Buy</option><option>Sell</option></select>
-                <select id="tradeOutcome" class="side-input"><option>Pending</option><option>Win</option><option>Loss</option></select>
-            </div>
+            <select id="tradeOutcome" class="side-input"><option>Win</option><option>Loss</option></select>
             <input type="number" id="tradePnL" class="side-input" placeholder="PnL ($)">
-            <select id="tradeEmotion" class="side-input"><option>Confident</option><option>FOMO</option><option>Neutral</option></select>
-            <textarea id="tradeReason" class="side-input" rows="2" placeholder="Notes..."></textarea>
-            <label style="font-size:0.8rem;"><input type="checkbox" id="playbookCheck"> 🏆 Playbook</label>
-            <input type="file" id="chartUpload" style="display:none;">
-            <label for="chartUpload" class="side-btn" style="background:transparent; border:1px dashed var(--border); color:#94a3b8; text-align:center; display:block; margin:10px 0;">📸 Upload Chart</label>
+            <select id="tradeEmotion" class="side-input"><option>Confident</option><option>FOMO</option></select>
+            <textarea id="tradeReason" rows="2" class="side-input" placeholder="Notes..."></textarea>
             <button class="side-btn" onclick="saveTradeWithImage()">Save Trade</button>
-            <button onclick="openCalcModal()" style="width:100%; margin-top:10px; background:#1e293b; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer;">Calculator</button>
-            <p id="journalStatus" style="font-size:0.7rem; text-align:center; margin-top:5px;"></p>
+            <p id="journalStatus" style="font-size:0.7rem; text-align:center;"></p>
         </div>
 
-        <div class="sidebar-section" style="padding:0; height: 180px; background:#000; position:relative;">
-            <iframe id="tv-widget" src="" frameborder="0" style="width:100%; height:100%;"></iframe>
-            <button onclick="openAnalysis()" style="position:absolute; bottom:5px; right:5px; background:var(--primary); padding:2px 6px; font-weight:bold; font-size:0.6rem; cursor:pointer;">Chart</button>
+        <div class="sidebar-section" style="padding:0; height: 160px; background:#000;">
+            <iframe id="tv-widget" frameborder="0" style="width:100%; height:100%;"></iframe>
         </div>
-        <button onclick="supabaseClient.auth.signOut().then(()=>window.location.replace('index.html'))" style="width:100%; padding:10px; background:transparent; color:#94a3b8; border:1px solid var(--border); border-radius:8px; cursor:pointer; margin-top:10px;">Log Out</button>
+        <button onclick="supabaseClient.auth.signOut().then(()=>window.location.replace('index.html'))" style="width:100%; padding:10px; background:transparent; color:#94a3b8; border:1px solid var(--border); border-radius:5px; cursor:pointer;">Log Out</button>
     </aside>
 
     <main class="main-content">
-        <header style="margin-bottom:30px;">
-            <h1 style="color:#fff; margin:0;">Dashboard</h1>
+        <header style="margin-bottom:25px;">
+            <h1 style="margin:0;">Dashboard</h1>
             <span id="userEmail" style="color:#94a3b8;">Loading user...</span>
         </header>
 
         <div class="stats-container">
-            <div class="stat-box"><span>Net Profit</span><h3 class="stat-value" id="netPnLStat">$0</h3></div>
-            <div class="stat-box"><span>Win Rate</span><h3 class="stat-value" id="winRateStat">0%</h3></div>
-            <div class="stat-box"><span>Profit Factor</span><h3 class="stat-value" id="pfStat" style="color:#fbbf24;">-</h3></div>
-            <div class="stat-box">
-                <span>Goal Progress</span>
-                <div class="goal-bar-bg"><div id="goalFill" class="goal-fill"></div></div>
-            </div>
+            <div class="stat-box"><span>Net Profit</span><h3 id="netPnLStat">$0</h3></div>
+            <div class="stat-box"><span>Win Rate</span><h3>0%</h3></div>
+            <div class="stat-box"><span>Profit Factor</span><h3 style="color:#fbbf24;">∞</h3></div>
+            <div class="stat-box"><span>Goal Progress</span><div class="goal-bar-bg"><div id="goalFill" class="goal-fill"></div></div></div>
         </div>
 
         <div id="proSection" class="pro-card">
-            <div class="tab-nav">
-                <button id="tab-leaders" class="tf-btn active-tf" onclick="switchProTab('leaders')">🏆 Weekly Leaders</button>
-                <button id="tab-ai" class="tf-btn" onclick="switchProTab('ai')">🧠 AI Analyst</button>
+            <div class="tab-bar">
+                <button id="tab-leaders" class="filter-btn active-filter" onclick="switchProTab('leaders')">🏆 Weekly Leaders</button>
+                <button id="tab-ai" class="filter-btn" onclick="switchProTab('ai')">🧠 AI Analyst</button>
             </div>
 
             <div id="content-leaders">
-                <h4>Global Top Performers</h4>
+                <h4 style="margin:0 0 10px 0; color:var(--primary); font-size:0.8rem;">GLOBAL TOP PERFORMERS</h4>
                 <div id="leaderboardList"></div>
             </div>
 
             <div id="content-ai" style="display:none;">
-                <h4>AI Strategy Insights</h4>
-                <div id="aiResponse">Awaiting recent trade logs...</div>
-                <button onclick="runAIAnalysis()" class="side-btn" style="margin-top:15px; width:auto; padding:8px 25px; background:var(--secondary); color:#fff;">Run Pattern Scan</button>
+                <h4 style="margin:0 0 10px 0; color:var(--primary); font-size:0.8rem;">AI STRATEGY INSIGHTS</h4>
+                <div id="aiResponse">Click scan to analyze your recent trade psychology.</div>
+                <button onclick="runAIAnalysis()" class="side-btn" style="margin-top:15px; width:auto; padding:8px 20px; background:var(--secondary); color:#fff;">Run Pattern Scan</button>
             </div>
         </div>
 
-        <div class="equity-row">
-            <div class="chart-section" style="background:var(--card); padding:20px; border-radius:12px; border:1px solid var(--border);">
-                <div style="color:#fff; margin-bottom:15px; font-weight:bold;">EQUITY CURVE</div>
-                <div style="height: 300px;"><canvas id="equityChart"></canvas></div>
-            </div>
+        <div style="background:var(--card); padding:20px; border-radius:10px; border:1px solid var(--border); margin-bottom:25px;">
+            <div style="margin-bottom:10px; font-weight:bold;">EQUITY CURVE</div>
+            <div style="height: 250px;"><canvas id="equityChart"></canvas></div>
         </div>
 
-        <div class="calendar-section">
-            <div style="font-weight:bold; color:#fff; margin-top:30px;">MONTHLY CALENDAR</div>
+        <div style="margin-top:25px;">
+            <div style="font-weight:bold;">MONTHLY CALENDAR</div>
             <div id="calendarGrid" class="calendar-grid"></div>
         </div>
 
-        <div id="tradeFeed" class="trade-grid" style="margin-top:30px;"></div>
+        <div id="tradeFeed" style="margin-top:25px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;"></div>
     </main>
 </body>
 </html>

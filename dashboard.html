@@ -323,13 +323,13 @@
             
             let healthHTML = currentDD <= 0 
                 ? `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid var(--primary); border-radius:8px; background:rgba(45, 212, 191, 0.1);">
-                     <h3 style="margin:0; color:var(--primary);">SYSTEM HEALTHY</h3>
-                     <span style="font-size:0.8rem;">AT EQUITY PEAK</span>
-                   </div>`
+                      <h3 style="margin:0; color:var(--primary);">SYSTEM HEALTHY</h3>
+                      <span style="font-size:0.8rem;">AT EQUITY PEAK</span>
+                    </div>`
                 : `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid #ef4444; border-radius:8px; background:rgba(239, 68, 68, 0.1);">
-                     <h3 style="margin:0; color:#ef4444;">-$${currentDD.toLocaleString()} DD</h3>
-                     <span style="font-size:0.8rem; color:#ef4444;">${ddPercent}% OFF PEAK</span>
-                   </div>`;
+                      <h3 style="margin:0; color:#ef4444;">-$${currentDD.toLocaleString()} DD</h3>
+                      <span style="font-size:0.8rem; color:#ef4444;">${ddPercent}% OFF PEAK</span>
+                    </div>`;
 
             diagnosisDiv.innerHTML = `
                 ${healthHTML}
@@ -889,6 +889,65 @@
             };
             reader.readAsText(file);
             input.value = '';
+        }
+
+        // ==================================================================
+        // 11. FEATURE: INDICATOR ACCESS REQUEST
+        // ==================================================================
+        function openAccessModal() { 
+            document.getElementById('accessModal').style.display = 'flex'; 
+        }
+        
+        function closeAccessModal() { 
+            document.getElementById('accessModal').style.display = 'none'; 
+        }
+
+        async function requestAccess() {
+            const usernameInput = document.getElementById('tvUsername');
+            const btn = document.getElementById('btnRequestAccess');
+            const statusMsg = document.getElementById('accessStatus');
+            const username = usernameInput.value.trim();
+
+            if (!username) {
+                statusMsg.innerText = "Please enter a username.";
+                statusMsg.style.color = "#ef4444";
+                return;
+            }
+
+            // UI Feedback
+            btn.disabled = true;
+            btn.innerText = "Sending...";
+
+            // Get Current User
+            const { data: { user } } = await supabaseClient.auth.getSession().then(({data}) => data);
+
+            if (!user) {
+                statusMsg.innerText = "Error: You are not logged in.";
+                btn.disabled = false;
+                return;
+            }
+
+            // Send to Supabase
+            const { error } = await supabaseClient
+                .from('indicator_requests')
+                .insert({ 
+                    user_id: user.id, 
+                    tv_username: username,
+                    status: 'pending'
+                });
+
+            if (error) {
+                console.error('Error:', error);
+                statusMsg.innerText = "❌ Error. Try again.";
+                statusMsg.style.color = "#ef4444";
+                btn.disabled = false;
+                btn.innerText = "Request Access";
+            } else {
+                statusMsg.innerText = "✅ Request Sent! Please allow 24h for activation.";
+                statusMsg.style.color = "var(--primary)";
+                btn.innerText = "Sent";
+                usernameInput.value = ""; // Clear input
+            }
         }
     </script>
 
@@ -1619,6 +1678,25 @@
         </div>
     </div>
 
+    <div id="accessModal" class="modal-overlay">
+        <div style="background:var(--card); padding:30px; border-radius:12px; width:400px; border:1px solid var(--primary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; color:#fff;">🔓 UNLOCK INDICATOR</h3>
+                <button onclick="closeAccessModal()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
+            </div>
+            
+            <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:20px; line-height:1.5;">
+                Enter your <strong>TradingView Username</strong> below to request access to the invite-only <em>Teppa Pro Session</em> suite.
+            </p>
+
+            <input type="text" id="tvUsername" class="side-input" placeholder="TradingView Username (e.g. teppa_trader)">
+            
+            <button id="btnRequestAccess" class="side-btn" onclick="requestAccess()">Request Access</button>
+            
+            <p id="accessStatus" style="margin-top:15px; text-align:center; font-weight:bold; font-size:0.9rem; min-height:20px;"></p>
+        </div>
+    </div>
+
     <aside class="sidebar">
         <div class="brand-title">TEPPA <span>TRADING</span></div>
         <button class="nav-btn special" onclick="window.location.href='courses.html'">🎓 ACADEMY</button>
@@ -1630,6 +1708,8 @@
         
         <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>
         <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
+
+        <button class="nav-btn" onclick="openAccessModal()" style="color:#2dd4bf;"><i class='bx bx-lock-open-alt'></i> UNLOCK INDICATOR</button>
         
         <div style="height:20px;"></div>
 

@@ -7,6 +7,7 @@
     
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -31,7 +32,7 @@
         // UI State
         let activeFilter = 'all'; 
         let activeTimeframe = 'all'; 
-        let isBacktestMode = false; // Tracks if we are in "Replay Mode"
+        let isBacktestMode = false; 
         
         // Chart Instances
         let sessionChart;
@@ -42,7 +43,7 @@
         let currentEditId = null; 
         let allTradesCache = []; 
         let currentGhostTrade = null;
-        let currentReplayTrade = null; // Stores data for the active replay session
+        let currentReplayTrade = null;
 
         // ==================================================================
         // 2. AUTHENTICATION & SUBSCRIPTION CHECK
@@ -59,7 +60,6 @@
                 setDefaultSession();
             }
         }
-        // Run immediately
         checkAuth();
 
         async function checkProSubscription(userId) {
@@ -78,7 +78,7 @@
                 loadLeaderboard(); 
             }
             
-            // We show Doctor and Teppa Engine to EVERYONE by default now
+            // Show standard features
             document.getElementById('btn-teppa-nav').style.display = 'flex';
             document.getElementById('btn-doctor-nav').style.display = 'flex';
         }
@@ -92,12 +92,10 @@
             const arrow = header.querySelector('.folder-arrow');
             
             if (content.style.maxHeight) {
-                // Close Folder
                 content.style.maxHeight = null;
                 if(icon) { icon.className = 'bx bx-folder folder-icon'; }
                 if(arrow) { arrow.style.transform = 'rotate(0deg)'; }
             } else {
-                // Open Folder
                 content.style.maxHeight = content.scrollHeight + "px";
                 if(icon) { icon.className = 'bx bx-folder-open folder-icon'; }
                 if(arrow) { arrow.style.transform = 'rotate(180deg)'; }
@@ -135,6 +133,15 @@
             });
 
             document.getElementById('replayTargetDate').innerHTML = `TARGET: ${fullDateString}`;
+
+            // --- NEW: UPDATE REDIRECT BUTTON ---
+            const btnRedirect = document.getElementById('btnRedirectTV');
+            // If user saved a specific chart link, use it. Otherwise, use generic symbol link.
+            if (currentReplayTrade.tradingview_link && currentReplayTrade.tradingview_link.includes('http')) {
+                btnRedirect.href = currentReplayTrade.tradingview_link;
+            } else {
+                btnRedirect.href = `https://www.tradingview.com/chart/?symbol=${cleanPair}`;
+            }
 
             // 5. Reset Modal State
             document.getElementById('replayModal').style.display = 'flex';
@@ -209,7 +216,6 @@
         // ==================================================================
         function openTeppaEngine() {
             document.getElementById('teppaModal').style.display = 'flex';
-            
             const wins = allTradesCache.filter(t => t.outcome === 'Win');
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
             
@@ -242,22 +248,18 @@
         }
 
         // ==================================================================
-        // 6. FEATURE: PERFORMANCE DOCTOR (Best Day/Time)
+        // 6. FEATURE: PERFORMANCE DOCTOR
         // ==================================================================
         function openDoctor() {
             document.getElementById('doctorModal').style.display = 'flex';
-            
-            // 1. Basic Checks
             if (allTradesCache.length === 0) {
                 document.getElementById('doctorDiagnosis').innerHTML = "<p style='text-align:center; color:#94a3b8;'>No trade data available yet.</p>";
                 return;
             }
 
-            // 2. Drawdown Calculation
             let balance = 0;
             let peak = -Infinity;
             const chronTrades = [...allTradesCache].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-            
             chronTrades.forEach(t => {
                 balance += (t.pnl || 0);
                 if(balance > peak) peak = balance;
@@ -265,7 +267,6 @@
             let currentDD = peak - balance;
             let ddPercent = peak !== 0 ? ((currentDD / peak) * 100).toFixed(2) : 0;
 
-            // 3. BEST HOUR Analysis
             const hourlyPnL = {};
             chronTrades.forEach(t => {
                 const d = new Date(t.created_at);
@@ -273,19 +274,15 @@
                 if(!hourlyPnL[h]) hourlyPnL[h] = 0;
                 hourlyPnL[h] += (t.pnl || 0);
             });
-            
             let bestHour = null; let maxHrPnL = -Infinity;
             let worstHour = null; let minHrPnL = Infinity;
-            
             for (const [h, pnl] of Object.entries(hourlyPnL)) {
                 if(pnl > maxHrPnL) { maxHrPnL = pnl; bestHour = h; }
                 if(pnl < minHrPnL) { minHrPnL = pnl; worstHour = h; }
             }
 
-            // 4. BEST DAY OF WEEK Analysis
             const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const dailyPnL = { "Monday": 0, "Tuesday": 0, "Wednesday": 0, "Thursday": 0, "Friday": 0 };
-            
             chronTrades.forEach(t => {
                 const d = new Date(t.created_at);
                 const dayName = days[d.getDay()];
@@ -293,7 +290,6 @@
                     dailyPnL[dayName] += (t.pnl || 0);
                 }
             });
-
             let bestDay = Object.keys(dailyPnL).reduce((a, b) => dailyPnL[a] > dailyPnL[b] ? a : b);
             let worstDay = Object.keys(dailyPnL).reduce((a, b) => dailyPnL[a] < dailyPnL[b] ? a : b);
 
@@ -303,77 +299,38 @@
                 return d.toLocaleTimeString([], {hour: 'numeric', hour12: true});
             };
 
-            // 5. BEST SESSION Analysis
             const sessionPnL = {};
             chronTrades.forEach(t => {
                 if(!sessionPnL[t.session]) sessionPnL[t.session] = 0;
                 sessionPnL[t.session] += (t.pnl || 0);
             });
-            
-            let bestSession = Object.keys(sessionPnL).length > 0 
-                ? Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] > sessionPnL[b] ? a : b) 
-                : "--";
-            
-            let worstSession = Object.keys(sessionPnL).length > 0 
-                ? Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] < sessionPnL[b] ? a : b) 
-                : "--";
+            let bestSession = Object.keys(sessionPnL).length > 0 ? Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] > sessionPnL[b] ? a : b) : "--";
+            let worstSession = Object.keys(sessionPnL).length > 0 ? Object.keys(sessionPnL).reduce((a, b) => sessionPnL[a] < sessionPnL[b] ? a : b) : "--";
 
-            // 6. Render Report
             const diagnosisDiv = document.getElementById('doctorDiagnosis');
-            
             let healthHTML = currentDD <= 0 
-                ? `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid var(--primary); border-radius:8px; background:rgba(45, 212, 191, 0.1);">
-                      <h3 style="margin:0; color:var(--primary);">SYSTEM HEALTHY</h3>
-                      <span style="font-size:0.8rem;">AT EQUITY PEAK</span>
-                    </div>`
-                : `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid #ef4444; border-radius:8px; background:rgba(239, 68, 68, 0.1);">
-                      <h3 style="margin:0; color:#ef4444;">-$${currentDD.toLocaleString()} DD</h3>
-                      <span style="font-size:0.8rem; color:#ef4444;">${ddPercent}% OFF PEAK</span>
-                    </div>`;
+                ? `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid var(--primary); border-radius:8px; background:rgba(45, 212, 191, 0.1);"><h3 style="margin:0; color:var(--primary);">SYSTEM HEALTHY</h3><span style="font-size:0.8rem;">AT EQUITY PEAK</span></div>`
+                : `<div style="text-align:center; padding:15px; margin-bottom:15px; border:1px solid #ef4444; border-radius:8px; background:rgba(239, 68, 68, 0.1);"><h3 style="margin:0; color:#ef4444;">-$${currentDD.toLocaleString()} DD</h3><span style="font-size:0.8rem; color:#ef4444;">${ddPercent}% OFF PEAK</span></div>`;
 
             diagnosisDiv.innerHTML = `
                 ${healthHTML}
-                
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                     <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid var(--primary);">
                         <div style="font-size:0.7rem; color:#94a3b8; font-weight:bold; letter-spacing:1px; margin-bottom:10px;">🔥 POWER ZONE</div>
-                        <div style="margin-bottom:8px;">
-                            <div style="font-size:0.75rem; color:#fff;">BEST DAY</div>
-                            <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${bestDay}</div>
-                        </div>
-                        <div style="margin-bottom:8px;">
-                            <div style="font-size:0.75rem; color:#fff;">BEST TIME</div>
-                            <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${formatH(bestHour)}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem; color:#fff;">BEST SESSION</div>
-                            <div style="font-size:1rem; font-weight:bold; color:var(--primary);">${bestSession}</div>
-                        </div>
+                        <div style="margin-bottom:8px;"><div style="font-size:0.75rem; color:#fff;">BEST DAY</div><div style="font-size:1rem; font-weight:bold; color:var(--primary);">${bestDay}</div></div>
+                        <div style="margin-bottom:8px;"><div style="font-size:0.75rem; color:#fff;">BEST TIME</div><div style="font-size:1rem; font-weight:bold; color:var(--primary);">${formatH(bestHour)}</div></div>
+                        <div><div style="font-size:0.75rem; color:#fff;">BEST SESSION</div><div style="font-size:1rem; font-weight:bold; color:var(--primary);">${bestSession}</div></div>
                     </div>
-
                     <div style="background:#1e293b; padding:15px; border-radius:8px; border-left:4px solid #ef4444;">
                         <div style="font-size:0.7rem; color:#94a3b8; font-weight:bold; letter-spacing:1px; margin-bottom:10px;">⛔ AVOID ZONE</div>
-                        <div style="margin-bottom:8px;">
-                            <div style="font-size:0.75rem; color:#fff;">WORST DAY</div>
-                            <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${worstDay}</div>
-                        </div>
-                        <div style="margin-bottom:8px;">
-                            <div style="font-size:0.75rem; color:#fff;">WORST TIME</div>
-                            <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${formatH(worstHour)}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem; color:#fff;">WORST SESSION</div>
-                            <div style="font-size:1rem; font-weight:bold; color:#ef4444;">${worstSession}</div>
-                        </div>
+                        <div style="margin-bottom:8px;"><div style="font-size:0.75rem; color:#fff;">WORST DAY</div><div style="font-size:1rem; font-weight:bold; color:#ef4444;">${worstDay}</div></div>
+                        <div style="margin-bottom:8px;"><div style="font-size:0.75rem; color:#fff;">WORST TIME</div><div style="font-size:1rem; font-weight:bold; color:#ef4444;">${formatH(worstHour)}</div></div>
+                        <div><div style="font-size:0.75rem; color:#fff;">WORST SESSION</div><div style="font-size:1rem; font-weight:bold; color:#ef4444;">${worstSession}</div></div>
                     </div>
                 </div>
-                
-                <div style="margin-top:15px; font-size:0.75rem; color:#64748b; text-align:center;">
-                    Data driven analysis based on your ${allTradesCache.length} logged trades.
-                </div>
+                <div style="margin-top:15px; font-size:0.75rem; color:#64748b; text-align:center;">Data driven analysis based on your ${allTradesCache.length} logged trades.</div>
             `;
         }
-
         function closeDoctor() { 
             document.getElementById('doctorModal').style.display = 'none'; 
         }
@@ -384,20 +341,16 @@
         function openMentor() {
             const modal = document.getElementById('mentorModal');
             modal.style.display = 'flex';
-            
             const msg = document.getElementById('mentorMsg');
             const icon = document.getElementById('mentorIcon');
-            
             const losses = allTradesCache.filter(t => t.outcome === 'Loss');
             const recentLosses = losses.filter(t => (new Date() - new Date(t.created_at)) < 2 * 60 * 60 * 1000); 
 
             if (recentLosses.length >= 2) {
-                icon.className = 'bx bx-error-circle';
-                icon.style.color = '#ef4444';
+                icon.className = 'bx bx-error-circle'; icon.style.color = '#ef4444';
                 msg.innerHTML = "<strong>⚠️ TILT WARNING:</strong> Stop trading for 1h.";
             } else {
-                icon.className = 'bx bx-bot';
-                icon.style.color = 'var(--primary)';
+                icon.className = 'bx bx-bot'; icon.style.color = 'var(--primary)';
                 msg.innerHTML = "<strong>✅ SYSTEM OPTIMAL:</strong> Win Streak: " + getStreak();
             }
         }
@@ -407,10 +360,7 @@
         
         function getStreak() {
             let streak = 0;
-            for(let t of allTradesCache) { 
-                if(t.outcome === 'Win') streak++; 
-                else break; 
-            }
+            for(let t of allTradesCache) { if(t.outcome === 'Win') streak++; else break; }
             return streak + " W";
         }
 
@@ -430,7 +380,6 @@
             }
             const randomIdx = Math.floor(Math.random() * validTrades.length);
             currentGhostTrade = validTrades[randomIdx];
-
             document.getElementById('ghost-chart-area').innerHTML = `<img src="${currentGhostTrade.chart_screenshot}" style="width:100%; height:100%; object-fit:contain;">`;
             document.getElementById('ghost-controls').style.display = 'flex';
             document.getElementById('ghost-result').innerText = "";
@@ -456,7 +405,7 @@
         }
 
         // ==================================================================
-        // 8. UI UTILITIES (SIDEBAR, WIDGETS)
+        // 8. UI UTILITIES
         // ==================================================================
         function toggleSidebar() { 
             document.querySelector('.sidebar').classList.toggle('active'); 
@@ -508,10 +457,9 @@
         }
 
         // ==================================================================
-        // 9. DATA HANDLING (SAVE, LOAD, EDIT)
+        // 9. DATA HANDLING
         // ==================================================================
         async function saveTradeWithImage() {
-            // Retrieve inputs from the new Folder Structure
             const pair = document.getElementById('tradePair').value;
             const type = document.getElementById('tradeType').value;
             const outcome = document.getElementById('tradeOutcome').value;
@@ -521,7 +469,6 @@
             const reason = document.getElementById('tradeReason').value;
             const chartLink = document.getElementById('chartLink').value;
             
-            // DATE & TIME HANDLING
             const dateInput = document.getElementById('tradeDate').value;
             const timeInput = document.getElementById('tradeTime').value;
             
@@ -535,7 +482,6 @@
                 return; 
             }
 
-            // Create timestamp from custom input OR current time
             let finalTimestamp = new Date().toISOString();
             if (dateInput && timeInput) {
                 finalTimestamp = new Date(`${dateInput}T${timeInput}`).toISOString();
@@ -557,18 +503,10 @@
 
             const { error } = await supabaseClient.from('trades').insert([
                 { 
-                    pair, 
-                    type, 
-                    reason, 
-                    tradingview_link: chartLink, 
-                    chart_screenshot: imageUrl, 
-                    outcome, 
-                    emotion, 
-                    session: currentSession, 
-                    strategy, 
-                    is_playbook: isPlaybook, 
-                    pnl: pnl ? parseFloat(pnl) : 0,
-                    created_at: finalTimestamp 
+                    pair, type, reason, tradingview_link: chartLink, 
+                    chart_screenshot: imageUrl, outcome, emotion, 
+                    session: currentSession, strategy, is_playbook: isPlaybook, 
+                    pnl: pnl ? parseFloat(pnl) : 0, created_at: finalTimestamp 
                 }
             ]);
 
@@ -577,7 +515,6 @@
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
-                // Reset Fields
                 document.getElementById('tradePair').value = '';
                 document.getElementById('tradeDate').value = ''; 
                 document.getElementById('tradeTime').value = ''; 
@@ -619,16 +556,13 @@
             document.getElementById('shareStrat').innerText = trade.strategy || "No Strategy";
             document.getElementById('shareModal').style.display = 'flex';
         }
-
         function closeShare() { 
             document.getElementById('shareModal').style.display = 'none'; 
         }
 
-        // --- TOGGLE BACKTEST MODE ---
         function toggleBacktestMode() {
             isBacktestMode = !isBacktestMode;
             const btn = document.getElementById('btn-backtest-toggle');
-            
             if (isBacktestMode) {
                 btn.classList.add('active-filter');
                 btn.innerHTML = "<i class='bx bx-show-alt'></i> REVEAL MODE";
@@ -655,7 +589,6 @@
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
-            // Stats Calculations
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let total = trades.filter(t => t.outcome !== 'Pending').length;
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
@@ -696,10 +629,8 @@
                 const card = document.createElement('div');
                 const blurClass = isBacktestMode ? 'backtest-blur' : '';
                 card.className = `trade-log-card ${trade.is_playbook ? 'playbook-card' : ''}`;
-                
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
-                // Click Logic
                 card.onclick = (e) => {
                     if (isBacktestMode && !e.target.closest('button')) {
                         openReplay(tradeDataStr);
@@ -734,9 +665,6 @@
             });
         }
 
-        // ------------------------------------------------------------------
-        // 10. CHARTS & CALENDAR
-        // ------------------------------------------------------------------
         function renderCalendar(trades) {
             const container = document.getElementById('calendarGrid');
             container.innerHTML = '';
@@ -914,11 +842,9 @@
                 return;
             }
 
-            // UI Feedback
             btn.disabled = true;
             btn.innerText = "Sending...";
 
-            // Get Current User
             const { data: { user } } = await supabaseClient.auth.getSession().then(({data}) => data);
 
             if (!user) {
@@ -927,7 +853,6 @@
                 return;
             }
 
-            // Send to Supabase
             const { error } = await supabaseClient
                 .from('indicator_requests')
                 .insert({ 
@@ -946,7 +871,7 @@
                 statusMsg.innerText = "✅ Request Sent! Please allow 24h for activation.";
                 statusMsg.style.color = "var(--primary)";
                 btn.innerText = "Sent";
-                usernameInput.value = ""; // Clear input
+                usernameInput.value = "";
             }
         }
     </script>
@@ -1142,7 +1067,6 @@
             padding: 0 12px;
             background: rgba(0, 0, 0, 0.2);
         }
-        /* Space elements inside the folder */
         .folder-content > * {
             margin-top: 10px;
         }
@@ -1193,7 +1117,6 @@
             border-color: var(--primary);
         }
         
-        /* Backtest Blur Logic */
         .backtest-blur { 
             filter: blur(5px); 
             pointer-events: none; 
@@ -1561,7 +1484,11 @@
                     <div>SESSION: <span id="telemetrySession">--</span></div>
                 </div>
                 <div id="replayTargetDate" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #fbbf24;"></div>
-                <button onclick="closeReplay()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
+                
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <a id="btnRedirectTV" href="#" target="_blank" style="color:#94a3b8; font-size:1.5rem; text-decoration:none;" title="Open in TradingView"><i class='bx bx-link-external'></i></a>
+                    <button onclick="closeReplay()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
+                </div>
             </div>
 
             <div id="replay_chart_container" style="flex: 1; width:100%; background: #000;"></div>

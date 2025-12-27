@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teppa Academy | Masterclass</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #2dd4bf;
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .course-sidebar {
+            width: 350px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .back-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        .back-link:hover { color: #fff; }
+
+        .course-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+            margin-bottom: 5px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--text); /* White bar like screenshot */
+            width: 73%; /* Dynamic */
+            border-radius: 2px;
+        }
+        .progress-text {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: right;
+        }
+
+        /* Tabs (Path / Discuss) */
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: transparent;
+            color: var(--text-dim);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: #fff;
+            border-bottom: 2px solid #fff;
+        }
+
+        /* Curriculum List */
+        .module-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .module-item {
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .module-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .module-header:hover { background: rgba(255,255,255,0.05); }
+
+        .lesson-list {
+            display: none; /* Hidden by default */
+            background: #0f172a;
+        }
+        .module-item.active .lesson-list { display: block; }
+        .module-item.active .bx-chevron-down { transform: rotate(180deg); }
+
+        .lesson-item {
+            padding: 12px 20px 12px 30px;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-left: 3px solid transparent;
+        }
+        .lesson-item:hover { color: #fff; }
+        .lesson-item.active-lesson {
+            background: rgba(45, 212, 191, 0.1);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
+        }
+        .lesson-check {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--text-dim);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .lesson-item.completed .lesson-check {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #000;
+        }
+
+        /* --- MAIN PLAYER AREA --- */
+        .player-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        .player-nav {
+            height: 60px;
+            background: #fff; /* Light bar like screenshot */
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            font-weight: 600;
+        }
+        .nav-control {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            user-select: none;
+        }
+        .nav-control:hover { opacity: 0.7; }
+
+        .video-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            position: relative;
+        }
+        
+        /* Placeholder for video */
+        .video-placeholder {
+            width: 80%;
+            aspect-ratio: 16/9;
+            background: radial-gradient(circle, #1e293b, #000);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 1px solid #333;
+            flex-direction: column;
+        }
+        
+        .play-btn-overlay {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: 0.2s;
+        }
+        .play-btn-overlay:hover { transform: scale(1.1); background: var(--primary); color: #000; }
+        .play-btn-overlay i { font-size: 40px; color: #fff; }
+        .play-btn-overlay:hover i { color: #000; }
+
+    </style>
+</head>
+<body>
+
+    <aside class="course-sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="back-link"><i class='bx bx-arrow-back'></i> Back to dashboard</a>
+            <div class="course-title">WWA Masterclass Full Curriculum</div>
+            
+            <div class="progress-container"><div class="progress-fill" style="width: 73%"></div></div>
+            <div class="progress-text">73% COMPLETED</div>
+        </div>
+
+        <div class="sidebar-tabs">
+            <button class="tab-btn active">Path</button>
+            <button class="tab-btn">Discuss</button>
+        </div>
+
+        <div class="module-list" id="curriculum">
+            </div>
+    </aside>
+
+    <main class="player-area">
+        <div class="player-nav">
+            <div class="nav-control" onclick="prevLesson()"><i class='bx bx-chevron-left'></i> previous</div>
+            <div class="nav-control" onclick="nextLesson()">next <i class='bx bx-chevron-right'></i></div>
+        </div>
+
+        <div class="video-wrapper">
+            <div class="video-placeholder" id="videoContainer">
+                <div class="play-btn-overlay"><i class='bx bx-play'></i></div>
+                <h2 id="currentLessonTitle" style="margin-top:20px;">Select a Lesson</h2>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- DATA STRUCTURE (Matches your DB later) ---
+        const courseData = [
+            {
+                title: "2. RETAIL TRAPS",
+                lessons: [
+                    { id: 1, title: "Understanding Support & Resistance", duration: "10:00", completed: true },
+                    { id: 2, title: "Trendline Phantom Liquidity", duration: "15:30", completed: true },
+                    { id: 3, title: "The Double Top Fallacy", duration: "08:45", completed: false }
+                ]
+            },
+            {
+                title: "3. MARKET STRUCTURE",
+                lessons: [
+                    { id: 4, title: "Swing Highs vs. Internal Highs", duration: "12:20", completed: false },
+                    { id: 5, title: "Strong Lows & Weak Highs", duration: "20:00", completed: false }
+                ]
+            },
+            {
+                title: "4. SMART MONEY CONCEPTS",
+                lessons: [
+                    { id: 6, title: "Order Blocks Explained", duration: "14:10", completed: false },
+                    { id: 7, title: "Fair Value Gaps (FVG)", duration: "11:50", completed: false }
+                ]
+            }
+        ];
+
+        let currentLessonIdx = 0; // Tracks flattened index
+
+        function renderCurriculum() {
+            const container = document.getElementById('curriculum');
+            let html = '';
+
+            courseData.forEach((mod, modIndex) => {
+                let lessonsHtml = '';
+                mod.lessons.forEach((lesson) => {
+                    const checkIcon = lesson.completed ? "<i class='bx bx-check'></i>" : "";
+                    const completedClass = lesson.completed ? "completed" : "";
+                    
+                    lessonsHtml += `
+                        <div class="lesson-item ${completedClass}" onclick="loadLesson('${lesson.title}')">
+                            <div class="lesson-check">${checkIcon}</div>
+                            <div>
+                                <div>${lesson.title}</div>
+                                <div style="font-size:0.7rem; opacity:0.6;"><i class='bx bx-play-circle'></i> ${lesson.duration}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Open the first module by default (active)
+                const activeClass = modIndex === 0 ? "active" : "";
+                
+                html += `
+                    <div class="module-item ${activeClass}">
+                        <div class="module-header" onclick="toggleModule(this)">
+                            <span>${mod.title}</span>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                        <div class="lesson-list">
+                            ${lessonsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleModule(header) {
+            header.parentElement.classList.toggle('active');
+        }
+
+        function loadLesson(title) {
+            // Update UI to show selected lesson
+            document.querySelectorAll('.lesson-item').forEach(el => el.classList.remove('active-lesson'));
+            
+            // Find the element clicked (simple logic for demo)
+            const allLessons = Array.from(document.querySelectorAll('.lesson-item'));
+            const target = allLessons.find(el => el.innerText.includes(title));
+            if(target) target.classList.add('active-lesson');
+
+            // Update Video Player (Placeholder)
+            document.getElementById('currentLessonTitle').innerText = title;
+            // HERE IS WHERE YOU WOULD UPDATE THE IFRAME SRC
+            // document.getElementById('myIframe').src = newUrl;
+        }
+
+        function nextLesson() {
+            alert("Go to next lesson logic here");
+        }
+        
+        function prevLesson() {
+            alert("Go to prev lesson logic here");
+        }
+
+        // Init
+        renderCurriculum();
+    </script>
+</body>
+</html>

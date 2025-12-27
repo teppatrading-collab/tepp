@@ -830,6 +830,7 @@
             document.getElementById('accessModal').style.display = 'none'; 
         }
 
+        // FIXED FUNCTION BELOW
         async function requestAccess() {
             const usernameInput = document.getElementById('tvUsername');
             const btn = document.getElementById('btnRequestAccess');
@@ -842,36 +843,45 @@
                 return;
             }
 
+            // 1. Set Loading State
             btn.disabled = true;
             btn.innerText = "Sending...";
+            statusMsg.innerText = ""; // Clear previous messages
 
-            const { data: { user } } = await supabaseClient.auth.getSession().then(({data}) => data);
+            try {
+                // 2. FIX: Get User Safely
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
-            if (!user) {
-                statusMsg.innerText = "Error: You are not logged in.";
-                btn.disabled = false;
-                return;
-            }
+                if (authError || !user) {
+                    throw new Error("You must be logged in to request access.");
+                }
 
-            const { error } = await supabaseClient
-                .from('indicator_requests')
-                .insert({ 
-                    user_id: user.id, 
-                    tv_username: username,
-                    status: 'pending'
-                });
+                // 3. Send Request
+                const { error } = await supabaseClient
+                    .from('indicator_requests')
+                    .insert({ 
+                        user_id: user.id, 
+                        tv_username: username,
+                        status: 'pending'
+                    });
 
-            if (error) {
-                console.error('Error:', error);
-                statusMsg.innerText = "❌ Error. Try again.";
-                statusMsg.style.color = "#ef4444";
-                btn.disabled = false;
-                btn.innerText = "Request Access";
-            } else {
+                if (error) throw error;
+
+                // 4. Success State
                 statusMsg.innerText = "✅ Request Sent! Please allow 24h for activation.";
                 statusMsg.style.color = "var(--primary)";
                 btn.innerText = "Sent";
-                usernameInput.value = "";
+                usernameInput.value = ""; // Clear input
+
+            } catch (err) {
+                // 5. Error Handling (Resets button so it doesn't get stuck)
+                console.error('Error:', err);
+                statusMsg.innerText = "❌ Error: " + (err.message || "Failed to send.");
+                statusMsg.style.color = "#ef4444";
+                
+                // Reset button
+                btn.disabled = false;
+                btn.innerText = "Request Access";
             }
         }
     </script>

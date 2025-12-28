@@ -39,6 +39,11 @@
         .input-group label { display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 8px; font-weight: bold; }
         .admin-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none; box-sizing: border-box; }
         .admin-input:focus { border-color: var(--primary); }
+        textarea.admin-input { resize: vertical; min-height: 100px; font-family: 'Inter', sans-serif; }
+
+        .file-upload-wrapper { display: flex; align-items: center; gap: 15px; background: #0f172a; border: 1px dashed var(--border); padding: 10px; border-radius: 8px; }
+        .upload-status { font-size: 0.85rem; font-weight: bold; }
+
         .btn-upload { background: var(--primary); color: #000; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: fit-content; transition: 0.2s; }
         .btn-upload:hover { opacity: 0.9; transform: translateY(-1px); }
 
@@ -88,24 +93,33 @@
                     <label>Course Title</label>
                     <input type="text" id="courseTitle" class="admin-input" placeholder="e.g. Mastering Market Structure">
                 </div>
+
                 <div class="input-group">
                     <label>Description</label>
-                    <textarea id="courseDesc" class="admin-input" rows="3" placeholder="What will they learn?"></textarea>
+                    <textarea id="courseDesc" class="admin-input" rows="5" placeholder="Enter a detailed description of what the student will learn..."></textarea>
                 </div>
+
                 <div class="input-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                     <div>
                         <label>YouTube Embed URL</label>
                         <input type="text" id="courseVid" class="admin-input" placeholder="https://www.youtube.com/embed/...">
                     </div>
+
                     <div>
-                        <label>Thumbnail Image URL</label>
-                        <input type="text" id="courseThumb" class="admin-input" placeholder="https://...">
+                        <label>Thumbnail Image</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="thumbnailFile" accept="image/*" style="color: #94a3b8;">
+                            <span id="uploadStatus" class="upload-status" style="color: #64748b;">No file chosen</span>
+                        </div>
+                        <input type="hidden" id="thumbnailUrl">
                     </div>
                 </div>
-                <div class="input-group" style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="isPremium" style="width:16px; height:16px;">
-                    <label style="margin:0; cursor:pointer;" for="isPremium">Premium Member Only?</label>
+
+                <div class="input-group" style="display:flex; align-items:center; gap:10px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; width: fit-content;">
+                    <input type="checkbox" id="isPremium" style="width:18px; height:18px; cursor: pointer;">
+                    <label style="margin:0; cursor:pointer; color: #fff;" for="isPremium">Premium Member Only?</label>
                 </div>
+
                 <button onclick="uploadCourse()" id="btnUpload" class="btn-upload">Publish Course</button>
             </div>
         </div>
@@ -136,16 +150,57 @@
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // --- 1. COURSE UPLOAD LOGIC ---
+        // --- 1. HANDLE FILE UPLOAD (New) ---
+        document.getElementById('thumbnailFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            const statusText = document.getElementById('uploadStatus');
+            const hiddenInput = document.getElementById('thumbnailUrl');
+
+            if (!file) return;
+
+            try {
+                statusText.innerText = "Uploading...";
+                statusText.style.color = "#fbbf24"; // Yellow/Orange
+
+                const fileName = `public/${Date.now()}_${file.name}`;
+                
+                // Upload to Supabase Storage 'thumbnails' bucket
+                const { data, error } = await supabaseClient.storage
+                    .from('thumbnails') 
+                    .upload(fileName, file);
+
+                if (error) throw error;
+
+                // Get Public URL
+                const { data: urlData } = supabaseClient.storage
+                    .from('thumbnails')
+                    .getPublicUrl(fileName);
+
+                // Set hidden value
+                hiddenInput.value = urlData.publicUrl;
+                statusText.innerText = "✅ Ready";
+                statusText.style.color = "#2dd4bf"; // Teal/Green
+
+            } catch (error) {
+                console.error("Upload error:", error);
+                statusText.innerText = "❌ Failed";
+                statusText.style.color = "#ef4444"; // Red
+                alert("Upload failed. Make sure you have a public bucket named 'thumbnails'.");
+            }
+        });
+
+        // --- 2. COURSE UPLOAD LOGIC ---
         async function uploadCourse() {
             const title = document.getElementById('courseTitle').value;
             const desc = document.getElementById('courseDesc').value;
             const video = document.getElementById('courseVid').value;
-            const thumb = document.getElementById('courseThumb').value;
+            // Get the URL from the hidden input, not the text box
+            const thumb = document.getElementById('thumbnailUrl').value; 
             const premium = document.getElementById('isPremium').checked;
             const btn = document.getElementById('btnUpload');
 
             if(!title || !video) return alert("Title and Video URL are required.");
+            if(!thumb) return alert("Please upload a thumbnail image.");
 
             btn.innerText = "Uploading...";
 
@@ -163,10 +218,13 @@
                 document.getElementById('courseTitle').value = "";
                 document.getElementById('courseDesc').value = "";
                 document.getElementById('courseVid').value = "";
+                document.getElementById('thumbnailFile').value = "";
+                document.getElementById('uploadStatus').innerText = "No file chosen";
+                document.getElementById('uploadStatus').style.color = "#64748b";
             }
         }
 
-        // --- 2. MENTORSHIP REVIEW LOGIC ---
+        // --- 3. MENTORSHIP REVIEW LOGIC ---
         async function fetchApplications() {
             const { data, error } = await supabaseClient
                 .from('mentorship_applications')
@@ -219,7 +277,7 @@
             else fetchApplications(); 
         }
 
-        // --- 3. AUTH & INIT ---
+        // --- 4. AUTH & INIT ---
         async function checkAdminAccess() {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) {

@@ -391,17 +391,17 @@
 
         if (error) { console.log(error); return; }
         
-        allAppsData = data; 
+        allAppsData = data; // Save global so View button can find it
 
         if (data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>';
             return;
         }
 
-        data.forEach((app, index) => {
+        data.forEach((app) => {
             const row = document.createElement('tr');
             
-            // Build buttons: Approve/Deny (only if pending) + Delete (always)
+            // Build buttons
             let actionButtons = '';
             if(app.status === 'pending') {
                 actionButtons += `
@@ -409,7 +409,7 @@
                     <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Deny</button>
                 `;
             }
-            // Trash Icon (Delete)
+            // Delete button now triggers explicit delete
             actionButtons += `
                 <button onclick="deleteApplication('${app.user_id}')" title="Delete" style="background:transparent; border:none; color:#64748b; font-size:1.1rem; cursor:pointer; margin-left:5px;"><i class='bx bx-trash'></i></button>
             `;
@@ -422,7 +422,7 @@
                 <td>
                     <div style="color:#cbd5e1; font-size:0.85rem;">Exp: ${app.experience}</div>
                     <div style="color:#2dd4bf; font-size:0.85rem;">${app.capital}</div>
-                    <button onclick="viewFullApp(${index})" style="margin-top:5px; background:none; border:none; color:#818cf8; text-decoration:underline; cursor:pointer; font-size:0.75rem; padding:0;">View Answer</button>
+                    <button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px; background:none; border:none; color:#818cf8; text-decoration:underline; cursor:pointer; font-size:0.75rem; padding:0;">View Answer</button>
                 </td>
                 <td>
                     <span style="padding:4px 10px; border-radius:20px; font-size:0.7rem; font-weight:800; text-transform:uppercase; background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'}; color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span>
@@ -437,9 +437,16 @@
         });
     }
 
-    // --- VIEW FULL APP MODAL ---
-    function viewFullApp(index) {
-        const app = allAppsData[index];
+    // --- FIX: VIEW FULL APP MODAL ---
+    function viewFullApp(userId) {
+        // Find the specific app by user_id instead of index
+        const app = allAppsData.find(a => a.user_id === userId);
+        
+        if (!app) {
+            alert("Error: Could not find application data.");
+            return;
+        }
+
         const contentDiv = document.getElementById('appModalContent');
         
         contentDiv.innerHTML = `
@@ -474,7 +481,7 @@
         fetchApplications();
     }
 
-    // --- NEW: DELETE FUNCTION ---
+    // --- FIX: DELETE FUNCTION ---
     async function deleteApplication(id) {
         if(!confirm("Are you sure you want to PERMANENTLY delete this application?")) return;
         
@@ -483,8 +490,13 @@
             .delete()
             .eq('user_id', id);
 
-        if(error) alert("Error deleting: " + error.message);
-        else fetchApplications();
+        if(error) {
+            // This alert will tell you EXACTLY why it failed
+            alert("Error deleting: " + error.message + "\n\nCHECK YOUR SUPABASE RLS POLICIES!");
+            console.error(error);
+        } else {
+            fetchApplications();
+        }
     }
 </script>
 

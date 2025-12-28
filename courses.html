@@ -43,6 +43,25 @@
         .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
         .section-title i { color: var(--primary); }
 
+        /* --- NEW ADMIN STYLES --- */
+        .admin-section { display: none; gap: 40px; margin-bottom: 60px; } /* Toggled by JS */
+        .admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .admin-title { font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; color: var(--text-dim); font-size: 0.85rem; margin-bottom: 8px; font-weight: 600; }
+        .admin-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none; box-sizing: border-box; }
+        .admin-input:focus { border-color: var(--primary); }
+        textarea.admin-input { resize: vertical; min-height: 100px; font-family: 'Inter', sans-serif; }
+        
+        .file-upload-box { border: 1px dashed var(--border); padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 15px; background: rgba(15, 23, 42, 0.5); }
+        .upload-status { font-size: 0.8rem; font-weight: bold; }
+
+        .btn-action { padding: 12px 25px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-action:hover { opacity: 0.9; }
+
+        /* --- COURSE GRID --- */
         .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
 
         .course-card {
@@ -80,6 +99,11 @@
         .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
         .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
         .close-v { position: absolute; top: -40px; right: 0; color: #fff; font-size: 2rem; cursor: pointer; }
+        
+        /* Table Styles */
+        .app-table { width: 100%; border-collapse: collapse; background: rgba(15, 23, 42, 0.5); border-radius: 8px; overflow: hidden; }
+        .app-table th, .app-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .app-table th { background: #0f172a; color: var(--text-dim); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -94,40 +118,69 @@
     </nav>
 
     <div class="container">
-        <div id="adminPanel" style="display:none; background:rgba(45, 212, 191, 0.05); padding:20px; border-radius:12px; margin-bottom:40px; border:1px dashed var(--primary);">
-            <h3 style="margin-top:0; color:var(--primary);">Admin Upload</h3>
-            <input type="text" id="cTitle" placeholder="Course Title" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
-            <input type="text" id="cDesc" placeholder="Description" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
-            <input type="text" id="cVideo" placeholder="YouTube Embed URL (e.g. https://www.youtube.com/embed/...)" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
-            <input type="text" id="cThumb" placeholder="Thumbnail Image URL" style="padding:10px; width:100%; margin-bottom:10px; background:#0f172a; border:1px solid var(--border); color:#fff;">
-            <label style="color:#fff; display:block; margin-bottom:10px;">
-                <input type="checkbox" id="cPremium"> Premium Only?
-            </label>
-            <button onclick="uploadCourse()" style="padding:10px 20px; background:var(--primary); border:none; cursor:pointer; font-weight:bold;">Upload Course</button>
-
-            <div style="margin-top: 40px; border-top: 1px solid #334155; padding-top: 20px;">
-                <h3 style="color:#fff; display:flex; justify-content:space-between; align-items:center;">
-                    Mentorship Applications
-                    <button onclick="fetchApplications()" style="font-size:0.8rem; background:transparent; border:1px solid #334155; color:#94a3b8; padding:5px 10px; border-radius:5px; cursor:pointer;">Refresh</button>
-                </h3>
+        
+        <div id="adminPanel" class="admin-section">
+            
+            <div class="admin-card">
+                <div class="admin-header">
+                    <div class="admin-title"><i class='bx bx-cloud-upload'></i> Upload New Course</div>
+                </div>
                 
-                <table style="width: 100%; border-collapse: collapse; background: rgba(30, 41, 59, 0.6); border-radius: 12px; margin-top: 20px;">
+                <div class="form-group">
+                    <label>Course Title</label>
+                    <input type="text" id="cTitle" class="admin-input" placeholder="e.g. Market Structure Logic">
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="cDesc" class="admin-input" rows="4" placeholder="What will the student learn?"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>YouTube Embed URL</label>
+                        <input type="text" id="cVideo" class="admin-input" placeholder="https://www.youtube.com/embed/...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Thumbnail Image</label>
+                        <div class="file-upload-box">
+                            <input type="file" id="cThumbFile" accept="image/*" style="color: var(--text-dim); font-size: 0.85rem;">
+                            <span id="uploadStatus" class="upload-status" style="color: var(--text-dim);">No file chosen</span>
+                        </div>
+                        <input type="hidden" id="cThumbUrl"> </div>
+                </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+                    <input type="checkbox" id="cPremium" style="width:16px; height:16px; cursor: pointer;">
+                    <label for="cPremium" style="margin:0; cursor:pointer;">Premium Member Only?</label>
+                </div>
+
+                <button onclick="uploadCourse()" id="btnUpload" class="btn-action">Publish Course</button>
+            </div>
+
+            <div class="admin-card">
+                <div class="admin-header">
+                    <div class="admin-title"><i class='bx bx-user-check'></i> Mentorship Applications</div>
+                    <button onclick="fetchApplications()" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); padding:5px 10px; border-radius:5px; cursor:pointer; font-size: 0.8rem;">Refresh</button>
+                </div>
+                
+                <table class="app-table">
                     <thead>
-                        <tr style="background: #0f172a; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem;">
-                            <th style="padding: 15px; text-align: left;">Applicant</th>
-                            <th style="padding: 15px; text-align: left;">Exp / Capital</th>
-                            <th style="padding: 15px; text-align: left;">"Why Join?"</th>
-                            <th style="padding: 15px; text-align: left;">Status</th>
-                            <th style="padding: 15px; text-align: left;">Actions</th>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Details</th>
+                            <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="appTableBody">
-                        <tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Loading applications...</td></tr>
+                        <tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
-        </div>
 
+        </div>
         <div class="section-title"><i class='bx bx-movie-play'></i> Free Foundations</div>
         <div id="freeGrid" class="course-grid"></div>
 
@@ -164,7 +217,16 @@
         
         // 1. Check if user is admin (Clean check)
         if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
-            document.getElementById('adminPanel').style.display = 'block';
+            // Show Admin Panel (Grid Layout)
+            const panel = document.getElementById('adminPanel');
+            panel.style.display = 'grid'; 
+            panel.style.gridTemplateColumns = '1fr'; // Stack on mobile
+            
+            // On desktop, split side by side if screen is wide
+            if(window.innerWidth > 900) {
+                 panel.style.gridTemplateColumns = '1.2fr 0.8fr'; 
+            }
+
             userIsPro = true; 
             fetchApplications(); // Load apps if admin
         }
@@ -204,7 +266,7 @@
             
             // Thumbnail Logic
             let thumbHTML = `<div class="thumb-area">
-                <img src="${course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
+                <img src="${course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
                 <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
                 ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
             </div>`;
@@ -230,25 +292,76 @@
         document.getElementById('videoModal').style.display = 'flex';
     }
 
+    // --- NEW: FILE UPLOAD LISTENER ---
+    document.getElementById('cThumbFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        const statusText = document.getElementById('uploadStatus');
+        const hiddenInput = document.getElementById('cThumbUrl');
+
+        if (!file) return;
+
+        try {
+            statusText.innerText = "Uploading...";
+            statusText.style.color = "#fbbf24";
+
+            const fileName = `public/${Date.now()}_${file.name}`;
+            
+            // Upload to 'thumbnails' bucket
+            const { data, error } = await supabaseClient.storage
+                .from('thumbnails') 
+                .upload(fileName, file);
+
+            if (error) throw error;
+
+            // Get Public URL
+            const { data: urlData } = supabaseClient.storage
+                .from('thumbnails')
+                .getPublicUrl(fileName);
+
+            hiddenInput.value = urlData.publicUrl;
+            statusText.innerText = "✅ Ready";
+            statusText.style.color = "#2dd4bf";
+
+        } catch (error) {
+            console.error("Upload error:", error);
+            statusText.innerText = "❌ Failed";
+            statusText.style.color = "#ef4444";
+            alert("Ensure you have a public 'thumbnails' bucket in Supabase.");
+        }
+    });
+
     // --- ADMIN: UPLOAD COURSE ---
     async function uploadCourse() {
         const title = document.getElementById('cTitle').value;
         const desc = document.getElementById('cDesc').value;
         const video = document.getElementById('cVideo').value;
-        const thumb = document.getElementById('cThumb').value;
+        const thumb = document.getElementById('cThumbUrl').value; // Get from hidden input
         const isPremium = document.getElementById('cPremium').checked;
+        const btn = document.getElementById('btnUpload');
 
         if(!title || !video) return alert("Title and Video URL required");
+        if(!thumb) return alert("Please upload a thumbnail");
+
+        btn.innerText = "Uploading...";
 
         const { error } = await supabaseClient.from('courses').insert([{
-            title, description: desc, video_url: video, thumbnail: thumb, is_premium: isPremium
+            title, description: desc, video_url: video, thumbnail_url: thumb, is_premium: isPremium
         }]);
 
-        if(error) alert(error.message);
-        else {
+        if(error) {
+            alert(error.message);
+            btn.innerText = "Publish Course";
+        } else {
             alert("Course Uploaded!");
+            btn.innerText = "Publish Course";
             loadCourses();
+            // Reset Form
             document.getElementById('cTitle').value = "";
+            document.getElementById('cDesc').value = "";
+            document.getElementById('cVideo').value = "";
+            document.getElementById('cThumbFile').value = "";
+            document.getElementById('cThumbUrl').value = "";
+            document.getElementById('uploadStatus').innerText = "No file chosen";
         }
     }
 
@@ -265,34 +378,32 @@
         if (error) { console.log(error); return; }
         
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>';
             return;
         }
 
         data.forEach(app => {
             const row = document.createElement('tr');
-            row.style.borderBottom = "1px solid #334155";
             
             row.innerHTML = `
-                <td style="padding: 15px;">
+                <td>
                     <div style="font-weight:bold; color:#fff;">${app.discord_handle || 'No Discord'}</div>
                     <div style="font-size:0.8rem; color:#64748b;">${app.email}</div>
                 </td>
-                <td style="padding: 15px; font-size:0.9rem; color:#cbd5e1;">
-                    ${app.experience}<br>
-                    <span style="color:#2dd4bf;">${app.capital}</span>
+                <td>
+                    <div style="color:#cbd5e1; font-size:0.85rem;">Exp: ${app.experience}</div>
+                    <div style="color:#2dd4bf; font-size:0.85rem;">${app.capital}</div>
                 </td>
-                <td style="padding: 15px; font-style:italic; color:#94a3b8; font-size:0.9rem; max-width:250px;">
-                    "${app.why_join}"
-                </td>
-                <td style="padding: 15px;">
+                <td>
                     <span style="padding:4px 10px; border-radius:20px; font-size:0.7rem; font-weight:800; text-transform:uppercase; background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'}; color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span>
                 </td>
-                <td style="padding: 15px;">
+                <td>
                     ${app.status === 'pending' ? `
-                    <button onclick="updateStatus('${app.user_id}', 'approved')" style="background:#2dd4bf; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; margin-right:5px;">Accept</button>
-                    <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px 10px; border-radius:4px; cursor:pointer;">Deny</button>
-                    ` : ''}
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="updateStatus('${app.user_id}', 'approved')" style="background:#2dd4bf; color:#000; border:none; padding:5px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">Accept</button>
+                        <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Deny</button>
+                    </div>
+                    ` : '-'}
                 </td>
             `;
             tbody.appendChild(row);

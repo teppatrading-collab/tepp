@@ -549,6 +549,61 @@
             }
         }
 
+        // ==================================================================
+        // NEW FEATURE: VIEW TRADE DETAIL POPUP
+        // ==================================================================
+        function openViewTrade(tradeDataStr) {
+            const trade = JSON.parse(decodeURIComponent(tradeDataStr));
+            
+            // 1. Populate Header
+            document.getElementById('viewPair').innerText = trade.pair;
+            const typeColor = trade.type === 'Buy' ? '#2dd4bf' : '#ef4444';
+            const outcomeColor = trade.outcome === 'Win' ? '#2dd4bf' : (trade.outcome === 'Loss' ? '#ef4444' : '#fbbf24');
+            document.getElementById('viewMeta').innerHTML = `<span style="color:${typeColor}; font-weight:bold;">${trade.type.toUpperCase()}</span> &bull; <span style="color:${outcomeColor}">${trade.outcome.toUpperCase()}</span>`;
+
+            // 2. Populate Stats
+            const pnl = parseFloat(trade.pnl || 0);
+            const pnlEl = document.getElementById('viewPnL');
+            pnlEl.innerText = (pnl >= 0 ? "+" : "-") + "$" + Math.abs(pnl);
+            pnlEl.style.color = pnl >= 0 ? '#2dd4bf' : '#ef4444';
+
+            const d = new Date(trade.created_at);
+            document.getElementById('viewDate').innerText = d.toLocaleDateString() + " " + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            document.getElementById('viewSession').innerText = trade.session;
+            document.getElementById('viewStrategy').innerText = trade.strategy || "None";
+
+            // 3. Populate Notes
+            document.getElementById('viewReason').innerText = trade.reason || "No notes provided.";
+
+            // 4. Populate Images (Stack them)
+            const imgContainer = document.getElementById('viewImages');
+            imgContainer.innerHTML = "";
+            if (trade.chart_screenshot) {
+                const urls = trade.chart_screenshot.split(',');
+                urls.forEach(url => {
+                    if(url.trim()) {
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.style.width = "100%";
+                        img.style.borderRadius = "8px";
+                        img.style.border = "1px solid #334155";
+                        img.onclick = () => window.open(url, '_blank'); // Click to open original
+                        img.title = "Click to view full size";
+                        img.style.cursor = "zoom-in";
+                        imgContainer.appendChild(img);
+                    }
+                });
+            } else {
+                imgContainer.innerHTML = "<p style='color:#64748b; font-style:italic;'>No screenshots attached.</p>";
+            }
+
+            document.getElementById('viewModal').style.display = 'flex';
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').style.display = 'none';
+        }
+
         function setTimeframe(tf) {
             activeTimeframe = tf;
             document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active-tf'));
@@ -654,9 +709,16 @@
                 card.className = `trade-log-card ${trade.is_playbook ? 'playbook-card' : ''}`;
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
+                // CLICK HANDLER MODIFIED HERE
                 card.onclick = (e) => {
-                    if (isBacktestMode && !e.target.closest('button')) {
+                    // If clicking internal buttons/images, do nothing
+                    if (e.target.closest('button') || e.target.closest('.trade-img-preview')) return;
+
+                    if (isBacktestMode) {
                         openReplay(tradeDataStr);
+                    } else {
+                        // NEW: Open detailed view
+                        openViewTrade(tradeDataStr);
                     }
                 };
 
@@ -667,7 +729,7 @@
                     if (urls.length > 0) {
                         imgHtml = '<div class="trade-gallery">';
                         urls.forEach(url => {
-                            imgHtml += `<img src="${url}" class="trade-img-preview" onclick="window.open('${url}', '_blank')">`;
+                            imgHtml += `<img src="${url}" class="trade-img-preview" onclick="event.stopPropagation(); window.open('${url}', '_blank')">`;
                         });
                         imgHtml += '</div>';
                     }
@@ -1230,6 +1292,20 @@
         .outcome-tag.pending { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid #94a3b8; }
         .outcome-tag.breakeven { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
 
+        /* Small stats box for View Modal */
+        .stat-box-small { 
+            background: rgba(0,0,0,0.2); 
+            padding:10px; 
+            border-radius:8px; 
+            border:1px solid #334155; 
+        }
+        .stat-box-small span { 
+            display:block; 
+            font-size:0.75rem; 
+            color:#94a3b8; 
+            margin-bottom:3px; 
+        }
+
         /* ==================================================================
            CALENDAR
            ================================================================== */
@@ -1558,9 +1634,40 @@
     <div class="overlay-bg" onclick="toggleSidebar()"></div>
     <button class="mobile-toggle" onclick="toggleSidebar()"><i class='bx bx-menu'></i></button>
 
+    <div id="viewModal" class="modal-overlay">
+        <div style="background:var(--card); width:800px; max-width:95%; max-height:90vh; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
+            <div style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#0f172a;">
+                <div>
+                    <h2 id="viewPair" style="margin:0; color:#fff;">--</h2>
+                    <div id="viewMeta" style="color:#94a3b8; font-size:0.9rem; margin-top:5px;"></div>
+                </div>
+                <button onclick="closeViewModal()" style="background:transparent; border:none; color:#fff; font-size:2rem; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div style="flex:1; overflow-y:auto; padding:20px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:20px;">
+                    <div class="stat-box-small"><span>PnL</span><b id="viewPnL" style="font-size:1.2rem;">--</b></div>
+                    <div class="stat-box-small"><span>Date</span><b id="viewDate">--</b></div>
+                    <div class="stat-box-small"><span>Session</span><b id="viewSession">--</b></div>
+                    <div class="stat-box-small"><span>Strategy</span><b id="viewStrategy">--</b></div>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#94a3b8; margin-bottom:10px; border-bottom:1px solid #334155; padding-bottom:5px;">NOTES & REASONING</h4>
+                    <p id="viewReason" style="line-height:1.6; color:#e2e8f0; white-space:pre-wrap;">No notes.</p>
+                </div>
+
+                <div>
+                    <h4 style="color:#94a3b8; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:5px;">CHART SCREENSHOTS</h4>
+                    <div id="viewImages" style="display:flex; flex-direction:column; gap:20px;">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="replayModal" class="modal-overlay">
         <div style="width: 95%; height: 95vh; background: #1e293b; border-radius: 8px; position: relative; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column;">
-            
             <div style="padding: 10px 20px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
                 <div class="replay-telemetry-bar">
                     <div>PAIR: <span id="telemetryPair">--</span></div>
@@ -1569,32 +1676,22 @@
                     <div>SESSION: <span id="telemetrySession">--</span></div>
                 </div>
                 <div id="replayTargetDate" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #fbbf24;"></div>
-                
                 <div style="display:flex; gap:10px; align-items:center;">
                     <a id="btnRedirectTV" href="#" target="_blank" style="color:#94a3b8; font-size:1.5rem; text-decoration:none;" title="Open in TradingView"><i class='bx bx-link-external'></i></a>
                     <button onclick="closeReplay()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;"><i class='bx bx-x'></i></button>
                 </div>
             </div>
-
             <div id="replay_chart_container" style="flex: 1; width:100%; background: #000;"></div>
-
             <div id="orderTicket" class="order-ticket">
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <div style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #94a3b8;">LOTS: <span style="color: #fff; border: 1px solid #334155; padding: 2px 8px; background:#000;">1.00</span></div>
                     <div style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #94a3b8;">TYPE: <span style="color: #fff;">MARKET</span></div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="ticket-btn btn-buy" onclick="executeReplayTrade('Buy')">
-                        <span>BUY MKT</span>
-                        <span style="font-size: 0.7rem; opacity: 0.8;">ASK</span>
-                    </button>
-                    <button class="ticket-btn btn-sell" onclick="executeReplayTrade('Sell')">
-                        <span>SELL MKT</span>
-                        <span style="font-size: 0.7rem; opacity: 0.8;">BID</span>
-                    </button>
+                    <button class="ticket-btn btn-buy" onclick="executeReplayTrade('Buy')"><span>BUY MKT</span><span style="font-size: 0.7rem; opacity: 0.8;">ASK</span></button>
+                    <button class="ticket-btn btn-sell" onclick="executeReplayTrade('Sell')"><span>SELL MKT</span><span style="font-size: 0.7rem; opacity: 0.8;">BID</span></button>
                 </div>
             </div>
-
             <div id="executionLog" class="execution-log"></div>
         </div>
     </div>
@@ -1696,15 +1793,9 @@
                 <h3 style="margin:0; color:#fff;">🔓 UNLOCK INDICATOR</h3>
                 <button onclick="closeAccessModal()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
             </div>
-            
-            <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:20px; line-height:1.5;">
-                Enter your <strong>TradingView Username</strong> below to request access to the invite-only <em>Teppa Pro Session</em> suite.
-            </p>
-
+            <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:20px; line-height:1.5;">Enter your <strong>TradingView Username</strong> below to request access to the invite-only <em>Teppa Pro Session</em> suite.</p>
             <input type="text" id="tvUsername" class="side-input" placeholder="TradingView Username (e.g. teppa_trader)">
-            
             <button id="btnRequestAccess" class="side-btn" onclick="requestAccess()">Request Access</button>
-            
             <p id="accessStatus" style="margin-top:15px; text-align:center; font-weight:bold; font-size:0.9rem; min-height:20px;"></p>
         </div>
     </div>
@@ -1717,34 +1808,28 @@
         
         <button id="btn-mentor-nav" class="nav-btn" style="display:none; color:#fbbf24;" onclick="openMentor()"><i class='bx bx-bot'></i> SMART MENTOR</button>
         <button id="btn-ghost-nav" class="nav-btn" style="display:none; color:var(--primary);" onclick="openGhost()"><i class='bx bxs-ghost'></i> GHOST TRADE</button>
-        
         <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>
         <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
-
         <button id="btn-unlock-indicator" class="nav-btn" onclick="openAccessModal()" style="display:none; color:#2dd4bf;"><i class='bx bx-lock-open-alt'></i> UNLOCK INDICATOR</button>
         
         <div style="height:20px;"></div>
 
         <div class="sidebar-section">
             <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#94a3b8;">NEW ENTRY</h4>
-            
             <div class="folder-item">
                 <div class="folder-header" onclick="toggleFolder(this)">
                     <span><i class='bx bx-folder folder-icon'></i> Trade Details</span>
                     <i class='bx bx-chevron-down folder-arrow'></i>
                 </div>
-                <div class="folder-content" style="max-height: 1000px;"> <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
-                    
-                   <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
-    <input type="date" id="tradeDate" class="side-input" style="flex: 1; min-width: 0; color-scheme: dark; margin: 0;">
-    <input type="time" id="tradeTime" class="side-input" style="flex: 1; min-width: 0; color-scheme: dark; margin: 0;">
-</div>
+                <div class="folder-content" style="max-height: 1000px;"> 
+                    <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)" onchange="updateWidget()">
+                    <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+                        <input type="date" id="tradeDate" class="side-input" style="flex: 1; min-width: 0; color-scheme: dark; margin: 0;">
+                        <input type="time" id="tradeTime" class="side-input" style="flex: 1; min-width: 0; color-scheme: dark; margin: 0;">
+                    </div>
                     <select id="tradeSession" class="side-input">
-                        <option>London</option>
-                        <option>New York</option>
-                        <option>Asian</option>
+                        <option>London</option><option>New York</option><option>Asian</option>
                     </select>
-                    
                     <div id="newStrategyContainer" class="strategy-container">
                         <div class="strat-btn" onclick="toggleStrategy(this)">SMT</div>
                         <div class="strat-btn" onclick="toggleStrategy(this)">Reversal</div>
@@ -1754,14 +1839,9 @@
                         <div class="strat-btn" onclick="toggleStrategy(this)">Extreme</div>
                         <div class="strat-btn" onclick="toggleStrategy(this)">Decisional</div>
                     </div>
-                    
                     <div style="display:flex; gap:10px;">
                         <select id="tradeType" class="side-input"><option>Buy</option><option>Sell</option></select>
-                        <select id="tradeOutcome" class="side-input">
-                            <option>Win</option>
-                            <option>Loss</option>
-                            <option>Breakeven</option>
-                        </select>
+                        <select id="tradeOutcome" class="side-input"><option>Win</option><option>Loss</option><option>Breakeven</option></select>
                     </div>
                 </div>
             </div>
@@ -1774,7 +1854,6 @@
                 <div class="folder-content">
                     <input type="text" id="chartLink" class="side-input" placeholder="Chart Link">
                     <textarea id="tradeReason" class="side-input" rows="2" placeholder="Notes..."></textarea>
-                    
                     <input type="file" id="chartUpload" style="display:none;" multiple>
                     <label for="chartUpload" class="side-btn" style="background:transparent; border:1px dashed var(--border); color:#94a3b8; text-align:center; display:block; margin:10px 0;">
                         <i class='bx bx-camera'></i> Upload Screenshot(s)
@@ -1790,11 +1869,7 @@
                 <div class="folder-content">
                     <input type="number" id="tradePnL" class="side-input" placeholder="PnL ($)">
                     <select id="tradeEmotion" class="side-input">
-                        <option>Confident</option>
-                        <option>FOMO</option>
-                        <option>Neutral</option>
-                        <option>Hesitant</option>
-                        <option>Greedy</option>
+                        <option>Confident</option><option>FOMO</option><option>Neutral</option><option>Hesitant</option><option>Greedy</option>
                     </select>
                     <label class="playbook-option" style="display:flex; align-items:center; gap:5px; margin:10px 0; color:#fbbf24; font-weight:bold;">
                         <input type="checkbox" id="playbookCheck"> <span>🏆 Add to Playbook</span>
@@ -1803,12 +1878,10 @@
             </div>
 
             <button class="side-btn" onclick="saveTradeWithImage()" style="margin-top:15px;">Save Trade</button>
-            
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button onclick="openCalcModal()" style="flex:1; padding:8px; background:#1e293b; color:#fff; border:1px solid var(--border); border-radius:6px; cursor:pointer;"><i class='bx bx-calculator'></i></button>
                 <button onclick="document.getElementById('importFile').click()" style="flex:1; padding:8px; background:#1e293b; color:#fff; border:1px solid var(--border); border-radius:6px; cursor:pointer;"><i class='bx bx-import'></i></button>
             </div>
-            
             <input type="file" id="importFile" style="display:none;" onchange="handleFileImport(this)">
             <p id="journalStatus" style="text-align:center; font-size:0.75rem; color:var(--primary); margin-top:5px;"></p>
         </div>

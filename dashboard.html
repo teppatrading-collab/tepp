@@ -73,12 +73,8 @@
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
-                
-                // --- UPDATE: UNHIDE INDICATOR BUTTON FOR PRO USERS ---
                 document.getElementById('btn-unlock-indicator').style.display = 'flex';
-                
                 document.getElementById('proBadge').style.display = 'inline-block';
-                
                 loadLeaderboard(); 
             }
             
@@ -138,9 +134,7 @@
 
             document.getElementById('replayTargetDate').innerHTML = `TARGET: ${fullDateString}`;
 
-            // --- NEW: UPDATE REDIRECT BUTTON ---
             const btnRedirect = document.getElementById('btnRedirectTV');
-            // If user saved a specific chart link, use it. Otherwise, use generic symbol link.
             if (currentReplayTrade.tradingview_link && currentReplayTrade.tradingview_link.includes('http')) {
                 btnRedirect.href = currentReplayTrade.tradingview_link;
             } else {
@@ -186,10 +180,15 @@
                     statusClass = "fill-win";
                     statusText = "ORDER FILLED";
                     pnlText = `TP HIT: +$${Math.abs(currentReplayTrade.pnl)}`;
-                } else {
+                } else if (actualOutcome === 'Loss') {
                     statusClass = "fill-loss";
                     statusText = "STOPPED OUT";
                     pnlText = `SL HIT: -$${Math.abs(currentReplayTrade.pnl)}`;
+                } else {
+                    // Breakeven logic
+                    statusClass = "fill-warn";
+                    statusText = "BREAKEVEN";
+                    pnlText = `Closed at Entry`;
                 }
             } else {
                 statusClass = "fill-warn";
@@ -377,14 +376,21 @@
         }
 
         async function startGhostMode() {
-            const validTrades = allTradesCache.filter(t => t.chart_screenshot && t.outcome !== 'Pending');
+            const validTrades = allTradesCache.filter(t => t.chart_screenshot && t.outcome !== 'Breakeven');
             if (validTrades.length === 0) {
                 document.getElementById('ghost-chart-area').innerHTML = "<p>No charts found in history.</p>";
                 return;
             }
             const randomIdx = Math.floor(Math.random() * validTrades.length);
             currentGhostTrade = validTrades[randomIdx];
-            document.getElementById('ghost-chart-area').innerHTML = `<img src="${currentGhostTrade.chart_screenshot}" style="width:100%; height:100%; object-fit:contain;">`;
+            
+            // Handle multiple images: Just pick the first one for Ghost Mode
+            let imgUrl = currentGhostTrade.chart_screenshot;
+            if (imgUrl.includes(',')) {
+                imgUrl = imgUrl.split(',')[0];
+            }
+
+            document.getElementById('ghost-chart-area').innerHTML = `<img src="${imgUrl}" style="width:100%; height:100%; object-fit:contain;">`;
             document.getElementById('ghost-controls').style.display = 'flex';
             document.getElementById('ghost-result').innerText = "";
         }
@@ -492,23 +498,33 @@
             }
 
             status.innerText = "Processing...";
-            let imageUrl = null;
-
+            
+            // --- UPDATED MULTIPLE IMAGE UPLOAD LOGIC ---
+            let imageUrls = [];
+            
             if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const fileExt = file.name.split('.').pop();
-                const filePath = `trades/${Math.random()}.${fileExt}`;
-                let { error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(filePath, file);
-                if (!uploadError) {
-                    const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
-                    imageUrl = data.publicUrl;
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    const file = fileInput.files[i];
+                    const fileExt = file.name.split('.').pop();
+                    const filePath = `trades/${Math.random()}.${fileExt}`;
+                    
+                    // Upload each file
+                    let { error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(filePath, file);
+                    
+                    if (!uploadError) {
+                        const { data } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(filePath);
+                        imageUrls.push(data.publicUrl);
+                    }
                 }
             }
+
+            // Join multiple URLs with a comma separator
+            const finalImageString = imageUrls.length > 0 ? imageUrls.join(',') : null;
 
             const { error } = await supabaseClient.from('trades').insert([
                 { 
                     pair, type, reason, tradingview_link: chartLink, 
-                    chart_screenshot: imageUrl, outcome, emotion, 
+                    chart_screenshot: finalImageString, outcome, emotion, 
                     session: currentSession, strategy, is_playbook: isPlaybook, 
                     pnl: pnl ? parseFloat(pnl) : 0, created_at: finalTimestamp 
                 }
@@ -516,6 +532,7 @@
 
             if (error) {
                 status.innerText = "Error saving.";
+                console.error(error);
             } else {
                 status.innerText = "✅ Saved!";
                 loadTrades(); 
@@ -525,6 +542,7 @@
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
                 document.getElementById('playbookCheck').checked = false;
+                document.getElementById('chartUpload').value = ''; // Reset file input
                 document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat'));
                 setDefaultSession(); 
                 if(window.innerWidth <= 768) toggleSidebar();
@@ -593,15 +611,16 @@
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
+            // Stats Calculations (excluding Breakeven from certain stats if needed, but including in total)
             let wins = trades.filter(t => t.outcome === 'Win').length;
-            let total = trades.filter(t => t.outcome !== 'Pending').length;
+            let totalDecisive = trades.filter(t => t.outcome === 'Win' || t.outcome === 'Loss').length;
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
             let grossWin = trades.filter(t => (t.pnl || 0) > 0).reduce((a, b) => a + b.pnl, 0);
             let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
 
             let currentStreak = 0;
             for (let i = 0; i < trades.length; i++) {
-                if(trades[i].outcome === 'Pending') continue;
+                if(trades[i].outcome === 'Breakeven') continue; // Skip BE for streak
                 if(trades[i].outcome === 'Win') currentStreak++; else break; 
             }
 
@@ -621,7 +640,7 @@
             document.getElementById('netPnLStat').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('netPnLStat').style.color = netPnL >= 0 ? 'var(--primary)' : '#ef4444';
             document.getElementById('pfStat').innerText = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
-            document.getElementById('winRateStat').innerText = (total > 0 ? ((wins / total) * 100).toFixed(1) : 0) + "%";
+            document.getElementById('winRateStat').innerText = (totalDecisive > 0 ? ((wins / totalDecisive) * 100).toFixed(1) : 0) + "%";
             document.getElementById('streakStat').innerText = currentStreak + " W";
             
             updateSessionChart(sessionStats);
@@ -641,6 +660,19 @@
                     }
                 };
 
+                // --- MULTIPLE IMAGE DISPLAY LOGIC ---
+                let imgHtml = '';
+                if (trade.chart_screenshot) {
+                    const urls = trade.chart_screenshot.split(',');
+                    if (urls.length > 0) {
+                        imgHtml = '<div class="trade-gallery">';
+                        urls.forEach(url => {
+                            imgHtml += `<img src="${url}" class="trade-img-preview" onclick="window.open('${url}', '_blank')">`;
+                        });
+                        imgHtml += '</div>';
+                    }
+                }
+
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="pair-badge">${trade.pair}</span>
@@ -658,7 +690,9 @@
                     <div class="${blurClass}" style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${(trade.pnl || 0) >= 0 ? 'var(--primary)' : '#ef4444'}">
                         ${(trade.pnl || 0) >= 0 ? '+' : '-'}$${Math.abs(trade.pnl || 0)}
                     </div>
-                    ${trade.chart_screenshot ? `<img src="${trade.chart_screenshot}" class="trade-img-preview" onclick="window.open('${trade.chart_screenshot}', '_blank')">` : ''}
+                    
+                    ${imgHtml}
+
                     <div class="card-meta">
                         <span><i class='bx bx-time'></i> ${trade.session}</span> | <span><i class='bx bx-brain'></i> ${trade.emotion}</span>
                     </div>
@@ -834,7 +868,6 @@
             document.getElementById('accessModal').style.display = 'none'; 
         }
 
-        // FIXED FUNCTION BELOW
         async function requestAccess() {
             const usernameInput = document.getElementById('tvUsername');
             const btn = document.getElementById('btnRequestAccess');
@@ -850,7 +883,7 @@
             // 1. Set Loading State
             btn.disabled = true;
             btn.innerText = "Sending...";
-            statusMsg.innerText = ""; // Clear previous messages
+            statusMsg.innerText = ""; 
 
             try {
                 // 2. FIX: Get User Safely
@@ -875,15 +908,12 @@
                 statusMsg.innerText = "✅ Request Sent! Please allow 24h for activation.";
                 statusMsg.style.color = "var(--primary)";
                 btn.innerText = "Sent";
-                usernameInput.value = ""; // Clear input
+                usernameInput.value = ""; 
 
             } catch (err) {
-                // 5. Error Handling (Resets button so it doesn't get stuck)
                 console.error('Error:', err);
                 statusMsg.innerText = "❌ Error: " + (err.message || "Failed to send.");
                 statusMsg.style.color = "#ef4444";
-                
-                // Reset button
                 btn.disabled = false;
                 btn.innerText = "Request Access";
             }
@@ -1131,6 +1161,34 @@
             border-color: var(--primary);
         }
         
+        /* MULTIPLE IMAGES GALLERY CSS */
+        .trade-gallery {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            margin-top: 10px;
+            padding-bottom: 5px;
+        }
+        .trade-gallery::-webkit-scrollbar {
+            height: 6px;
+        }
+        .trade-gallery::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        .trade-img-preview {
+            height: 150px; /* Fixed height thumbnails */
+            width: auto;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 1px solid #334155;
+        }
+        .trade-img-preview:hover {
+            transform: scale(1.05);
+            border-color: var(--primary);
+        }
+
         .backtest-blur { 
             filter: blur(5px); 
             pointer-events: none; 
@@ -1159,6 +1217,19 @@
             opacity: 1;
         }
         
+        /* Outcome Tags Colors */
+        .outcome-tag {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .outcome-tag.win { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid #2dd4bf; }
+        .outcome-tag.loss { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+        .outcome-tag.pending { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid #94a3b8; }
+        .outcome-tag.breakeven { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
+
         /* ==================================================================
            CALENDAR
            ================================================================== */
@@ -1686,7 +1757,11 @@
                     
                     <div style="display:flex; gap:10px;">
                         <select id="tradeType" class="side-input"><option>Buy</option><option>Sell</option></select>
-                        <select id="tradeOutcome" class="side-input"><option>Pending</option><option>Win</option><option>Loss</option></select>
+                        <select id="tradeOutcome" class="side-input">
+                            <option>Win</option>
+                            <option>Loss</option>
+                            <option>Breakeven</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -1700,9 +1775,9 @@
                     <input type="text" id="chartLink" class="side-input" placeholder="Chart Link">
                     <textarea id="tradeReason" class="side-input" rows="2" placeholder="Notes..."></textarea>
                     
-                    <input type="file" id="chartUpload" style="display:none;">
+                    <input type="file" id="chartUpload" style="display:none;" multiple>
                     <label for="chartUpload" class="side-btn" style="background:transparent; border:1px dashed var(--border); color:#94a3b8; text-align:center; display:block; margin:10px 0;">
-                        <i class='bx bx-camera'></i> Upload Screenshot
+                        <i class='bx bx-camera'></i> Upload Screenshot(s)
                     </label>
                 </div>
             </div>

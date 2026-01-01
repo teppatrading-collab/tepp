@@ -73,6 +73,10 @@
             if (data && data.plan === 'pro' && data.status === 'active') {
                 document.getElementById('btn-ghost-nav').style.display = 'flex';
                 document.getElementById('btn-mentor-nav').style.display = 'flex';
+                
+                // --- UPDATE: UNHIDE INDICATOR BUTTON FOR PRO USERS ---
+                document.getElementById('btn-unlock-indicator').style.display = 'flex';
+                
                 document.getElementById('proBadge').style.display = 'inline-block';
                 
                 loadLeaderboard(); 
@@ -1646,7 +1650,7 @@
         <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>
         <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
 
-        <button class="nav-btn" onclick="openAccessModal()" style="color:#2dd4bf;"><i class='bx bx-lock-open-alt'></i> UNLOCK INDICATOR</button>
+        <button id="btn-unlock-indicator" class="nav-btn" onclick="openAccessModal()" style="display:none; color:#2dd4bf;"><i class='bx bx-lock-open-alt'></i> UNLOCK INDICATOR</button>
         
         <div style="height:20px;"></div>
 

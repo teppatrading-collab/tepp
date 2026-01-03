@@ -249,6 +249,9 @@
     let allAppsData = [];
     let allCoursesData = []; 
     
+    // Auto-detect DB column name (thumbnail vs thumbnail_url)
+    let dbImageColumn = 'thumbnail'; // Default guess
+
     // EDIT STATE
     let isEditing = false;
     let editingCourseId = null;
@@ -297,6 +300,13 @@
         }
 
         allCoursesData = courses; 
+        
+        // --- AUTO-DETECT IMAGE COLUMN ---
+        if(courses.length > 0) {
+            const sample = courses[0];
+            if(sample.thumbnail_url !== undefined) dbImageColumn = 'thumbnail_url';
+            else if(sample.thumbnail !== undefined) dbImageColumn = 'thumbnail';
+        }
 
         const freeGrid = document.getElementById('freeGrid');
         const proGrid = document.getElementById('proGrid');
@@ -309,7 +319,6 @@
             const card = document.createElement('div');
             card.className = 'course-card';
             
-            // Admin Controls
             let adminControls = "";
             if(userIsAdmin) {
                 adminControls = `
@@ -320,7 +329,7 @@
                 `;
             }
 
-            // Detect correct thumbnail column (handles both naming conventions just in case)
+            // Robust Image Getting
             const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course';
 
             let thumbHTML = `<div class="thumb-area">
@@ -371,14 +380,12 @@
 
         const currentThumb = course.thumbnail_url || course.thumbnail;
 
-        // Populate Form
         document.getElementById('cTitle').value = course.title;
         document.getElementById('cDesc').value = course.description;
         document.getElementById('cVideo').value = course.video_url;
         document.getElementById('cThumbUrl').value = currentThumb;
         document.getElementById('cPremium').checked = course.is_premium;
 
-        // VISUAL PREVIEW (This helps you see what is selected)
         const statusSpan = document.getElementById('uploadStatus');
         statusSpan.innerHTML = `
             <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
@@ -423,7 +430,7 @@
         else loadCourses();
     }
 
-    // --- HANDLE SUBMIT ---
+    // --- HANDLE SUBMIT WITH AUTO-DETECTED COLUMN ---
     async function handleCourseSubmit() {
         const title = document.getElementById('cTitle').value;
         const desc = document.getElementById('cDesc').value;
@@ -432,11 +439,9 @@
         const isPremium = document.getElementById('cPremium').checked;
         const btn = document.getElementById('btnUpload');
 
-        // Validate
         if(!title || !video) return alert("Title and Video URL required");
         if(!thumb) return alert("Please upload a thumbnail");
         
-        // Prevent saving if upload is still processing (check logic)
         const statusText = document.getElementById('uploadStatus').innerText;
         if(statusText.includes("Uploading")) return alert("Please wait for image upload to finish!");
 
@@ -444,14 +449,15 @@
 
         let error;
         
-        // Payload - we send thumbnail_url to be safe
+        // Use the auto-detected column name
         const payload = { 
             title, 
             description: desc, 
             video_url: video, 
-            thumbnail_url: thumb, // Ensure this column matches your DB
             is_premium: isPremium 
         };
+        // Add image to correct column
+        payload[dbImageColumn] = thumb; 
 
         if(isEditing) {
             const result = await supabaseClient.from('courses').update(payload).eq('id', editingCourseId);
@@ -471,7 +477,7 @@
         btn.innerText = isEditing ? "Save Changes" : "Publish Course";
     }
 
-    // --- FILE UPLOAD LISTENER (UPDATED) ---
+    // --- FILE UPLOAD LISTENER ---
     document.getElementById('cThumbFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         const statusContainer = document.getElementById('uploadStatus');
@@ -497,10 +503,8 @@
 
             const publicUrl = urlData.publicUrl;
 
-            // Update Hidden Input (Crucial for saving)
             hiddenInput.value = publicUrl;
 
-            // Show New Image Preview
             statusContainer.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
                     <img src="${publicUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:2px solid #2dd4bf;">

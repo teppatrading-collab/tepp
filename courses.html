@@ -244,16 +244,15 @@
 
     // --- CONFIG ---
     let userIsPro = false; 
-    let userIsAdmin = false; // New flag
+    let userIsAdmin = false; 
     let currentUserEmail = "";
     let allAppsData = [];
-    let allCoursesData = []; // Store courses for editing
+    let allCoursesData = []; 
     
     // EDIT STATE
     let isEditing = false;
     let editingCourseId = null;
     
-    // ADMIN EMAIL 
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
 
     async function init() {
@@ -264,7 +263,7 @@
         
         // 1. Check if user is admin 
         if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
-            userIsAdmin = true; // Set flag
+            userIsAdmin = true; 
             const panel = document.getElementById('adminPanel');
             panel.style.display = 'grid'; 
             panel.style.gridTemplateColumns = '1fr'; 
@@ -297,7 +296,7 @@
             return;
         }
 
-        allCoursesData = courses; // Save for editing lookup
+        allCoursesData = courses; 
 
         const freeGrid = document.getElementById('freeGrid');
         const proGrid = document.getElementById('proGrid');
@@ -310,7 +309,7 @@
             const card = document.createElement('div');
             card.className = 'course-card';
             
-            // Admin Controls HTML
+            // Admin Controls
             let adminControls = "";
             if(userIsAdmin) {
                 adminControls = `
@@ -321,15 +320,16 @@
                 `;
             }
 
-            // Thumbnail Logic
+            // Detect correct thumbnail column (handles both naming conventions just in case)
+            const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course';
+
             let thumbHTML = `<div class="thumb-area">
                 ${adminControls}
-                <img src="${course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
+                <img src="${thumbSrc}" class="thumb-img">
                 <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
                 ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
             </div>`;
 
-            // Body Logic
             let bodyHTML = `<div class="card-body">
                 <div class="c-title">${course.title}</div>
                 <div class="c-desc">${course.description}</div>
@@ -345,7 +345,6 @@
         });
     }
 
-    // --- HELPER: CONVERT YOUTUBE LINKS ---
     function getEmbedUrl(url) {
         if (!url) return "";
         if (url.includes("/embed/")) return url;
@@ -364,31 +363,38 @@
         document.getElementById('videoModal').style.display = 'flex';
     }
 
-    // --- EDIT & DELETE LOGIC ---
+    // --- EDIT LOGIC ---
 
     function startEdit(courseId) {
-        // Find course data
-        const course = allCoursesData.find(c => c.id == courseId); // == for loose match if id is string/int
+        const course = allCoursesData.find(c => c.id == courseId);
         if(!course) return;
+
+        const currentThumb = course.thumbnail_url || course.thumbnail;
 
         // Populate Form
         document.getElementById('cTitle').value = course.title;
         document.getElementById('cDesc').value = course.description;
         document.getElementById('cVideo').value = course.video_url;
-        document.getElementById('cThumbUrl').value = course.thumbnail_url || course.thumbnail;
+        document.getElementById('cThumbUrl').value = currentThumb;
         document.getElementById('cPremium').checked = course.is_premium;
 
-        // Visual cues that we are in edit mode
+        // VISUAL PREVIEW (This helps you see what is selected)
+        const statusSpan = document.getElementById('uploadStatus');
+        statusSpan.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                <img id="editPreview" src="${currentThumb}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #334155;">
+                <span style="font-size:0.75rem; color:#94a3b8;">Current Image</span>
+            </div>
+        `;
+
         isEditing = true;
         editingCourseId = courseId;
         
         document.getElementById('formHeader').innerHTML = "<i class='bx bx-edit'></i> Edit Course";
         document.getElementById('btnUpload').innerText = "Save Changes";
-        document.getElementById('btnUpload').style.background = "#3b82f6"; // Blue for save
+        document.getElementById('btnUpload').style.background = "#3b82f6"; 
         document.getElementById('btnCancel').style.display = "inline-block";
-        document.getElementById('uploadStatus').innerText = "Keeping current image (upload new to replace)";
 
-        // Scroll to form
         document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -396,7 +402,6 @@
         isEditing = false;
         editingCourseId = null;
         
-        // Reset Form
         document.getElementById('cTitle').value = "";
         document.getElementById('cDesc').value = "";
         document.getElementById('cVideo').value = "";
@@ -404,26 +409,21 @@
         document.getElementById('cThumbFile').value = "";
         document.getElementById('cPremium').checked = false;
         
-        // Reset Visuals
         document.getElementById('formHeader').innerHTML = "<i class='bx bx-cloud-upload'></i> Upload New Course";
         document.getElementById('btnUpload').innerText = "Publish Course";
-        document.getElementById('btnUpload').style.background = "#2dd4bf"; // Back to teal
+        document.getElementById('btnUpload').style.background = "#2dd4bf"; 
         document.getElementById('btnCancel').style.display = "none";
         document.getElementById('uploadStatus').innerText = "No file chosen";
     }
 
     async function deleteCourse(id) {
         if(!confirm("Are you sure you want to PERMANENTLY delete this course?")) return;
-        
         const { error } = await supabaseClient.from('courses').delete().eq('id', id);
-        
         if(error) alert("Delete failed: " + error.message);
-        else {
-            loadCourses(); // Refresh list
-        }
+        else loadCourses();
     }
 
-    // --- HANDLE SUBMIT (CREATE OR UPDATE) ---
+    // --- HANDLE SUBMIT ---
     async function handleCourseSubmit() {
         const title = document.getElementById('cTitle').value;
         const desc = document.getElementById('cDesc').value;
@@ -432,51 +432,58 @@
         const isPremium = document.getElementById('cPremium').checked;
         const btn = document.getElementById('btnUpload');
 
+        // Validate
         if(!title || !video) return alert("Title and Video URL required");
         if(!thumb) return alert("Please upload a thumbnail");
+        
+        // Prevent saving if upload is still processing (check logic)
+        const statusText = document.getElementById('uploadStatus').innerText;
+        if(statusText.includes("Uploading")) return alert("Please wait for image upload to finish!");
 
         btn.innerText = isEditing ? "Saving..." : "Uploading...";
 
         let error;
         
+        // Payload - we send thumbnail_url to be safe
+        const payload = { 
+            title, 
+            description: desc, 
+            video_url: video, 
+            thumbnail_url: thumb, // Ensure this column matches your DB
+            is_premium: isPremium 
+        };
+
         if(isEditing) {
-            // UPDATE EXISTING
-            const result = await supabaseClient
-                .from('courses')
-                .update({ title, description: desc, video_url: video, thumbnail_url: thumb, is_premium: isPremium })
-                .eq('id', editingCourseId);
+            const result = await supabaseClient.from('courses').update(payload).eq('id', editingCourseId);
             error = result.error;
         } else {
-            // CREATE NEW
-            const result = await supabaseClient
-                .from('courses')
-                .insert([{ title, description: desc, video_url: video, thumbnail_url: thumb, is_premium: isPremium }]);
+            const result = await supabaseClient.from('courses').insert([payload]);
             error = result.error;
         }
 
         if(error) {
-            alert(error.message);
+            alert("Error: " + error.message);
         } else {
             alert(isEditing ? "Course Updated!" : "Course Uploaded!");
-            cancelEdit(); // Resets form and mode
-            loadCourses(); // Refresh grid
+            cancelEdit(); 
+            loadCourses(); 
         }
         btn.innerText = isEditing ? "Save Changes" : "Publish Course";
     }
 
-    // --- FILE UPLOAD LISTENER ---
+    // --- FILE UPLOAD LISTENER (UPDATED) ---
     document.getElementById('cThumbFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        const statusText = document.getElementById('uploadStatus');
+        const statusContainer = document.getElementById('uploadStatus');
         const hiddenInput = document.getElementById('cThumbUrl');
 
         if (!file) return;
 
         try {
-            statusText.innerText = "Uploading...";
-            statusText.style.color = "#fbbf24";
-
-            const fileName = `public/${Date.now()}_${file.name}`;
+            statusContainer.innerHTML = `<span style="color:#fbbf24;">Uploading...</span>`;
+            
+            // Generate unique name
+            const fileName = `public/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
             
             const { data, error } = await supabaseClient.storage
                 .from('thumbnails') 
@@ -488,69 +495,41 @@
                 .from('thumbnails')
                 .getPublicUrl(fileName);
 
-            hiddenInput.value = urlData.publicUrl;
-            statusText.innerText = "✅ Ready";
-            statusText.style.color = "#2dd4bf";
+            const publicUrl = urlData.publicUrl;
+
+            // Update Hidden Input (Crucial for saving)
+            hiddenInput.value = publicUrl;
+
+            // Show New Image Preview
+            statusContainer.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                    <img src="${publicUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:2px solid #2dd4bf;">
+                    <span style="font-size:0.75rem; color:#2dd4bf; font-weight:bold;">✅ New Image Ready</span>
+                </div>
+            `;
 
         } catch (error) {
             console.error("Upload error:", error);
-            statusText.innerText = "❌ Failed";
-            statusText.style.color = "#ef4444";
-            alert("Ensure you have a public 'thumbnails' bucket in Supabase.");
+            statusContainer.innerHTML = `<span style="color:#ef4444;">❌ Failed: ${error.message}</span>`;
         }
     });
 
-    // --- ADMIN: FETCH APPLICATIONS ---
+    // --- APPLICATIONS LOGIC (UNCHANGED) ---
     async function fetchApplications() {
-        const { data, error } = await supabaseClient
-            .from('mentorship_applications')
-            .select('*')
-            .order('created_at', { ascending: false });
-
+        const { data, error } = await supabaseClient.from('mentorship_applications').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('appTableBody');
         tbody.innerHTML = '';
-
         if (error) { console.log(error); return; }
         allAppsData = data; 
-
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>';
-            return;
-        }
-
+        if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>'; return; }
         data.forEach((app) => {
             const row = document.createElement('tr');
-            
             let actionButtons = '';
             if(app.status === 'pending') {
-                actionButtons += `
-                    <button onclick="updateStatus('${app.user_id}', 'approved')" style="background:#2dd4bf; color:#000; border:none; padding:5px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">Accept</button>
-                    <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Deny</button>
-                `;
+                actionButtons += `<button onclick="updateStatus('${app.user_id}', 'approved')" style="background:#2dd4bf; color:#000; border:none; padding:5px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">Accept</button> <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Deny</button>`;
             }
-            actionButtons += `
-                <button onclick="deleteApplication('${app.user_id}')" title="Delete" style="background:transparent; border:none; color:#64748b; font-size:1.1rem; cursor:pointer; margin-left:5px;"><i class='bx bx-trash'></i></button>
-            `;
-
-            row.innerHTML = `
-                <td>
-                    <div style="font-weight:bold; color:#fff;">${app.discord_handle || 'No Discord'}</div>
-                    <div style="font-size:0.8rem; color:#64748b;">${app.email}</div>
-                </td>
-                <td>
-                    <div style="color:#cbd5e1; font-size:0.85rem;">Exp: ${app.experience}</div>
-                    <div style="color:#2dd4bf; font-size:0.85rem;">${app.capital}</div>
-                    <button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px; background:none; border:none; color:#818cf8; text-decoration:underline; cursor:pointer; font-size:0.75rem; padding:0;">View Answer</button>
-                </td>
-                <td>
-                    <span style="padding:4px 10px; border-radius:20px; font-size:0.7rem; font-weight:800; text-transform:uppercase; background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'}; color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span>
-                </td>
-                <td>
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        ${actionButtons}
-                    </div>
-                </td>
-            `;
+            actionButtons += `<button onclick="deleteApplication('${app.user_id}')" title="Delete" style="background:transparent; border:none; color:#64748b; font-size:1.1rem; cursor:pointer; margin-left:5px;"><i class='bx bx-trash'></i></button>`;
+            row.innerHTML = `<td><div style="font-weight:bold; color:#fff;">${app.discord_handle || 'No Discord'}</div><div style="font-size:0.8rem; color:#64748b;">${app.email}</div></td><td><div style="color:#cbd5e1; font-size:0.85rem;">Exp: ${app.experience}</div><div style="color:#2dd4bf; font-size:0.85rem;">${app.capital}</div><button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px; background:none; border:none; color:#818cf8; text-decoration:underline; cursor:pointer; font-size:0.75rem; padding:0;">View Answer</button></td><td><span style="padding:4px 10px; border-radius:20px; font-size:0.7rem; font-weight:800; text-transform:uppercase; background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'}; color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span></td><td><div style="display:flex; align-items:center; gap:5px;">${actionButtons}</div></td>`;
             tbody.appendChild(row);
         });
     }
@@ -559,26 +538,7 @@
         const app = allAppsData.find(a => a.user_id === userId);
         if (!app) { alert("Error: Could not find application data."); return; }
         const contentDiv = document.getElementById('appModalContent');
-        contentDiv.innerHTML = `
-            <div style="margin-bottom:15px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-                <div><span style="display:block; font-size:0.75rem; color:#64748b;">Applicant</span> <strong style="color:#fff;">${app.discord_handle}</strong></div>
-                <div style="text-align:right;"><span style="display:block; font-size:0.75rem; color:#64748b;">Date</span> <strong style="color:#fff;">${new Date(app.created_at).toLocaleDateString()}</strong></div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-                <div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);">
-                    <div style="font-size:0.75rem; color:#2dd4bf;">Experience</div>
-                    <div style="color:#fff; font-weight:bold;">${app.experience}</div>
-                </div>
-                <div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);">
-                    <div style="font-size:0.75rem; color:#2dd4bf;">Capital</div>
-                    <div style="color:#fff; font-weight:bold;">${app.capital}</div>
-                </div>
-            </div>
-            <div>
-                <strong style="color:#fff; display:block; margin-bottom:5px;">Why do you want to join?</strong>
-                <div style="background:#0f172a; padding:15px; border-radius:8px; border:1px solid var(--border); color:#cbd5e1; white-space: pre-wrap;">${app.why_join}</div>
-            </div>
-        `;
+        contentDiv.innerHTML = `<div style="margin-bottom:15px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"><div><span style="display:block; font-size:0.75rem; color:#64748b;">Applicant</span> <strong style="color:#fff;">${app.discord_handle}</strong></div><div style="text-align:right;"><span style="display:block; font-size:0.75rem; color:#64748b;">Date</span> <strong style="color:#fff;">${new Date(app.created_at).toLocaleDateString()}</strong></div></div><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;"><div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);"><div style="font-size:0.75rem; color:#2dd4bf;">Experience</div><div style="color:#fff; font-weight:bold;">${app.experience}</div></div><div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);"><div style="font-size:0.75rem; color:#2dd4bf;">Capital</div><div style="color:#fff; font-weight:bold;">${app.capital}</div></div></div><div><strong style="color:#fff; display:block; margin-bottom:5px;">Why do you want to join?</strong><div style="background:#0f172a; padding:15px; border-radius:8px; border:1px solid var(--border); color:#cbd5e1; white-space: pre-wrap;">${app.why_join}</div></div>`;
         document.getElementById('appModal').style.display = 'flex';
     }
 
@@ -591,12 +551,8 @@
     async function deleteApplication(id) {
         if(!confirm("Are you sure you want to PERMANENTLY delete this application?")) return;
         const { error } = await supabaseClient.from('mentorship_applications').delete().eq('user_id', id);
-        if(error) {
-            alert("Error deleting: " + error.message);
-            console.error(error);
-        } else {
-            fetchApplications();
-        }
+        if(error) alert("Error deleting: " + error.message);
+        else fetchApplications();
     }
 </script>
 

@@ -84,6 +84,20 @@
         .badge-free { position: absolute; top: 10px; right: 10px; background: var(--primary); color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
         .badge-pro { position: absolute; top: 10px; right: 10px; background: #fbbf24; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
 
+        /* New Admin Controls on Card */
+        .admin-controls {
+            position: absolute; top: 10px; left: 10px; z-index: 10;
+            display: flex; gap: 8px;
+        }
+        .admin-btn-card {
+            width: 30px; height: 30px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1rem; color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .btn-edit { background: #3b82f6; } /* Blue for edit */
+        .btn-del { background: #ef4444; } /* Red for delete */
+
         .card-body { padding: 20px; }
         .c-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
         .c-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
@@ -115,6 +129,9 @@
             border: 1px solid var(--border);
             position: relative;
         }
+        
+        /* Cancel Edit Button Style */
+        .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); margin-left: 10px; padding: 12px 20px; border-radius: 8px; cursor: pointer; display: none; }
     </style>
 </head>
 <body>
@@ -134,7 +151,7 @@
             
             <div class="admin-card">
                 <div class="admin-header">
-                    <div class="admin-title"><i class='bx bx-cloud-upload'></i> Upload New Course</div>
+                    <div class="admin-title" id="formHeader"><i class='bx bx-cloud-upload'></i> Upload New Course</div>
                 </div>
                 
                 <div class="form-group">
@@ -168,7 +185,10 @@
                     <label for="cPremium" style="margin:0; cursor:pointer;">Premium Member Only?</label>
                 </div>
 
-                <button onclick="uploadCourse()" id="btnUpload" class="btn-action">Publish Course</button>
+                <div style="margin-top: 15px;">
+                    <button onclick="handleCourseSubmit()" id="btnUpload" class="btn-action">Publish Course</button>
+                    <button onclick="cancelEdit()" id="btnCancel" class="btn-cancel">Cancel Edit</button>
+                </div>
             </div>
 
             <div class="admin-card">
@@ -224,8 +244,14 @@
 
     // --- CONFIG ---
     let userIsPro = false; 
+    let userIsAdmin = false; // New flag
     let currentUserEmail = "";
-    let allAppsData = []; // Store fetched apps here
+    let allAppsData = [];
+    let allCoursesData = []; // Store courses for editing
+    
+    // EDIT STATE
+    let isEditing = false;
+    let editingCourseId = null;
     
     // ADMIN EMAIL 
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
@@ -238,6 +264,7 @@
         
         // 1. Check if user is admin 
         if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
+            userIsAdmin = true; // Set flag
             const panel = document.getElementById('adminPanel');
             panel.style.display = 'grid'; 
             panel.style.gridTemplateColumns = '1fr'; 
@@ -249,7 +276,7 @@
         }
 
         // 2. Determine Pro Status
-        if (currentUserEmail.includes("pro") || currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
+        if (currentUserEmail.includes("pro") || userIsAdmin) {
             userIsPro = true;
             document.getElementById('userStatus').innerText = "PRO MEMBER";
             document.getElementById('userStatus').style.borderColor = "#fbbf24";
@@ -270,6 +297,8 @@
             return;
         }
 
+        allCoursesData = courses; // Save for editing lookup
+
         const freeGrid = document.getElementById('freeGrid');
         const proGrid = document.getElementById('proGrid');
         freeGrid.innerHTML = "";
@@ -281,8 +310,20 @@
             const card = document.createElement('div');
             card.className = 'course-card';
             
+            // Admin Controls HTML
+            let adminControls = "";
+            if(userIsAdmin) {
+                adminControls = `
+                    <div class="admin-controls">
+                        <button onclick="startEdit('${course.id}')" class="admin-btn-card btn-edit" title="Edit"><i class='bx bx-pencil'></i></button>
+                        <button onclick="deleteCourse('${course.id}')" class="admin-btn-card btn-del" title="Delete"><i class='bx bx-trash'></i></button>
+                    </div>
+                `;
+            }
+
             // Thumbnail Logic
             let thumbHTML = `<div class="thumb-area">
+                ${adminControls}
                 <img src="${course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course'}" class="thumb-img">
                 <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
                 ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
@@ -304,35 +345,123 @@
         });
     }
 
-    // --- FIX: HELPER TO CONVERT YOUTUBE LINKS ---
+    // --- HELPER: CONVERT YOUTUBE LINKS ---
     function getEmbedUrl(url) {
         if (!url) return "";
-        // If already correct, return
         if (url.includes("/embed/")) return url;
-
-        // Handle standard watch links (youtube.com/watch?v=XYZ)
         const videoIdMatch = url.match(/[?&]v=([^&]+)/);
-        if (videoIdMatch && videoIdMatch[1]) {
-            return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
-        }
-
-        // Handle short links (youtu.be/XYZ)
+        if (videoIdMatch && videoIdMatch[1]) return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
         if (url.includes("youtu.be/")) {
             const idParts = url.split("youtu.be/");
-            if (idParts[1]) {
-                const id = idParts[1].split("?")[0]; // remove any query params
-                return `https://www.youtube.com/embed/${id}`;
-            }
+            if (idParts[1]) return `https://www.youtube.com/embed/${idParts[1].split("?")[0]}`;
         }
-
-        return url; // Return original if we can't figure it out
+        return url;
     }
 
-    // --- UPDATED OPEN VIDEO FUNCTION ---
     function openVideo(url) {
-        const embedUrl = getEmbedUrl(url); // Auto-convert link
+        const embedUrl = getEmbedUrl(url); 
         document.getElementById('vFrame').src = embedUrl;
         document.getElementById('videoModal').style.display = 'flex';
+    }
+
+    // --- EDIT & DELETE LOGIC ---
+
+    function startEdit(courseId) {
+        // Find course data
+        const course = allCoursesData.find(c => c.id == courseId); // == for loose match if id is string/int
+        if(!course) return;
+
+        // Populate Form
+        document.getElementById('cTitle').value = course.title;
+        document.getElementById('cDesc').value = course.description;
+        document.getElementById('cVideo').value = course.video_url;
+        document.getElementById('cThumbUrl').value = course.thumbnail_url || course.thumbnail;
+        document.getElementById('cPremium').checked = course.is_premium;
+
+        // Visual cues that we are in edit mode
+        isEditing = true;
+        editingCourseId = courseId;
+        
+        document.getElementById('formHeader').innerHTML = "<i class='bx bx-edit'></i> Edit Course";
+        document.getElementById('btnUpload').innerText = "Save Changes";
+        document.getElementById('btnUpload').style.background = "#3b82f6"; // Blue for save
+        document.getElementById('btnCancel').style.display = "inline-block";
+        document.getElementById('uploadStatus').innerText = "Keeping current image (upload new to replace)";
+
+        // Scroll to form
+        document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        isEditing = false;
+        editingCourseId = null;
+        
+        // Reset Form
+        document.getElementById('cTitle').value = "";
+        document.getElementById('cDesc').value = "";
+        document.getElementById('cVideo').value = "";
+        document.getElementById('cThumbUrl').value = "";
+        document.getElementById('cThumbFile').value = "";
+        document.getElementById('cPremium').checked = false;
+        
+        // Reset Visuals
+        document.getElementById('formHeader').innerHTML = "<i class='bx bx-cloud-upload'></i> Upload New Course";
+        document.getElementById('btnUpload').innerText = "Publish Course";
+        document.getElementById('btnUpload').style.background = "#2dd4bf"; // Back to teal
+        document.getElementById('btnCancel').style.display = "none";
+        document.getElementById('uploadStatus').innerText = "No file chosen";
+    }
+
+    async function deleteCourse(id) {
+        if(!confirm("Are you sure you want to PERMANENTLY delete this course?")) return;
+        
+        const { error } = await supabaseClient.from('courses').delete().eq('id', id);
+        
+        if(error) alert("Delete failed: " + error.message);
+        else {
+            loadCourses(); // Refresh list
+        }
+    }
+
+    // --- HANDLE SUBMIT (CREATE OR UPDATE) ---
+    async function handleCourseSubmit() {
+        const title = document.getElementById('cTitle').value;
+        const desc = document.getElementById('cDesc').value;
+        const video = document.getElementById('cVideo').value;
+        const thumb = document.getElementById('cThumbUrl').value; 
+        const isPremium = document.getElementById('cPremium').checked;
+        const btn = document.getElementById('btnUpload');
+
+        if(!title || !video) return alert("Title and Video URL required");
+        if(!thumb) return alert("Please upload a thumbnail");
+
+        btn.innerText = isEditing ? "Saving..." : "Uploading...";
+
+        let error;
+        
+        if(isEditing) {
+            // UPDATE EXISTING
+            const result = await supabaseClient
+                .from('courses')
+                .update({ title, description: desc, video_url: video, thumbnail_url: thumb, is_premium: isPremium })
+                .eq('id', editingCourseId);
+            error = result.error;
+        } else {
+            // CREATE NEW
+            const result = await supabaseClient
+                .from('courses')
+                .insert([{ title, description: desc, video_url: video, thumbnail_url: thumb, is_premium: isPremium }]);
+            error = result.error;
+        }
+
+        if(error) {
+            alert(error.message);
+        } else {
+            alert(isEditing ? "Course Updated!" : "Course Uploaded!");
+            cancelEdit(); // Resets form and mode
+            loadCourses(); // Refresh grid
+        }
+        btn.innerText = isEditing ? "Save Changes" : "Publish Course";
     }
 
     // --- FILE UPLOAD LISTENER ---
@@ -371,40 +500,6 @@
         }
     });
 
-    // --- ADMIN: UPLOAD COURSE ---
-    async function uploadCourse() {
-        const title = document.getElementById('cTitle').value;
-        const desc = document.getElementById('cDesc').value;
-        const video = document.getElementById('cVideo').value;
-        const thumb = document.getElementById('cThumbUrl').value; 
-        const isPremium = document.getElementById('cPremium').checked;
-        const btn = document.getElementById('btnUpload');
-
-        if(!title || !video) return alert("Title and Video URL required");
-        if(!thumb) return alert("Please upload a thumbnail");
-
-        btn.innerText = "Uploading...";
-
-        const { error } = await supabaseClient.from('courses').insert([{
-            title, description: desc, video_url: video, thumbnail_url: thumb, is_premium: isPremium
-        }]);
-
-        if(error) {
-            alert(error.message);
-            btn.innerText = "Publish Course";
-        } else {
-            alert("Course Uploaded!");
-            btn.innerText = "Publish Course";
-            loadCourses();
-            document.getElementById('cTitle').value = "";
-            document.getElementById('cDesc').value = "";
-            document.getElementById('cVideo').value = "";
-            document.getElementById('cThumbFile').value = "";
-            document.getElementById('cThumbUrl').value = "";
-            document.getElementById('uploadStatus').innerText = "No file chosen";
-        }
-    }
-
     // --- ADMIN: FETCH APPLICATIONS ---
     async function fetchApplications() {
         const { data, error } = await supabaseClient
@@ -416,8 +511,7 @@
         tbody.innerHTML = '';
 
         if (error) { console.log(error); return; }
-        
-        allAppsData = data; // Save global so View button can find it
+        allAppsData = data; 
 
         if (data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>';
@@ -427,7 +521,6 @@
         data.forEach((app) => {
             const row = document.createElement('tr');
             
-            // Build buttons
             let actionButtons = '';
             if(app.status === 'pending') {
                 actionButtons += `
@@ -435,7 +528,6 @@
                     <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Deny</button>
                 `;
             }
-            // Delete button now triggers explicit delete
             actionButtons += `
                 <button onclick="deleteApplication('${app.user_id}')" title="Delete" style="background:transparent; border:none; color:#64748b; font-size:1.1rem; cursor:pointer; margin-left:5px;"><i class='bx bx-trash'></i></button>
             `;
@@ -463,24 +555,15 @@
         });
     }
 
-    // --- FIX: VIEW FULL APP MODAL ---
     function viewFullApp(userId) {
-        // Find the specific app by user_id instead of index
         const app = allAppsData.find(a => a.user_id === userId);
-        
-        if (!app) {
-            alert("Error: Could not find application data.");
-            return;
-        }
-
+        if (!app) { alert("Error: Could not find application data."); return; }
         const contentDiv = document.getElementById('appModalContent');
-        
         contentDiv.innerHTML = `
             <div style="margin-bottom:15px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
                 <div><span style="display:block; font-size:0.75rem; color:#64748b;">Applicant</span> <strong style="color:#fff;">${app.discord_handle}</strong></div>
                 <div style="text-align:right;"><span style="display:block; font-size:0.75rem; color:#64748b;">Date</span> <strong style="color:#fff;">${new Date(app.created_at).toLocaleDateString()}</strong></div>
             </div>
-            
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
                 <div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);">
                     <div style="font-size:0.75rem; color:#2dd4bf;">Experience</div>
@@ -491,13 +574,11 @@
                     <div style="color:#fff; font-weight:bold;">${app.capital}</div>
                 </div>
             </div>
-
             <div>
                 <strong style="color:#fff; display:block; margin-bottom:5px;">Why do you want to join?</strong>
                 <div style="background:#0f172a; padding:15px; border-radius:8px; border:1px solid var(--border); color:#cbd5e1; white-space: pre-wrap;">${app.why_join}</div>
             </div>
         `;
-        
         document.getElementById('appModal').style.display = 'flex';
     }
 
@@ -507,18 +588,11 @@
         fetchApplications();
     }
 
-    // --- FIX: DELETE FUNCTION ---
     async function deleteApplication(id) {
         if(!confirm("Are you sure you want to PERMANENTLY delete this application?")) return;
-        
-        const { error } = await supabaseClient
-            .from('mentorship_applications')
-            .delete()
-            .eq('user_id', id);
-
+        const { error } = await supabaseClient.from('mentorship_applications').delete().eq('user_id', id);
         if(error) {
-            // This alert will tell you EXACTLY why it failed
-            alert("Error deleting: " + error.message + "\n\nCHECK YOUR SUPABASE RLS POLICIES!");
+            alert("Error deleting: " + error.message);
             console.error(error);
         } else {
             fetchApplications();

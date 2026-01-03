@@ -110,9 +110,16 @@
         .watch-btn:hover { background: var(--primary); color: #000; }
         .watch-btn.locked { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
+        /* --- UPDATED MODAL STYLES --- */
         .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
         .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
-        .close-v { position: absolute; top: -40px; right: 0; color: #fff; font-size: 2rem; cursor: pointer; }
+        /* Moved Close Button INSIDE and made it bigger/safer */
+        .close-v { 
+            position: absolute; top: 15px; right: 15px; 
+            color: #fff; font-size: 2rem; cursor: pointer; z-index: 50;
+            background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        }
         
         /* Table Styles */
         .app-table { width: 100%; border-collapse: collapse; background: rgba(15, 23, 42, 0.5); border-radius: 8px; overflow: hidden; }
@@ -220,9 +227,9 @@
         <div id="proGrid" class="course-grid"></div>
     </div>
 
-    <div id="videoModal" class="v-modal">
+    <div id="videoModal" class="v-modal" onclick="closeVideoModal(event)">
         <div class="v-box">
-            <i class='bx bx-x close-v' onclick="document.getElementById('videoModal').style.display='none'; document.getElementById('vFrame').src='';"></i>
+            <i class='bx bx-x close-v' onclick="forceClose()"></i>
             <div style="padding:56.25% 0 0 0; position:relative;">
                 <iframe id="vFrame" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
             </div>
@@ -249,8 +256,8 @@
     let allAppsData = [];
     let allCoursesData = []; 
     
-    // Auto-detect DB column name (thumbnail vs thumbnail_url)
-    let dbImageColumn = 'thumbnail'; // Default guess
+    // Auto-detect DB column name
+    let dbImageColumn = 'thumbnail'; 
 
     // EDIT STATE
     let isEditing = false;
@@ -329,7 +336,6 @@
                 `;
             }
 
-            // Robust Image Getting
             const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course';
 
             let thumbHTML = `<div class="thumb-area">
@@ -366,10 +372,24 @@
         return url;
     }
 
+    // --- MODAL FUNCTIONS ---
     function openVideo(url) {
         const embedUrl = getEmbedUrl(url); 
         document.getElementById('vFrame').src = embedUrl;
         document.getElementById('videoModal').style.display = 'flex';
+    }
+
+    function forceClose() {
+        document.getElementById('videoModal').style.display = 'none';
+        document.getElementById('vFrame').src = '';
+    }
+
+    function closeVideoModal(e) {
+        // If the user clicked the DARK BACKGROUND (id="videoModal"), close it.
+        // If they clicked the video box (className="v-box"), do nothing.
+        if (e.target.id === 'videoModal') {
+            forceClose();
+        }
     }
 
     // --- EDIT LOGIC ---
@@ -425,12 +445,23 @@
 
     async function deleteCourse(id) {
         if(!confirm("Are you sure you want to PERMANENTLY delete this course?")) return;
-        const { error } = await supabaseClient.from('courses').delete().eq('id', id);
-        if(error) alert("Delete failed: " + error.message);
-        else loadCourses();
+        
+        // Updated Delete Logic with Feedback
+        const { data, error } = await supabaseClient
+            .from('courses')
+            .delete()
+            .eq('id', id)
+            .select();
+
+        if(error) {
+            alert("Error: " + error.message);
+        } else if (data.length === 0) {
+            alert("❌ Delete Failed!\n\nDatabase blocked this action. Check your RLS policies in Supabase.");
+        } else {
+            loadCourses(); 
+        }
     }
 
-    // --- HANDLE SUBMIT WITH AUTO-DETECTED COLUMN ---
     async function handleCourseSubmit() {
         const title = document.getElementById('cTitle').value;
         const desc = document.getElementById('cDesc').value;
@@ -449,14 +480,12 @@
 
         let error;
         
-        // Use the auto-detected column name
         const payload = { 
             title, 
             description: desc, 
             video_url: video, 
             is_premium: isPremium 
         };
-        // Add image to correct column
         payload[dbImageColumn] = thumb; 
 
         if(isEditing) {
@@ -477,7 +506,6 @@
         btn.innerText = isEditing ? "Save Changes" : "Publish Course";
     }
 
-    // --- FILE UPLOAD LISTENER ---
     document.getElementById('cThumbFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         const statusContainer = document.getElementById('uploadStatus');
@@ -488,7 +516,6 @@
         try {
             statusContainer.innerHTML = `<span style="color:#fbbf24;">Uploading...</span>`;
             
-            // Generate unique name
             const fileName = `public/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
             
             const { data, error } = await supabaseClient.storage
@@ -518,7 +545,6 @@
         }
     });
 
-    // --- APPLICATIONS LOGIC (UNCHANGED) ---
     async function fetchApplications() {
         const { data, error } = await supabaseClient.from('mentorship_applications').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('appTableBody');

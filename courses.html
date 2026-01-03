@@ -149,8 +149,8 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="form-group">
-                        <label>YouTube Embed URL</label>
-                        <input type="text" id="cVideo" class="admin-input" placeholder="https://www.youtube.com/embed/...">
+                        <label>YouTube Link (Standard or Embed)</label>
+                        <input type="text" id="cVideo" class="admin-input" placeholder="e.g. https://www.youtube.com/watch?v=...">
                     </div>
                     
                     <div class="form-group">
@@ -304,8 +304,34 @@
         });
     }
 
+    // --- FIX: HELPER TO CONVERT YOUTUBE LINKS ---
+    function getEmbedUrl(url) {
+        if (!url) return "";
+        // If already correct, return
+        if (url.includes("/embed/")) return url;
+
+        // Handle standard watch links (youtube.com/watch?v=XYZ)
+        const videoIdMatch = url.match(/[?&]v=([^&]+)/);
+        if (videoIdMatch && videoIdMatch[1]) {
+            return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+        }
+
+        // Handle short links (youtu.be/XYZ)
+        if (url.includes("youtu.be/")) {
+            const idParts = url.split("youtu.be/");
+            if (idParts[1]) {
+                const id = idParts[1].split("?")[0]; // remove any query params
+                return `https://www.youtube.com/embed/${id}`;
+            }
+        }
+
+        return url; // Return original if we can't figure it out
+    }
+
+    // --- UPDATED OPEN VIDEO FUNCTION ---
     function openVideo(url) {
-        document.getElementById('vFrame').src = url;
+        const embedUrl = getEmbedUrl(url); // Auto-convert link
+        document.getElementById('vFrame').src = embedUrl;
         document.getElementById('videoModal').style.display = 'flex';
     }
 

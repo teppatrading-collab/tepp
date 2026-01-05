@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teppa Liquidity Spotter</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --success-color: #2ea043;
+            --danger-color: #da3633;
+            --grid-color: #30363d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 { margin-bottom: 10px; }
+        p { color: #8b949e; margin-bottom: 20px; }
+
+        .game-container {
+            position: relative;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid var(--grid-color);
+            text-align: center;
+        }
+
+        canvas {
+            background-color: #0d1117;
+            border: 1px solid var(--grid-color);
+            border-radius: 6px;
+            cursor: crosshair;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 600px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        #feedback {
+            height: 24px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { background-color: #30363d; cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Teppa Liquidity Spotter</h1>
+    <p>Identify where the Stop Losses are hiding (The Liquidity).</p>
+
+    <div class="game-container">
+        <div class="status-bar">
+            <span id="score">Score: 0</span>
+            <span id="level-name">Pattern: Loading...</span>
+        </div>
+        
+        <canvas id="chartCanvas" width="600" height="400"></canvas>
+        
+        <div id="feedback"></div>
+        <button id="nextBtn" class="btn" onclick="nextLevel()">Start Game</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreEl = document.getElementById('score');
+        const levelNameEl = document.getElementById('level-name');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let score = 0;
+        let currentPattern = null;
+        let isRoundActive = false;
+        
+        // Define Liquidity Zone (Hidden target)
+        let targetZone = { x: 0, y: 0, w: 0, h: 0 };
+
+        // --- Drawing Helpers ---
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw Grid
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=0; i<canvas.width; i+=40) { ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); }
+            for(let i=0; i<canvas.height; i+=40) { ctx.moveTo(0,i); ctx.lineTo(canvas.width,i); }
+            ctx.stroke();
+        }
+
+        function drawCandle(x, open, close, high, low) {
+            const isBullish = close > open;
+            ctx.fillStyle = isBullish ? '#2ea043' : '#da3633';
+            ctx.strokeStyle = ctx.fillStyle;
+            
+            // Wick
+            ctx.beginPath();
+            ctx.moveTo(x, high);
+            ctx.lineTo(x, low);
+            ctx.stroke();
+
+            // Body
+            const bodyTop = Math.min(open, close);
+            const bodyHeight = Math.abs(close - open);
+            ctx.fillRect(x - 3, bodyTop, 6, bodyHeight < 1 ? 1 : bodyHeight);
+        }
+
+        // --- Scenarios ---
+
+        function generateEqualHighs() {
+            levelNameEl.textContent = "Pattern: Equal Highs (Resistance)";
+            levelNameEl.style.color = "#c9d1d9";
+            
+            let x = 50;
+            let price = 250;
+            
+            // 1. Move up to resistance
+            for(let i=0; i<15; i++) {
+                let change = Math.random() * 20 - 5; 
+                drawCandle(x, price, price - change, price - change - 5, price + 5);
+                price -= change; x += 20;
+            }
+            let peak1 = x;
+            let resLevel = price; // Resistance Level
+
+            // 2. Pullback
+            for(let i=0; i<8; i++) {
+                let change = Math.random() * 20 - 15; 
+                drawCandle(x, price, price - change, price - change - 5, price + 5);
+                price -= change; x += 20;
+            }
+
+            // 3. Move back up to SAME resistance (Equal Highs)
+            let stepsBack = 8;
+            let gap = (price - resLevel) / stepsBack;
+            for(let i=0; i<stepsBack; i++) {
+                drawCandle(x, price, price - gap, price - gap - 5, price + 5);
+                price -= gap; x += 20;
+            }
+
+            // Draw slightly visible resistance line to help user
+            ctx.strokeStyle = '#8b949e';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(peak1, resLevel);
+            ctx.lineTo(x + 20, resLevel);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Set Target Zone (ABOVE the equal highs)
+            targetZone = { x: peak1, y: resLevel - 40, w: (x - peak1) + 20, h: 40 };
+        }
+
+        function generateTrendlineLiquidity() {
+            levelNameEl.textContent = "Pattern: Trendline Liquidity";
+            levelNameEl.style.color = "#c9d1d9";
+            
+            let x = 40;
+            let price = 300;
+            
+            // Generate an uptrend with 3 perfect touches
+            for (let i = 0; i < 20; i++) {
+                // Ensure price respects a diagonal line roughly
+                let trendY = 300 - (i * 10); 
+                let volatility = (i % 6 === 0) ? 0 : Math.random() * 30 - 15; // Every 6th candle touches line
+                
+                let close = trendY - 10 - Math.random() * 20;
+                let low = trendY; // Perfect touch on the line
+                
+                if (i % 6 !== 0) {
+                     low = close + 10; // Normal candle
+                }
+
+                drawCandle(x, close + 10, close, close - 5, low);
+                x += 25;
+            }
+
+            // Draw Trendline
+            ctx.strokeStyle = '#58a6ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(40, 300);
+            ctx.lineTo(x, 300 - (19 * 10));
+            ctx.stroke();
+
+            // Target Zone (BELOW the trendline)
+            targetZone = { x: 40, y: 300, w: x - 40, h: 50 };
+        }
+
+        // --- Game Logic ---
+
+        function nextLevel() {
+            isRoundActive = true;
+            feedbackEl.textContent = "";
+            feedbackEl.style.color = "";
+            nextBtn.disabled = true;
+            nextBtn.textContent = "Spot the Liquidity...";
+            
+            clearCanvas();
+
+            // Randomly choose a pattern
+            if (Math.random() > 0.5) {
+                generateEqualHighs();
+            } else {
+                generateTrendlineLiquidity();
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!isRoundActive) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Check collision with target zone
+            if (
+                mouseX >= targetZone.x && 
+                mouseX <= targetZone.x + targetZone.w &&
+                mouseY >= targetZone.y && 
+                mouseY <= targetZone.y + targetZone.h
+            ) {
+                // WIN
+                feedbackEl.textContent = "✅ Correct! Smart Money will sweep this area.";
+                feedbackEl.style.color = "#2ea043";
+                
+                // Visual feedback (Draw the zone)
+                ctx.fillStyle = 'rgba(218, 54, 51, 0.3)';
+                ctx.fillRect(targetZone.x, targetZone.y, targetZone.w, targetZone.h);
+                ctx.strokeStyle = '#da3633';
+                ctx.strokeRect(targetZone.x, targetZone.y, targetZone.w, targetZone.h);
+                
+                score += 10;
+                scoreEl.textContent = "Score: " + score;
+                isRoundActive = false;
+                nextBtn.disabled = false;
+                nextBtn.textContent = "Next Pattern >>";
+            } else {
+                // LOSE
+                feedbackEl.textContent = "❌ Incorrect. Try again.";
+                feedbackEl.style.color = "#da3633";
+            }
+        });
+
+        // Initial paint
+        clearCanvas();
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "20px Arial";
+        ctx.fillText("Click 'Start Game' to begin", 180, 200);
+
+    </script>
+</body>
+</html>

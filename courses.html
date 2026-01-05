@@ -61,6 +61,12 @@
         .btn-action { padding: 12px 25px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-action:hover { opacity: 0.9; }
 
+        /* --- COUNTDOWN STYLES --- */
+        .countdown-box { background: #0f172a; padding: 15px 25px; border-radius: 8px; border: 1px solid var(--border); min-width: 80px; text-align: center; }
+        .time-val { font-size: 2.5rem; font-weight: 900; color: #fff; display: block; line-height: 1; margin-bottom: 5px; }
+        .time-label { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
         /* --- COURSE GRID --- */
         .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
 
@@ -149,38 +155,18 @@
             <div class="admin-card" style="border-color: #2dd4bf;">
                 <div class="admin-header">
                     <div class="admin-title" style="color: #2dd4bf;">
-                        <i class='bx bxs-video'></i> Update Live & Market Prep
+                        <i class='bx bxs-video'></i> Update Session Time
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div>
-                        <h4 style="color:#fff; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:5px;">Live Session</h4>
-                        <div class="form-group">
-                            <label>Next Session Time</label>
-                            <input type="text" id="liveTimeInput" class="admin-input" placeholder="e.g. Monday @ 9:00 AM EST">
-                        </div>
-                        <div class="form-group">
-                            <label>Zoom Link</label>
-                            <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h4 style="color:#fff; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:5px;">Market Analysis</h4>
-                        <div class="form-group">
-                            <label>Daily Bias</label>
-                            <select id="biasInput" class="admin-input">
-                                <option value="NEUTRAL">NEUTRAL</option>
-                                <option value="BULLISH">BULLISH</option>
-                                <option value="BEARISH">BEARISH</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Analysis Notes (Key Levels)</label>
-                            <textarea id="notesInput" class="admin-input" rows="3" placeholder="EURUSD target 1.0500..."></textarea>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label>Next Session Start (Date & Time)</label>
+                    <input type="datetime-local" id="liveTimeInput" class="admin-input">
+                </div>
+
+                <div class="form-group">
+                    <label>Zoom Link</label>
+                    <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
                 </div>
 
                 <button onclick="updateLiveSession()" class="btn-action" style="width:100%; margin-top:10px;">Update Dashboard</button>
@@ -248,7 +234,7 @@
                         Live Trading Floor
                     </h2>
                     <p style="color: #94a3b8; margin: 0;">
-                        Next Session: <span id="displayTime" style="color: #fff; font-weight: bold;">Loading...</span>
+                        Official Teppa Trading Sessions
                     </p>
                 </div>
             </div>
@@ -259,31 +245,35 @@
             </a>
         </div>
 
-        <div style="margin-bottom: 60px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
-            <h3 style="margin-top: 0; margin-bottom: 20px; color: #fff; display: flex; align-items: center; gap: 10px;">
-                <i class='bx bx-bar-chart-alt-2' style="color: var(--primary);"></i>
-                London Pre-Market Analysis
+        <div style="margin-bottom: 60px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center;">
+            <h3 style="margin-top: 0; margin-bottom: 30px; color: #fff; font-size: 1.2rem; letter-spacing: 1px; text-transform: uppercase;">
+                <i class='bx bx-timer' style="color: var(--primary);"></i> Time Until Next Live Session
             </h3>
-            
-            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 300px; aspect-ratio: 16/9; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border: 1px solid var(--border);" onclick="alert('Video feature coming soon!')">
-                    <i class='bx bx-play-circle' style="font-size: 4rem; color: var(--primary); opacity: 0.8;"></i>
-                    <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px;">Watch Brief</span>
+
+            <div id="countdownContainer" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <div class="countdown-box">
+                    <span id="dVal" class="time-val">00</span>
+                    <span class="time-label">DAYS</span>
                 </div>
-                
-                <div style="flex: 1; min-width: 300px;">
-                    <div style="margin-bottom: 15px;">
-                        <span style="color: var(--text-dim); font-size: 0.9rem;">Daily Bias:</span>
-                        <span id="displayBias" style="margin-left: 10px; color: #fff; font-weight: bold; background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 4px;">LOADING...</span>
-                    </div>
-                    
-                    <p style="color: var(--text-dim); margin-top: 0; font-style: italic; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">Key levels to watch:</p>
-                    
-                    <div id="displayNotes" style="color: #fff; line-height: 1.8; white-space: pre-wrap;">
-                        Loading market notes...
-                    </div>
+                <div class="countdown-box">
+                    <span id="hVal" class="time-val">00</span>
+                    <span class="time-label">HRS</span>
+                </div>
+                <div class="countdown-box">
+                    <span id="mVal" class="time-val">00</span>
+                    <span class="time-label">MIN</span>
+                </div>
+                <div class="countdown-box">
+                    <span id="sVal" class="time-val">00</span>
+                    <span class="time-label">SEC</span>
                 </div>
             </div>
+            
+            <div id="sessionLiveMsg" style="display: none; color: var(--primary); font-size: 2rem; font-weight: bold; animation: pulse 2s infinite; margin-top: 20px;">
+                🔴 SESSION IS LIVE!
+            </div>
+            
+            <p id="targetDateDisplay" style="margin-top: 20px; color: var(--text-dim); font-size: 0.9rem;"></p>
         </div>
 
         <div class="section-title"><i class='bx bx-movie-play'></i> Free Foundations</div>
@@ -326,6 +316,9 @@
     let isEditing = false;
     let editingCourseId = null;
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
+
+    // COUNTDOWN VAR
+    let countdownInterval = null;
 
     async function init() {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -522,39 +515,80 @@
         const { data } = await supabaseClient.from('live_settings').select('*').order('created_at', { ascending: false }).limit(1);
         if (data && data.length > 0) {
             const s = data[0];
-            // Update Student View
-            document.getElementById('displayTime').innerText = s.session_time;
             document.getElementById('displayLink').href = s.zoom_link;
-            document.getElementById('displayBias').innerText = s.daily_bias || "NEUTRAL";
-            document.getElementById('displayNotes').innerText = s.market_notes || "No notes.";
             
-            // Color code the bias
-            const biasEl = document.getElementById('displayBias');
-            if(s.daily_bias === 'BULLISH') { biasEl.style.color = '#2dd4bf'; biasEl.style.background = 'rgba(45, 212, 191, 0.1)'; }
-            else if(s.daily_bias === 'BEARISH') { biasEl.style.color = '#ef4444'; biasEl.style.background = 'rgba(239, 68, 68, 0.1)'; }
-            else { biasEl.style.color = '#fff'; biasEl.style.background = 'rgba(255,255,255,0.1)'; }
-
-            // Update Admin Inputs
+            // Populate Admin input with date format compatible with datetime-local
             if(document.getElementById('liveTimeInput')) {
+                // If the stored time is ISO, it works. If it's text, it might fail to populate.
                 document.getElementById('liveTimeInput').value = s.session_time;
                 document.getElementById('liveLinkInput').value = s.zoom_link;
-                document.getElementById('biasInput').value = s.daily_bias || "NEUTRAL";
-                document.getElementById('notesInput').value = s.market_notes || "";
             }
+
+            // Start Countdown logic
+            startCountdown(s.session_time);
         }
+    }
+
+    function startCountdown(targetDateString) {
+        if(countdownInterval) clearInterval(countdownInterval);
+
+        const targetDate = new Date(targetDateString).getTime();
+        
+        // Update display text
+        const dObj = new Date(targetDateString);
+        if(!isNaN(dObj)) {
+            document.getElementById('targetDateDisplay').innerText = "Session Target: " + dObj.toLocaleString();
+        }
+
+        countdownInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            // Session Live logic
+            if (distance < 0) {
+                // If less than 2 hours passed since start, show LIVE. Else Expired.
+                if (distance > -7200000) { 
+                    clearInterval(countdownInterval);
+                    document.getElementById("countdownContainer").style.display = "none";
+                    document.getElementById("sessionLiveMsg").style.display = "block";
+                    document.getElementById("sessionLiveMsg").innerText = "🔴 SESSION IS LIVE!";
+                } else {
+                    clearInterval(countdownInterval);
+                    document.getElementById("countdownContainer").style.display = "none";
+                    document.getElementById("sessionLiveMsg").style.display = "block";
+                    document.getElementById("sessionLiveMsg").innerText = "Session Ended";
+                    document.getElementById("sessionLiveMsg").style.animation = "none";
+                    document.getElementById("sessionLiveMsg").style.color = "#94a3b8";
+                }
+                return;
+            }
+
+            document.getElementById("countdownContainer").style.display = "flex";
+            document.getElementById("sessionLiveMsg").style.display = "none";
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("dVal").innerText = days < 10 ? "0" + days : days;
+            document.getElementById("hVal").innerText = hours < 10 ? "0" + hours : hours;
+            document.getElementById("mVal").innerText = minutes < 10 ? "0" + minutes : minutes;
+            document.getElementById("sVal").innerText = seconds < 10 ? "0" + seconds : seconds;
+
+        }, 1000);
     }
 
     async function updateLiveSession() {
         const time = document.getElementById('liveTimeInput').value;
         const link = document.getElementById('liveLinkInput').value;
-        const bias = document.getElementById('biasInput').value;
-        const notes = document.getElementById('notesInput').value;
 
         if(!time || !link) return alert("Time and Link are required!");
 
+        // We save the raw datetime-local string (e.g., 2026-01-05T14:00)
         const { error } = await supabaseClient
             .from('live_settings')
-            .insert([{ session_time: time, zoom_link: link, daily_bias: bias, market_notes: notes }]);
+            .insert([{ session_time: time, zoom_link: link }]);
 
         if(error) alert("Error: " + error.message);
         else { alert("✅ Dashboard Updated!"); loadLiveSession(); }

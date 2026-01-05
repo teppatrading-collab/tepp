@@ -113,7 +113,6 @@
         /* --- UPDATED MODAL STYLES --- */
         .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
         .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
-        /* Moved Close Button INSIDE and made it bigger/safer */
         .close-v { 
             position: absolute; top: 15px; right: 15px; 
             color: #fff; font-size: 2rem; cursor: pointer; z-index: 50;
@@ -126,18 +125,9 @@
         .app-table th, .app-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: middle; }
         .app-table th { background: #0f172a; color: var(--text-dim); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
 
-        /* Modal for Application Details */
         .app-modal-content {
-            background: #1e293b;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            position: relative;
+            background: #1e293b; padding: 30px; max-width: 500px; width: 90%; border-radius: 12px; border: 1px solid var(--border); position: relative;
         }
-        
-        /* Cancel Edit Button Style */
         .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); margin-left: 10px; padding: 12px 20px; border-radius: 8px; cursor: pointer; display: none; }
     </style>
 </head>
@@ -162,17 +152,14 @@
                         <i class='bx bxs-video'></i> Update Live Session
                     </div>
                 </div>
-                
                 <div class="form-group">
-                    <label>Next Session Time (e.g. "Monday @ 9:00 AM EST")</label>
-                    <input type="text" id="liveTimeInput" class="admin-input" placeholder="Enter date and time...">
+                    <label>Next Session Time</label>
+                    <input type="text" id="liveTimeInput" class="admin-input" placeholder="e.g. Monday @ 9:00 AM EST">
                 </div>
-
                 <div class="form-group">
                     <label>New Zoom Link</label>
                     <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
                 </div>
-
                 <button onclick="updateLiveSession()" class="btn-action" style="width:100%;">Update Live Banner</button>
             </div>
 
@@ -180,23 +167,19 @@
                 <div class="admin-header">
                     <div class="admin-title" id="formHeader"><i class='bx bx-cloud-upload'></i> Upload New Course</div>
                 </div>
-                
                 <div class="form-group">
                     <label>Course Title</label>
                     <input type="text" id="cTitle" class="admin-input" placeholder="e.g. Market Structure Logic">
                 </div>
-
                 <div class="form-group">
                     <label>Description</label>
-                    <textarea id="cDesc" class="admin-input" rows="4" placeholder="What will the student learn?"></textarea>
+                    <textarea id="cDesc" class="admin-input" rows="4"></textarea>
                 </div>
-
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="form-group">
-                        <label>YouTube Link (Standard or Embed)</label>
-                        <input type="text" id="cVideo" class="admin-input" placeholder="e.g. https://www.youtube.com/watch?v=...">
+                        <label>YouTube Link</label>
+                        <input type="text" id="cVideo" class="admin-input">
                     </div>
-                    
                     <div class="form-group">
                         <label>Thumbnail Image</label>
                         <div class="file-upload-box">
@@ -206,12 +189,10 @@
                         <input type="hidden" id="cThumbUrl"> 
                     </div>
                 </div>
-
                 <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
                     <input type="checkbox" id="cPremium" style="width:16px; height:16px; cursor: pointer;">
                     <label for="cPremium" style="margin:0; cursor:pointer;">Premium Member Only?</label>
                 </div>
-
                 <div style="margin-top: 15px;">
                     <button onclick="handleCourseSubmit()" id="btnUpload" class="btn-action">Publish Course</button>
                     <button onclick="cancelEdit()" id="btnCancel" class="btn-cancel">Cancel Edit</button>
@@ -223,41 +204,56 @@
                     <div class="admin-title"><i class='bx bx-user-check'></i> Mentorship Applications</div>
                     <button onclick="fetchApplications()" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); padding:5px 10px; border-radius:5px; cursor:pointer; font-size: 0.8rem;">Refresh</button>
                 </div>
-                
                 <table class="app-table">
-                    <thead>
-                        <tr>
-                            <th>Applicant</th>
-                            <th>Details</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Applicant</th><th>Details</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody id="appTableBody">
                         <tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
-
         </div>
 
-        <div style="margin-bottom: 40px; background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-            
-            <div>
-                <h2 style="margin: 0 0 10px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                    <i class='bx bxs-camera-movie' style="color: var(--primary);"></i> 
-                    Live Trading Floor
-                </h2>
-                <p style="color: #94a3b8; margin: 0;">
-                    Next Session: <span id="displayTime" style="color: #fff; font-weight: bold;">Loading...</span>
-                </p>
+        <div style="margin-bottom: 25px; background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <img src="https://via.placeholder.com/100x100/2dd4bf/000?text=TEPPA" alt="Teppa Logo" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 2px solid var(--border);">
+                
+                <div>
+                    <h2 style="margin: 0 0 10px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                        Live Trading Floor
+                    </h2>
+                    <p style="color: #94a3b8; margin: 0;">
+                        Next Session: <span id="displayTime" style="color: #fff; font-weight: bold;">Loading...</span>
+                    </p>
+                </div>
             </div>
 
             <a id="displayLink" href="#" target="_blank" style="background: var(--primary); color: #000; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 1.1rem; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 <i class='bx bxl-zoom' style="font-size: 1.4rem;"></i>
                 JOIN LIVE ROOM
             </a>
+        </div>
 
+        <div style="margin-bottom: 60px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: #fff; display: flex; align-items: center; gap: 10px;">
+                <i class='bx bx-bar-chart-alt-2' style="color: var(--primary);"></i>
+                London Pre-Market Analysis
+            </h3>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px; aspect-ratio: 16/9; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border: 1px solid var(--border);" onclick="alert('Video feature coming soon!')">
+                    <i class='bx bx-play-circle' style="font-size: 4rem; color: var(--primary); opacity: 0.8;"></i>
+                    <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px;">12:45</span>
+                </div>
+                
+                <div style="flex: 1; min-width: 300px;">
+                    <p style="color: var(--text-dim); margin-top: 0; font-style: italic;">Key levels to watch for today's London Session:</p>
+                    <ul style="color: #fff; line-height: 2; padding-left: 20px;">
+                        <li><strong>Europen Open:</strong> Waiting for 1.0500 tap (Liquidity Sweep)</li>
+                        <li><strong>News Driver:</strong> GBP CPI at 3:00 AM</li>
+                        <li><strong>Daily Bias:</strong> <span style="color: #2dd4bf; font-weight: bold; background: rgba(45, 212, 191, 0.1); padding: 2px 8px; border-radius: 4px;">BULLISH</span> above 1.2500</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <div class="section-title"><i class='bx bx-movie-play'></i> Free Foundations</div>
@@ -295,14 +291,10 @@
     let currentUserEmail = "";
     let allAppsData = [];
     let allCoursesData = []; 
-    
-    // Auto-detect DB column name
     let dbImageColumn = 'thumbnail'; 
 
-    // EDIT STATE
     let isEditing = false;
     let editingCourseId = null;
-    
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
 
     async function init() {
@@ -311,20 +303,16 @@
         
         currentUserEmail = session.user.email;
         
-        // 1. Check if user is admin 
         if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
             userIsAdmin = true; 
             const panel = document.getElementById('adminPanel');
             panel.style.display = 'grid'; 
             panel.style.gridTemplateColumns = '1fr'; 
-            if(window.innerWidth > 900) {
-                 panel.style.gridTemplateColumns = '1.2fr 0.8fr'; 
-            }
+            if(window.innerWidth > 900) { panel.style.gridTemplateColumns = '1.2fr 0.8fr'; }
             userIsPro = true; 
             fetchApplications(); 
         }
 
-        // 2. Determine Pro Status
         if (currentUserEmail.includes("pro") || userIsAdmin) {
             userIsPro = true;
             document.getElementById('userStatus').innerText = "PRO MEMBER";
@@ -335,21 +323,15 @@
         }
 
         loadCourses();
-        loadLiveSession(); // <-- Added this!
+        loadLiveSession(); 
     }
     init();
 
     async function loadCourses() {
         const { data: courses, error } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: false });
-        
-        if(error) {
-            console.error("Error loading courses:", error);
-            return;
-        }
-
+        if(error) return console.error(error);
         allCoursesData = courses; 
         
-        // --- AUTO-DETECT IMAGE COLUMN ---
         if(courses.length > 0) {
             const sample = courses[0];
             if(sample.thumbnail_url !== undefined) dbImageColumn = 'thumbnail_url';
@@ -358,46 +340,23 @@
 
         const freeGrid = document.getElementById('freeGrid');
         const proGrid = document.getElementById('proGrid');
-        freeGrid.innerHTML = "";
-        proGrid.innerHTML = "";
+        freeGrid.innerHTML = ""; proGrid.innerHTML = "";
 
         courses.forEach(course => {
             const isLocked = course.is_premium && !userIsPro;
-            
             const card = document.createElement('div');
             card.className = 'course-card';
             
             let adminControls = "";
             if(userIsAdmin) {
-                adminControls = `
-                    <div class="admin-controls">
-                        <button onclick="startEdit('${course.id}')" class="admin-btn-card btn-edit" title="Edit"><i class='bx bx-pencil'></i></button>
-                        <button onclick="deleteCourse('${course.id}')" class="admin-btn-card btn-del" title="Delete"><i class='bx bx-trash'></i></button>
-                    </div>
-                `;
+                adminControls = `<div class="admin-controls"><button onclick="startEdit('${course.id}')" class="admin-btn-card btn-edit"><i class='bx bx-pencil'></i></button><button onclick="deleteCourse('${course.id}')" class="admin-btn-card btn-del"><i class='bx bx-trash'></i></button></div>`;
             }
 
             const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course';
 
-            let thumbHTML = `<div class="thumb-area">
-                ${adminControls}
-                <img src="${thumbSrc}" class="thumb-img">
-                <span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>
-                ${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}
-            </div>`;
+            card.innerHTML = `<div class="thumb-area">${adminControls}<img src="${thumbSrc}" class="thumb-img"><span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}</div><div class="card-body"><div class="c-title">${course.title}</div><div class="c-desc">${course.description}</div><button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">${isLocked ? 'Locked' : 'Watch Now'}</button></div>`;
 
-            let bodyHTML = `<div class="card-body">
-                <div class="c-title">${course.title}</div>
-                <div class="c-desc">${course.description}</div>
-                <button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">
-                    ${isLocked ? 'Locked' : 'Watch Now'}
-                </button>
-            </div>`;
-
-            card.innerHTML = thumbHTML + bodyHTML;
-
-            if(course.is_premium) proGrid.appendChild(card);
-            else freeGrid.appendChild(card);
+            if(course.is_premium) proGrid.appendChild(card); else freeGrid.appendChild(card);
         });
     }
 
@@ -413,70 +372,42 @@
         return url;
     }
 
-    // --- MODAL FUNCTIONS ---
     function openVideo(url) {
-        const embedUrl = getEmbedUrl(url); 
-        document.getElementById('vFrame').src = embedUrl;
+        document.getElementById('vFrame').src = getEmbedUrl(url);
         document.getElementById('videoModal').style.display = 'flex';
     }
-
     function forceClose() {
         document.getElementById('videoModal').style.display = 'none';
         document.getElementById('vFrame').src = '';
     }
-
-    function closeVideoModal(e) {
-        // If the user clicked the DARK BACKGROUND (id="videoModal"), close it.
-        // If they clicked the video box (className="v-box"), do nothing.
-        if (e.target.id === 'videoModal') {
-            forceClose();
-        }
-    }
-
-    // --- EDIT LOGIC ---
+    function closeVideoModal(e) { if (e.target.id === 'videoModal') forceClose(); }
 
     function startEdit(courseId) {
         const course = allCoursesData.find(c => c.id == courseId);
         if(!course) return;
-
         const currentThumb = course.thumbnail_url || course.thumbnail;
-
         document.getElementById('cTitle').value = course.title;
         document.getElementById('cDesc').value = course.description;
         document.getElementById('cVideo').value = course.video_url;
         document.getElementById('cThumbUrl').value = currentThumb;
         document.getElementById('cPremium').checked = course.is_premium;
-
-        const statusSpan = document.getElementById('uploadStatus');
-        statusSpan.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                <img id="editPreview" src="${currentThumb}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #334155;">
-                <span style="font-size:0.75rem; color:#94a3b8;">Current Image</span>
-            </div>
-        `;
-
-        isEditing = true;
-        editingCourseId = courseId;
-        
+        document.getElementById('uploadStatus').innerHTML = `<div style="display:flex; align-items:center; gap:10px; margin-top:5px;"><img src="${currentThumb}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><span style="font-size:0.75rem; color:#94a3b8;">Current Image</span></div>`;
+        isEditing = true; editingCourseId = courseId;
         document.getElementById('formHeader').innerHTML = "<i class='bx bx-edit'></i> Edit Course";
         document.getElementById('btnUpload').innerText = "Save Changes";
         document.getElementById('btnUpload').style.background = "#3b82f6"; 
         document.getElementById('btnCancel').style.display = "inline-block";
-
         document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
     }
 
     function cancelEdit() {
-        isEditing = false;
-        editingCourseId = null;
-        
+        isEditing = false; editingCourseId = null;
         document.getElementById('cTitle').value = "";
         document.getElementById('cDesc').value = "";
         document.getElementById('cVideo').value = "";
         document.getElementById('cThumbUrl').value = "";
         document.getElementById('cThumbFile').value = "";
         document.getElementById('cPremium').checked = false;
-        
         document.getElementById('formHeader').innerHTML = "<i class='bx bx-cloud-upload'></i> Upload New Course";
         document.getElementById('btnUpload').innerText = "Publish Course";
         document.getElementById('btnUpload').style.background = "#2dd4bf"; 
@@ -485,22 +416,9 @@
     }
 
     async function deleteCourse(id) {
-        if(!confirm("Are you sure you want to PERMANENTLY delete this course?")) return;
-        
-        // Updated Delete Logic with Feedback
-        const { data, error } = await supabaseClient
-            .from('courses')
-            .delete()
-            .eq('id', id)
-            .select();
-
-        if(error) {
-            alert("Error: " + error.message);
-        } else if (data.length === 0) {
-            alert("❌ Delete Failed!\n\nDatabase blocked this action. Check your RLS policies in Supabase.");
-        } else {
-            loadCourses(); 
-        }
+        if(!confirm("Are you sure?")) return;
+        const { error } = await supabaseClient.from('courses').delete().eq('id', id);
+        if(error) alert("Error: " + error.message); else loadCourses(); 
     }
 
     async function handleCourseSubmit() {
@@ -511,163 +429,83 @@
         const isPremium = document.getElementById('cPremium').checked;
         const btn = document.getElementById('btnUpload');
 
-        if(!title || !video) return alert("Title and Video URL required");
-        if(!thumb) return alert("Please upload a thumbnail");
-        
-        const statusText = document.getElementById('uploadStatus').innerText;
-        if(statusText.includes("Uploading")) return alert("Please wait for image upload to finish!");
-
+        if(!title || !video || !thumb) return alert("All fields required");
         btn.innerText = isEditing ? "Saving..." : "Uploading...";
-
-        let error;
         
-        const payload = { 
-            title, 
-            description: desc, 
-            video_url: video, 
-            is_premium: isPremium 
-        };
+        const payload = { title, description: desc, video_url: video, is_premium: isPremium };
         payload[dbImageColumn] = thumb; 
 
+        let error;
         if(isEditing) {
-            const result = await supabaseClient.from('courses').update(payload).eq('id', editingCourseId);
-            error = result.error;
+            const res = await supabaseClient.from('courses').update(payload).eq('id', editingCourseId);
+            error = res.error;
         } else {
-            const result = await supabaseClient.from('courses').insert([payload]);
-            error = result.error;
+            const res = await supabaseClient.from('courses').insert([payload]);
+            error = res.error;
         }
 
-        if(error) {
-            alert("Error: " + error.message);
-        } else {
-            alert(isEditing ? "Course Updated!" : "Course Uploaded!");
-            cancelEdit(); 
-            loadCourses(); 
-        }
+        if(error) alert("Error: " + error.message);
+        else { alert("Success!"); cancelEdit(); loadCourses(); }
         btn.innerText = isEditing ? "Save Changes" : "Publish Course";
     }
 
     document.getElementById('cThumbFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        const statusContainer = document.getElementById('uploadStatus');
-        const hiddenInput = document.getElementById('cThumbUrl');
-
         if (!file) return;
-
+        const statusContainer = document.getElementById('uploadStatus');
+        statusContainer.innerHTML = `<span style="color:#fbbf24;">Uploading...</span>`;
         try {
-            statusContainer.innerHTML = `<span style="color:#fbbf24;">Uploading...</span>`;
-            
             const fileName = `public/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
-            
-            const { data, error } = await supabaseClient.storage
-                .from('thumbnails') 
-                .upload(fileName, file);
-
+            const { error } = await supabaseClient.storage.from('thumbnails').upload(fileName, file);
             if (error) throw error;
-
-            const { data: urlData } = supabaseClient.storage
-                .from('thumbnails')
-                .getPublicUrl(fileName);
-
-            const publicUrl = urlData.publicUrl;
-
-            hiddenInput.value = publicUrl;
-
-            statusContainer.innerHTML = `
-                <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                    <img src="${publicUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:2px solid #2dd4bf;">
-                    <span style="font-size:0.75rem; color:#2dd4bf; font-weight:bold;">✅ New Image Ready</span>
-                </div>
-            `;
-
-        } catch (error) {
-            console.error("Upload error:", error);
-            statusContainer.innerHTML = `<span style="color:#ef4444;">❌ Failed: ${error.message}</span>`;
-        }
+            const { data } = supabaseClient.storage.from('thumbnails').getPublicUrl(fileName);
+            document.getElementById('cThumbUrl').value = data.publicUrl;
+            statusContainer.innerHTML = `<span style="color:#2dd4bf; font-weight:bold;">✅ Ready</span>`;
+        } catch (error) { statusContainer.innerHTML = `<span style="color:#ef4444;">❌ Error</span>`; }
     });
 
     async function fetchApplications() {
         const { data, error } = await supabaseClient.from('mentorship_applications').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('appTableBody');
         tbody.innerHTML = '';
-        if (error) { console.log(error); return; }
-        allAppsData = data; 
-        if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No applications found.</td></tr>'; return; }
+        if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No applications found.</td></tr>'; return; }
         data.forEach((app) => {
-            const row = document.createElement('tr');
-            let actionButtons = '';
-            if(app.status === 'pending') {
-                actionButtons += `<button onclick="updateStatus('${app.user_id}', 'approved')" style="background:#2dd4bf; color:#000; border:none; padding:5px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">Accept</button> <button onclick="updateStatus('${app.user_id}', 'denied')" style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:5px; border-radius:4px; cursor:pointer; font-size:0.7rem;">Deny</button>`;
-            }
-            actionButtons += `<button onclick="deleteApplication('${app.user_id}')" title="Delete" style="background:transparent; border:none; color:#64748b; font-size:1.1rem; cursor:pointer; margin-left:5px;"><i class='bx bx-trash'></i></button>`;
-            row.innerHTML = `<td><div style="font-weight:bold; color:#fff;">${app.discord_handle || 'No Discord'}</div><div style="font-size:0.8rem; color:#64748b;">${app.email}</div></td><td><div style="color:#cbd5e1; font-size:0.85rem;">Exp: ${app.experience}</div><div style="color:#2dd4bf; font-size:0.85rem;">${app.capital}</div><button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px; background:none; border:none; color:#818cf8; text-decoration:underline; cursor:pointer; font-size:0.75rem; padding:0;">View Answer</button></td><td><span style="padding:4px 10px; border-radius:20px; font-size:0.7rem; font-weight:800; text-transform:uppercase; background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'}; color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span></td><td><div style="display:flex; align-items:center; gap:5px;">${actionButtons}</div></td>`;
-            tbody.appendChild(row);
+            let actions = '';
+            if(app.status === 'pending') actions = `<button onclick="updateStatus('${app.user_id}','approved')" style="background:#2dd4bf;border:none;padding:5px;border-radius:4px;cursor:pointer;">Accept</button> <button onclick="updateStatus('${app.user_id}','denied')" style="background:transparent;border:1px solid #ef4444;color:#ef4444;padding:5px;border-radius:4px;cursor:pointer;">Deny</button>`;
+            actions += `<button onclick="deleteApplication('${app.user_id}')" style="background:none;border:none;color:#64748b;font-size:1.1rem;cursor:pointer;margin-left:5px;"><i class='bx bx-trash'></i></button>`;
+            const row = `<tr><td><div style="font-weight:bold;color:#fff;">${app.discord_handle||'No Discord'}</div><div style="font-size:0.8rem;color:#64748b;">${app.email}</div></td><td><div style="color:#cbd5e1;font-size:0.85rem;">Exp: ${app.experience}</div><div style="color:#2dd4bf;font-size:0.85rem;">${app.capital}</div><button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px;background:none;border:none;color:#818cf8;text-decoration:underline;cursor:pointer;font-size:0.75rem;padding:0;">View Answer</button></td><td><span style="padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:800;text-transform:uppercase;background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'};color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span></td><td><div style="display:flex;gap:5px;">${actions}</div></td></tr>`;
+            tbody.innerHTML += row;
         });
+        allAppsData = data;
     }
 
-    function viewFullApp(userId) {
-        const app = allAppsData.find(a => a.user_id === userId);
-        if (!app) { alert("Error: Could not find application data."); return; }
-        const contentDiv = document.getElementById('appModalContent');
-        contentDiv.innerHTML = `<div style="margin-bottom:15px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"><div><span style="display:block; font-size:0.75rem; color:#64748b;">Applicant</span> <strong style="color:#fff;">${app.discord_handle}</strong></div><div style="text-align:right;"><span style="display:block; font-size:0.75rem; color:#64748b;">Date</span> <strong style="color:#fff;">${new Date(app.created_at).toLocaleDateString()}</strong></div></div><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;"><div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);"><div style="font-size:0.75rem; color:#2dd4bf;">Experience</div><div style="color:#fff; font-weight:bold;">${app.experience}</div></div><div style="background:rgba(45, 212, 191, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(45, 212, 191, 0.2);"><div style="font-size:0.75rem; color:#2dd4bf;">Capital</div><div style="color:#fff; font-weight:bold;">${app.capital}</div></div></div><div><strong style="color:#fff; display:block; margin-bottom:5px;">Why do you want to join?</strong><div style="background:#0f172a; padding:15px; border-radius:8px; border:1px solid var(--border); color:#cbd5e1; white-space: pre-wrap;">${app.why_join}</div></div>`;
+    function viewFullApp(uid) {
+        const app = allAppsData.find(a => a.user_id === uid);
+        document.getElementById('appModalContent').innerHTML = `<div style="background:#0f172a;padding:15px;border-radius:8px;border:1px solid var(--border);color:#cbd5e1;">${app.why_join}</div>`;
         document.getElementById('appModal').style.display = 'flex';
     }
 
-    async function updateStatus(id, status) {
-        if(!confirm("Change status to " + status + "?")) return;
-        await supabaseClient.from('mentorship_applications').update({ status }).eq('user_id', id);
-        fetchApplications();
-    }
-
-    async function deleteApplication(id) {
-        if(!confirm("Are you sure you want to PERMANENTLY delete this application?")) return;
-        const { error } = await supabaseClient.from('mentorship_applications').delete().eq('user_id', id);
-        if(error) alert("Error deleting: " + error.message);
-        else fetchApplications();
-    }
-
-    // --- LIVE SESSION LOGIC ---
+    async function updateStatus(id, s) { if(confirm("Confirm?")) { await supabaseClient.from('mentorship_applications').update({status:s}).eq('user_id',id); fetchApplications(); } }
+    async function deleteApplication(id) { if(confirm("Delete?")) { await supabaseClient.from('mentorship_applications').delete().eq('user_id',id); fetchApplications(); } }
 
     async function loadLiveSession() {
-        // Fetch the most recent setting created
-        const { data, error } = await supabaseClient
-            .from('live_settings')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(1);
-
+        const { data } = await supabaseClient.from('live_settings').select('*').order('created_at', { ascending: false }).limit(1);
         if (data && data.length > 0) {
-            const session = data[0];
-            // Update the display for students
-            document.getElementById('displayTime').innerText = session.session_time;
-            document.getElementById('displayLink').href = session.zoom_link;
-            
-            // Update the Admin Input boxes too
+            document.getElementById('displayTime').innerText = data[0].session_time;
+            document.getElementById('displayLink').href = data[0].zoom_link;
             if(document.getElementById('liveTimeInput')) {
-                document.getElementById('liveTimeInput').value = session.session_time;
-                document.getElementById('liveLinkInput').value = session.zoom_link;
+                document.getElementById('liveTimeInput').value = data[0].session_time;
+                document.getElementById('liveLinkInput').value = data[0].zoom_link;
             }
         }
     }
-
     async function updateLiveSession() {
         const time = document.getElementById('liveTimeInput').value;
         const link = document.getElementById('liveLinkInput').value;
-
-        if(!time || !link) return alert("Please fill in both fields");
-
-        const { error } = await supabaseClient
-            .from('live_settings')
-            .insert([{ session_time: time, zoom_link: link }]);
-
-        if(error) {
-            alert("Error: " + error.message);
-        } else {
-            alert("✅ Live Session Updated Successfully!");
-            loadLiveSession(); 
-        }
+        if(!time || !link) return alert("Fill fields");
+        await supabaseClient.from('live_settings').insert([{ session_time: time, zoom_link: link }]);
+        alert("Updated!"); loadLiveSession(); 
     }
 </script>
-
 </body>
 </html>

@@ -43,6 +43,79 @@
         .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
         .section-title i { color: var(--primary); }
 
+        /* --- NEW HERO CARD STYLES --- */
+        .hero-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Subtle glow effect */
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 300px; height: 100%;
+            background: radial-gradient(circle, rgba(45, 212, 191, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-left { display: flex; align-items: center; gap: 20px; z-index: 1; }
+        .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 1; }
+
+        .hero-logo {
+            width: 90px; height: 90px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .timer-group { display: flex; gap: 10px; }
+        .mini-count-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 50px;
+        }
+        .mini-val { font-size: 1.2rem; font-weight: 800; color: #fff; display: block; line-height: 1; }
+        .mini-label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+
+        .live-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .pulse-dot { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse-red 2s infinite; }
+
+        @keyframes pulse-red { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { opacity: 1; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        /* Mobile Response */
+        @media (max-width: 768px) {
+            .hero-card { flex-direction: column; text-align: center; }
+            .hero-left { flex-direction: column; }
+            .hero-right { align-items: center; width: 100%; }
+            .hero-right a { width: 100%; justify-content: center; }
+        }
+
         /* --- ADMIN STYLES --- */
         .admin-section { display: none; gap: 40px; margin-bottom: 60px; } 
         .admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
@@ -60,12 +133,6 @@
 
         .btn-action { padding: 12px 25px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-action:hover { opacity: 0.9; }
-
-        /* --- COUNTDOWN STYLES --- */
-        .countdown-box { background: #0f172a; padding: 15px 25px; border-radius: 8px; border: 1px solid var(--border); min-width: 80px; text-align: center; }
-        .time-val { font-size: 2.5rem; font-weight: 900; color: #fff; display: block; line-height: 1; margin-bottom: 5px; }
-        .time-label { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         /* --- COURSE GRID --- */
         .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
@@ -222,58 +289,59 @@
             </div>
         </div>
 
-        <div style="margin-bottom: 25px; background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-            <div style="display: flex; align-items: center; gap: 20px;">
+        <div class="hero-card">
+            
+            <div class="hero-left">
                 <img src="https://xuifnaypkeeukyjvlapi.supabase.co/storage/v1/object/public/thumbnails/logo.png.png" 
                      onerror="this.src='https://via.placeholder.com/100?text=LOGO'" 
-                     alt="Teppa Logo" 
-                     style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 2px solid var(--border);">
+                     class="hero-logo" alt="Teppa Logo">
                 
-                <div>
-                    <h2 style="margin: 0 0 10px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                        Live Trading Floor
-                    </h2>
-                    <p style="color: #94a3b8; margin: 0;">
-                        Official Teppa Trading Sessions
+                <div style="text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <h2 style="margin: 0; font-size: 1.8rem; color: #fff;">Live Trading Floor</h2>
+                        <div id="statusBadge" class="live-badge" style="display:none;">
+                            <div class="pulse-dot"></div> LIVE
+                        </div>
+                    </div>
+                    <p style="color: var(--text-dim); margin: 0; font-size: 0.95rem;">
+                        Next Session: <span id="displayTime" style="color: var(--primary);">Loading...</span>
                     </p>
                 </div>
             </div>
 
-            <a id="displayLink" href="#" target="_blank" style="background: var(--primary); color: #000; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 1.1rem; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                <i class='bx bxl-zoom' style="font-size: 1.4rem;"></i>
-                JOIN LIVE ROOM
-            </a>
-        </div>
+            <div class="hero-right">
+                
+                <div id="countdownContainer" class="timer-group">
+                    <div class="mini-count-box">
+                        <span id="dVal" class="mini-val">00</span>
+                        <span class="mini-label">Day</span>
+                    </div>
+                    <div class="mini-count-box">
+                        <span id="hVal" class="mini-val">00</span>
+                        <span class="mini-label">Hr</span>
+                    </div>
+                    <div class="mini-count-box">
+                        <span id="mVal" class="mini-val">00</span>
+                        <span class="mini-label">Min</span>
+                    </div>
+                    <div class="mini-count-box">
+                        <span id="sVal" class="mini-val">00</span>
+                        <span class="mini-label">Sec</span>
+                    </div>
+                </div>
 
-        <div style="margin-bottom: 60px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center;">
-            <h3 style="margin-top: 0; margin-bottom: 30px; color: #fff; font-size: 1.2rem; letter-spacing: 1px; text-transform: uppercase;">
-                <i class='bx bx-timer' style="color: var(--primary);"></i> Time Until Next Live Session
-            </h3>
+                <a id="displayLink" href="#" target="_blank" 
+                   style="background: var(--primary); color: #000; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(45, 212, 191, 0.2);" 
+                   onmouseover="this.style.transform='translateY(-2px)'" 
+                   onmouseout="this.style.transform='translateY(0)'">
+                    <i class='bx bxl-zoom' style="font-size: 1.3rem;"></i>
+                    JOIN ROOM
+                </a>
 
-            <div id="countdownContainer" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                <div class="countdown-box">
-                    <span id="dVal" class="time-val">00</span>
-                    <span class="time-label">DAYS</span>
-                </div>
-                <div class="countdown-box">
-                    <span id="hVal" class="time-val">00</span>
-                    <span class="time-label">HRS</span>
-                </div>
-                <div class="countdown-box">
-                    <span id="mVal" class="time-val">00</span>
-                    <span class="time-label">MIN</span>
-                </div>
-                <div class="countdown-box">
-                    <span id="sVal" class="time-val">00</span>
-                    <span class="time-label">SEC</span>
+                <div id="sessionLiveMsg" style="display: none; color: #ef4444; font-weight: bold; font-size: 0.9rem;">
+                    Session is currently active!
                 </div>
             </div>
-            
-            <div id="sessionLiveMsg" style="display: none; color: var(--primary); font-size: 2rem; font-weight: bold; animation: pulse 2s infinite; margin-top: 20px;">
-                🔴 SESSION IS LIVE!
-            </div>
-            
-            <p id="targetDateDisplay" style="margin-top: 20px; color: var(--text-dim); font-size: 0.9rem;"></p>
         </div>
 
         <div class="section-title"><i class='bx bx-movie-play'></i> Free Foundations</div>
@@ -517,14 +585,17 @@
             const s = data[0];
             document.getElementById('displayLink').href = s.zoom_link;
             
-            // Populate Admin input with date format compatible with datetime-local
+            // Format time nicely for "Next Session" text
+            const d = new Date(s.session_time);
+            const formatted = d.toLocaleDateString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' });
+            document.getElementById('displayTime').innerText = formatted;
+
+            // Populate Admin input 
             if(document.getElementById('liveTimeInput')) {
-                // If the stored time is ISO, it works. If it's text, it might fail to populate.
                 document.getElementById('liveTimeInput').value = s.session_time;
                 document.getElementById('liveLinkInput').value = s.zoom_link;
             }
 
-            // Start Countdown logic
             startCountdown(s.session_time);
         }
     }
@@ -534,37 +605,35 @@
 
         const targetDate = new Date(targetDateString).getTime();
         
-        // Update display text
-        const dObj = new Date(targetDateString);
-        if(!isNaN(dObj)) {
-            document.getElementById('targetDateDisplay').innerText = "Session Target: " + dObj.toLocaleString();
-        }
-
         countdownInterval = setInterval(() => {
             const now = new Date().getTime();
             const distance = targetDate - now;
 
-            // Session Live logic
+            // LIVE OR EXPIRED LOGIC
             if (distance < 0) {
-                // If less than 2 hours passed since start, show LIVE. Else Expired.
-                if (distance > -7200000) { 
+                if (distance > -7200000) { // If within 2 hours of start time, show LIVE
                     clearInterval(countdownInterval);
                     document.getElementById("countdownContainer").style.display = "none";
                     document.getElementById("sessionLiveMsg").style.display = "block";
-                    document.getElementById("sessionLiveMsg").innerText = "🔴 SESSION IS LIVE!";
+                    
+                    document.getElementById("statusBadge").style.display = "flex"; 
+                    const btn = document.getElementById("displayLink");
+                    btn.style.background = "#ef4444"; 
+                    btn.style.color = "#fff";
+                    btn.innerHTML = "<i class='bx bxs-video'></i> JOIN NOW";
                 } else {
                     clearInterval(countdownInterval);
                     document.getElementById("countdownContainer").style.display = "none";
-                    document.getElementById("sessionLiveMsg").style.display = "block";
                     document.getElementById("sessionLiveMsg").innerText = "Session Ended";
-                    document.getElementById("sessionLiveMsg").style.animation = "none";
-                    document.getElementById("sessionLiveMsg").style.color = "#94a3b8";
+                    document.getElementById("sessionLiveMsg").style.display = "block";
+                    document.getElementById("sessionLiveMsg").style.color = "var(--text-dim)";
                 }
                 return;
             }
 
             document.getElementById("countdownContainer").style.display = "flex";
             document.getElementById("sessionLiveMsg").style.display = "none";
+            document.getElementById("statusBadge").style.display = "none";
 
             const days = Math.floor(distance / (1000 * 60 * 60 * 24));
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -585,7 +654,6 @@
 
         if(!time || !link) return alert("Time and Link are required!");
 
-        // We save the raw datetime-local string (e.g., 2026-01-05T14:00)
         const { error } = await supabaseClient
             .from('live_settings')
             .insert([{ session_time: time, zoom_link: link }]);

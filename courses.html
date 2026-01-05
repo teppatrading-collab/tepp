@@ -149,18 +149,41 @@
             <div class="admin-card" style="border-color: #2dd4bf;">
                 <div class="admin-header">
                     <div class="admin-title" style="color: #2dd4bf;">
-                        <i class='bx bxs-video'></i> Update Live Session
+                        <i class='bx bxs-video'></i> Update Live & Market Prep
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Next Session Time</label>
-                    <input type="text" id="liveTimeInput" class="admin-input" placeholder="e.g. Monday @ 9:00 AM EST">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="color:#fff; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:5px;">Live Session</h4>
+                        <div class="form-group">
+                            <label>Next Session Time</label>
+                            <input type="text" id="liveTimeInput" class="admin-input" placeholder="e.g. Monday @ 9:00 AM EST">
+                        </div>
+                        <div class="form-group">
+                            <label>Zoom Link</label>
+                            <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color:#fff; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:5px;">Market Analysis</h4>
+                        <div class="form-group">
+                            <label>Daily Bias</label>
+                            <select id="biasInput" class="admin-input">
+                                <option value="NEUTRAL">NEUTRAL</option>
+                                <option value="BULLISH">BULLISH</option>
+                                <option value="BEARISH">BEARISH</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Analysis Notes (Key Levels)</label>
+                            <textarea id="notesInput" class="admin-input" rows="3" placeholder="EURUSD target 1.0500..."></textarea>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>New Zoom Link</label>
-                    <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
-                </div>
-                <button onclick="updateLiveSession()" class="btn-action" style="width:100%;">Update Live Banner</button>
+
+                <button onclick="updateLiveSession()" class="btn-action" style="width:100%; margin-top:10px;">Update Dashboard</button>
             </div>
 
             <div class="admin-card">
@@ -215,7 +238,10 @@
 
         <div style="margin-bottom: 25px; background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
             <div style="display: flex; align-items: center; gap: 20px;">
-                <img src="https://via.placeholder.com/100x100/2dd4bf/000?text=TEPPA" alt="Teppa Logo" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 2px solid var(--border);">
+                <img src="https://xuifnaypkeeukyjvlapi.supabase.co/storage/v1/object/public/thumbnails/logo.png.png" 
+                     onerror="this.src='https://via.placeholder.com/100?text=LOGO'" 
+                     alt="Teppa Logo" 
+                     style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 2px solid var(--border);">
                 
                 <div>
                     <h2 style="margin: 0 0 10px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
@@ -242,16 +268,20 @@
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 300px; aspect-ratio: 16/9; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border: 1px solid var(--border);" onclick="alert('Video feature coming soon!')">
                     <i class='bx bx-play-circle' style="font-size: 4rem; color: var(--primary); opacity: 0.8;"></i>
-                    <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px;">12:45</span>
+                    <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px;">Watch Brief</span>
                 </div>
                 
                 <div style="flex: 1; min-width: 300px;">
-                    <p style="color: var(--text-dim); margin-top: 0; font-style: italic;">Key levels to watch for today's London Session:</p>
-                    <ul style="color: #fff; line-height: 2; padding-left: 20px;">
-                        <li><strong>Europen Open:</strong> Waiting for 1.0500 tap (Liquidity Sweep)</li>
-                        <li><strong>News Driver:</strong> GBP CPI at 3:00 AM</li>
-                        <li><strong>Daily Bias:</strong> <span style="color: #2dd4bf; font-weight: bold; background: rgba(45, 212, 191, 0.1); padding: 2px 8px; border-radius: 4px;">BULLISH</span> above 1.2500</li>
-                    </ul>
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: var(--text-dim); font-size: 0.9rem;">Daily Bias:</span>
+                        <span id="displayBias" style="margin-left: 10px; color: #fff; font-weight: bold; background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 4px;">LOADING...</span>
+                    </div>
+                    
+                    <p style="color: var(--text-dim); margin-top: 0; font-style: italic; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">Key levels to watch:</p>
+                    
+                    <div id="displayNotes" style="color: #fff; line-height: 1.8; white-space: pre-wrap;">
+                        Loading market notes...
+                    </div>
                 </div>
             </div>
         </div>
@@ -491,20 +521,43 @@
     async function loadLiveSession() {
         const { data } = await supabaseClient.from('live_settings').select('*').order('created_at', { ascending: false }).limit(1);
         if (data && data.length > 0) {
-            document.getElementById('displayTime').innerText = data[0].session_time;
-            document.getElementById('displayLink').href = data[0].zoom_link;
+            const s = data[0];
+            // Update Student View
+            document.getElementById('displayTime').innerText = s.session_time;
+            document.getElementById('displayLink').href = s.zoom_link;
+            document.getElementById('displayBias').innerText = s.daily_bias || "NEUTRAL";
+            document.getElementById('displayNotes').innerText = s.market_notes || "No notes.";
+            
+            // Color code the bias
+            const biasEl = document.getElementById('displayBias');
+            if(s.daily_bias === 'BULLISH') { biasEl.style.color = '#2dd4bf'; biasEl.style.background = 'rgba(45, 212, 191, 0.1)'; }
+            else if(s.daily_bias === 'BEARISH') { biasEl.style.color = '#ef4444'; biasEl.style.background = 'rgba(239, 68, 68, 0.1)'; }
+            else { biasEl.style.color = '#fff'; biasEl.style.background = 'rgba(255,255,255,0.1)'; }
+
+            // Update Admin Inputs
             if(document.getElementById('liveTimeInput')) {
-                document.getElementById('liveTimeInput').value = data[0].session_time;
-                document.getElementById('liveLinkInput').value = data[0].zoom_link;
+                document.getElementById('liveTimeInput').value = s.session_time;
+                document.getElementById('liveLinkInput').value = s.zoom_link;
+                document.getElementById('biasInput').value = s.daily_bias || "NEUTRAL";
+                document.getElementById('notesInput').value = s.market_notes || "";
             }
         }
     }
+
     async function updateLiveSession() {
         const time = document.getElementById('liveTimeInput').value;
         const link = document.getElementById('liveLinkInput').value;
-        if(!time || !link) return alert("Fill fields");
-        await supabaseClient.from('live_settings').insert([{ session_time: time, zoom_link: link }]);
-        alert("Updated!"); loadLiveSession(); 
+        const bias = document.getElementById('biasInput').value;
+        const notes = document.getElementById('notesInput').value;
+
+        if(!time || !link) return alert("Time and Link are required!");
+
+        const { error } = await supabaseClient
+            .from('live_settings')
+            .insert([{ session_time: time, zoom_link: link, daily_bias: bias, market_notes: notes }]);
+
+        if(error) alert("Error: " + error.message);
+        else { alert("✅ Dashboard Updated!"); loadLiveSession(); }
     }
 </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teppa Academy | Live Floor</title>
+    <title>Teppa Academy | Courses</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -43,99 +43,164 @@
         .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
         .section-title i { color: var(--primary); }
 
-        /* --- LIVE STAGE STYLES (NEW) --- */
-        .live-stage {
-            background: #000;
-            border-radius: 16px;
-            overflow: hidden;
+        /* --- NEW HERO CARD STYLES --- */
+        .hero-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
             border: 1px solid var(--border);
-            margin-bottom: 20px;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
             position: relative;
-            box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
+            overflow: hidden;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
-        
-        .video-wrapper {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
-            background: #0f172a;
-        }
-        
-        .video-wrapper iframe {
+
+        /* Subtle glow effect */
+        .hero-card::before {
+            content: '';
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0; right: 0;
+            width: 300px; height: 100%;
+            background: radial-gradient(circle, rgba(45, 212, 191, 0.05) 0%, transparent 70%);
+            pointer-events: none;
         }
 
-        /* Offline State */
-        .offline-placeholder {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-            z-index: 2;
+        .hero-left { display: flex; align-items: center; gap: 20px; z-index: 1; }
+        .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 1; }
+
+        .hero-logo {
+            width: 90px; height: 90px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .controls-bar {
-            padding: 15px 25px;
-            background: var(--card);
-            border-top: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
+        .timer-group { display: flex; gap: 10px; }
+        .mini-count-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 50px;
         }
+        .mini-val { font-size: 1.2rem; font-weight: 800; color: #fff; display: block; line-height: 1; }
+        .mini-label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
 
-        .live-indicator {
-            background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+        .live-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
             display: flex; align-items: center; gap: 6px;
         }
+
         .pulse-dot { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse-red 2s infinite; }
+
         @keyframes pulse-red { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { opacity: 1; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* --- COUNTDOWN --- */
-        .countdown-row { display: flex; gap: 15px; margin-top: 20px; }
-        .cd-box { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; min-width: 60px; text-align: center; border: 1px solid var(--border); }
-        .cd-val { font-size: 1.5rem; font-weight: 800; color: #fff; display: block; }
-        .cd-lbl { font-size: 0.6rem; color: var(--text-dim); letter-spacing: 1px; }
+        /* Mobile Response */
+        @media (max-width: 768px) {
+            .hero-card { flex-direction: column; text-align: center; }
+            .hero-left { flex-direction: column; }
+            .hero-right { align-items: center; width: 100%; }
+            .hero-right a { width: 100%; justify-content: center; }
+        }
 
-        /* --- ADMIN & GENERAL --- */
+        /* --- ADMIN STYLES --- */
         .admin-section { display: none; gap: 40px; margin-bottom: 60px; } 
         .admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
         .admin-title { font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; color: var(--text-dim); font-size: 0.85rem; margin-bottom: 8px; font-weight: 600; }
         .admin-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none; box-sizing: border-box; }
         .admin-input:focus { border-color: var(--primary); }
         textarea.admin-input { resize: vertical; min-height: 100px; font-family: 'Inter', sans-serif; }
+        
         .file-upload-box { border: 1px dashed var(--border); padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 15px; background: rgba(15, 23, 42, 0.5); }
         .upload-status { font-size: 0.8rem; font-weight: bold; }
+
         .btn-action { padding: 12px 25px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-action:hover { opacity: 0.9; }
 
-        /* --- GRID & MODALS --- */
+        /* --- COURSE GRID --- */
         .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-        .course-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: 0.3s; position: relative; }
+
+        .course-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; transition: 0.3s;
+            position: relative;
+        }
         .course-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        
         .thumb-area { height: 180px; background: #1e293b; position: relative; }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
-        .premium-lock { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fbbf24; backdrop-filter: blur(3px); z-index: 2; }
+        
+        .premium-lock {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: #fbbf24;
+            backdrop-filter: blur(3px); z-index: 2;
+        }
+        
         .badge-free { position: absolute; top: 10px; right: 10px; background: var(--primary); color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
         .badge-pro { position: absolute; top: 10px; right: 10px; background: #fbbf24; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .admin-controls { position: absolute; top: 10px; left: 10px; z-index: 10; display: flex; gap: 8px; }
-        .admin-btn-card { width: 30px; height: 30px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .btn-edit { background: #3b82f6; } .btn-del { background: #ef4444; }
+
+        /* New Admin Controls on Card */
+        .admin-controls {
+            position: absolute; top: 10px; left: 10px; z-index: 10;
+            display: flex; gap: 8px;
+        }
+        .admin-btn-card {
+            width: 30px; height: 30px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1rem; color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .btn-edit { background: #3b82f6; } /* Blue for edit */
+        .btn-del { background: #ef4444; } /* Red for delete */
+
         .card-body { padding: 20px; }
         .c-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
         .c-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
-        .watch-btn { display: block; width: 100%; padding: 10px; text-align: center; background: var(--border); color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+        
+        .watch-btn {
+            display: block; width: 100%; padding: 10px; text-align: center;
+            background: var(--border); color: #fff; border-radius: 6px;
+            text-decoration: none; font-weight: 600; font-size: 0.85rem; transition: 0.2s;
+        }
         .watch-btn:hover { background: var(--primary); color: #000; }
         .watch-btn.locked { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        /* --- UPDATED MODAL STYLES --- */
         .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
         .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
-        .close-v { position: absolute; top: 15px; right: 15px; color: #fff; font-size: 2rem; cursor: pointer; z-index: 50; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .close-v { 
+            position: absolute; top: 15px; right: 15px; 
+            color: #fff; font-size: 2rem; cursor: pointer; z-index: 50;
+            background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Table Styles */
         .app-table { width: 100%; border-collapse: collapse; background: rgba(15, 23, 42, 0.5); border-radius: 8px; overflow: hidden; }
         .app-table th, .app-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: middle; }
         .app-table th { background: #0f172a; color: var(--text-dim); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
-        .app-modal-content { background: #1e293b; padding: 30px; max-width: 500px; width: 90%; border-radius: 12px; border: 1px solid var(--border); position: relative; }
+
+        .app-modal-content {
+            background: #1e293b; padding: 30px; max-width: 500px; width: 90%; border-radius: 12px; border: 1px solid var(--border); position: relative;
+        }
         .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); margin-left: 10px; padding: 12px 20px; border-radius: 8px; cursor: pointer; display: none; }
     </style>
 </head>
@@ -157,24 +222,18 @@
             <div class="admin-card" style="border-color: #2dd4bf;">
                 <div class="admin-header">
                     <div class="admin-title" style="color: #2dd4bf;">
-                        <i class='bx bxs-video'></i> Update Live Stream
+                        <i class='bx bxs-video'></i> Update Session Time
                     </div>
                 </div>
                 
-                <div style="background: rgba(45, 212, 191, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(45, 212, 191, 0.2);">
-                    <label style="color:#2dd4bf; font-weight:bold; display:block; margin-bottom:5px;">YouTube Video ID (e.g. jNQXAC9IVRw)</label>
-                    <input type="text" id="liveVideoIdInput" class="admin-input" placeholder="Leave empty to show Countdown">
-                    <p style="font-size:0.75rem; color:#94a3b8; margin-top:5px;">Paste ID to go LIVE. Delete ID to show Countdown.</p>
-                </div>
-
                 <div class="form-group">
-                    <label>Next Session (Date & Time)</label>
+                    <label>Next Session Start (Date & Time)</label>
                     <input type="datetime-local" id="liveTimeInput" class="admin-input">
                 </div>
 
                 <div class="form-group">
-                    <label>Zoom Join Link (Optional)</label>
-                    <input type="text" id="liveLinkInput" class="admin-input" placeholder="For students who want to speak...">
+                    <label>Zoom Link</label>
+                    <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
                 </div>
 
                 <button onclick="updateLiveSession()" class="btn-action" style="width:100%; margin-top:10px;">Update Dashboard</button>
@@ -230,38 +289,58 @@
             </div>
         </div>
 
-        <div class="live-stage">
-            <div class="video-wrapper">
-                <iframe id="livePlayerFrame" src="" frameborder="0" allow="autoplay; fullscreen" style="display:none;"></iframe>
+        <div class="hero-card">
+            
+            <div class="hero-left">
+                <img src="https://xuifnaypkeeukyjvlapi.supabase.co/storage/v1/object/public/thumbnails/logo.png.png" 
+                     onerror="this.src='https://via.placeholder.com/100?text=LOGO'" 
+                     class="hero-logo" alt="Teppa Logo">
                 
-                <div id="offlineScreen" class="offline-placeholder">
-                    <img src="https://xuifnaypkeeukyjvlapi.supabase.co/storage/v1/object/public/thumbnails/logo.png.png" 
-                         onerror="this.src='https://via.placeholder.com/100?text=LOGO'" 
-                         style="width: 80px; height: 80px; margin-bottom: 20px; border-radius: 12px;">
-                    
-                    <h2 style="margin: 0; font-size: 1.8rem; color: #fff;">Live Trading Floor</h2>
-                    <p id="nextSessionText" style="color: var(--text-dim); margin-top: 5px;">Next Session Loading...</p>
-                    
-                    <div id="countdownContainer" class="countdown-row">
-                        <div class="cd-box"><span id="dVal" class="cd-val">00</span><span class="cd-lbl">DAY</span></div>
-                        <div class="cd-box"><span id="hVal" class="cd-val">00</span><span class="cd-lbl">HR</span></div>
-                        <div class="cd-box"><span id="mVal" class="cd-val">00</span><span class="cd-lbl">MIN</span></div>
-                        <div class="cd-box"><span id="sVal" class="cd-val">00</span><span class="cd-lbl">SEC</span></div>
+                <div style="text-align: left;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <h2 style="margin: 0; font-size: 1.8rem; color: #fff;">Live Trading Floor</h2>
+                        <div id="statusBadge" class="live-badge" style="display:none;">
+                            <div class="pulse-dot"></div> LIVE
+                        </div>
                     </div>
+                    <p style="color: var(--text-dim); margin: 0; font-size: 0.95rem;">
+                        Next Session: <span id="displayTime" style="color: var(--primary);">Loading...</span>
+                    </p>
                 </div>
             </div>
 
-            <div class="controls-bar">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div id="liveBadge" class="live-indicator" style="display: none;">
-                        <div class="pulse-dot"></div> LIVE
+            <div class="hero-right">
+                
+                <div id="countdownContainer" class="timer-group">
+                    <div class="mini-count-box">
+                        <span id="dVal" class="mini-val">00</span>
+                        <span class="mini-label">Day</span>
                     </div>
-                    <span style="color: var(--text-dim); font-size: 0.9rem;">Teppa Trading Session</span>
+                    <div class="mini-count-box">
+                        <span id="hVal" class="mini-val">00</span>
+                        <span class="mini-label">Hr</span>
+                    </div>
+                    <div class="mini-count-box">
+                        <span id="mVal" class="mini-val">00</span>
+                        <span class="mini-label">Min</span>
+                    </div>
+                    <div class="mini-count-box">
+                        <span id="sVal" class="mini-val">00</span>
+                        <span class="mini-label">Sec</span>
+                    </div>
                 </div>
 
-                <a id="zoomJoinBtn" href="#" target="_blank" style="background: #334155; color: #fff; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; transition: 0.2s;">
-                    <i class='bx bxl-zoom'></i> Join Voice
+                <a id="displayLink" href="#" target="_blank" 
+                   style="background: var(--primary); color: #000; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(45, 212, 191, 0.2);" 
+                   onmouseover="this.style.transform='translateY(-2px)'" 
+                   onmouseout="this.style.transform='translateY(0)'">
+                    <i class='bx bxl-zoom' style="font-size: 1.3rem;"></i>
+                    JOIN ROOM
                 </a>
+
+                <div id="sessionLiveMsg" style="display: none; color: #ef4444; font-weight: bold; font-size: 0.9rem;">
+                    Session is currently active!
+                </div>
             </div>
         </div>
 
@@ -364,4 +443,224 @@
                 adminControls = `<div class="admin-controls"><button onclick="startEdit('${course.id}')" class="admin-btn-card btn-edit"><i class='bx bx-pencil'></i></button><button onclick="deleteCourse('${course.id}')" class="admin-btn-card btn-del"><i class='bx bx-trash'></i></button></div>`;
             }
 
-            const thumbSrc = course.thumbnail_url || course.thumbnail || '
+            const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course';
+
+            card.innerHTML = `<div class="thumb-area">${adminControls}<img src="${thumbSrc}" class="thumb-img"><span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}</div><div class="card-body"><div class="c-title">${course.title}</div><div class="c-desc">${course.description}</div><button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">${isLocked ? 'Locked' : 'Watch Now'}</button></div>`;
+
+            if(course.is_premium) proGrid.appendChild(card); else freeGrid.appendChild(card);
+        });
+    }
+
+    function getEmbedUrl(url) {
+        if (!url) return "";
+        if (url.includes("/embed/")) return url;
+        const videoIdMatch = url.match(/[?&]v=([^&]+)/);
+        if (videoIdMatch && videoIdMatch[1]) return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+        if (url.includes("youtu.be/")) {
+            const idParts = url.split("youtu.be/");
+            if (idParts[1]) return `https://www.youtube.com/embed/${idParts[1].split("?")[0]}`;
+        }
+        return url;
+    }
+
+    function openVideo(url) {
+        document.getElementById('vFrame').src = getEmbedUrl(url);
+        document.getElementById('videoModal').style.display = 'flex';
+    }
+    function forceClose() {
+        document.getElementById('videoModal').style.display = 'none';
+        document.getElementById('vFrame').src = '';
+    }
+    function closeVideoModal(e) { if (e.target.id === 'videoModal') forceClose(); }
+
+    function startEdit(courseId) {
+        const course = allCoursesData.find(c => c.id == courseId);
+        if(!course) return;
+        const currentThumb = course.thumbnail_url || course.thumbnail;
+        document.getElementById('cTitle').value = course.title;
+        document.getElementById('cDesc').value = course.description;
+        document.getElementById('cVideo').value = course.video_url;
+        document.getElementById('cThumbUrl').value = currentThumb;
+        document.getElementById('cPremium').checked = course.is_premium;
+        document.getElementById('uploadStatus').innerHTML = `<div style="display:flex; align-items:center; gap:10px; margin-top:5px;"><img src="${currentThumb}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><span style="font-size:0.75rem; color:#94a3b8;">Current Image</span></div>`;
+        isEditing = true; editingCourseId = courseId;
+        document.getElementById('formHeader').innerHTML = "<i class='bx bx-edit'></i> Edit Course";
+        document.getElementById('btnUpload').innerText = "Save Changes";
+        document.getElementById('btnUpload').style.background = "#3b82f6"; 
+        document.getElementById('btnCancel').style.display = "inline-block";
+        document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+        isEditing = false; editingCourseId = null;
+        document.getElementById('cTitle').value = "";
+        document.getElementById('cDesc').value = "";
+        document.getElementById('cVideo').value = "";
+        document.getElementById('cThumbUrl').value = "";
+        document.getElementById('cThumbFile').value = "";
+        document.getElementById('cPremium').checked = false;
+        document.getElementById('formHeader').innerHTML = "<i class='bx bx-cloud-upload'></i> Upload New Course";
+        document.getElementById('btnUpload').innerText = "Publish Course";
+        document.getElementById('btnUpload').style.background = "#2dd4bf"; 
+        document.getElementById('btnCancel').style.display = "none";
+        document.getElementById('uploadStatus').innerText = "No file chosen";
+    }
+
+    async function deleteCourse(id) {
+        if(!confirm("Are you sure?")) return;
+        const { error } = await supabaseClient.from('courses').delete().eq('id', id);
+        if(error) alert("Error: " + error.message); else loadCourses(); 
+    }
+
+    async function handleCourseSubmit() {
+        const title = document.getElementById('cTitle').value;
+        const desc = document.getElementById('cDesc').value;
+        const video = document.getElementById('cVideo').value;
+        const thumb = document.getElementById('cThumbUrl').value; 
+        const isPremium = document.getElementById('cPremium').checked;
+        const btn = document.getElementById('btnUpload');
+
+        if(!title || !video || !thumb) return alert("All fields required");
+        btn.innerText = isEditing ? "Saving..." : "Uploading...";
+        
+        const payload = { title, description: desc, video_url: video, is_premium: isPremium };
+        payload[dbImageColumn] = thumb; 
+
+        let error;
+        if(isEditing) {
+            const res = await supabaseClient.from('courses').update(payload).eq('id', editingCourseId);
+            error = res.error;
+        } else {
+            const res = await supabaseClient.from('courses').insert([payload]);
+            error = res.error;
+        }
+
+        if(error) alert("Error: " + error.message);
+        else { alert("Success!"); cancelEdit(); loadCourses(); }
+        btn.innerText = isEditing ? "Save Changes" : "Publish Course";
+    }
+
+    document.getElementById('cThumbFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const statusContainer = document.getElementById('uploadStatus');
+        statusContainer.innerHTML = `<span style="color:#fbbf24;">Uploading...</span>`;
+        try {
+            const fileName = `public/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+            const { error } = await supabaseClient.storage.from('thumbnails').upload(fileName, file);
+            if (error) throw error;
+            const { data } = supabaseClient.storage.from('thumbnails').getPublicUrl(fileName);
+            document.getElementById('cThumbUrl').value = data.publicUrl;
+            statusContainer.innerHTML = `<span style="color:#2dd4bf; font-weight:bold;">✅ Ready</span>`;
+        } catch (error) { statusContainer.innerHTML = `<span style="color:#ef4444;">❌ Error</span>`; }
+    });
+
+    async function fetchApplications() {
+        const { data, error } = await supabaseClient.from('mentorship_applications').select('*').order('created_at', { ascending: false });
+        const tbody = document.getElementById('appTableBody');
+        tbody.innerHTML = '';
+        if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No applications found.</td></tr>'; return; }
+        data.forEach((app) => {
+            let actions = '';
+            if(app.status === 'pending') actions = `<button onclick="updateStatus('${app.user_id}','approved')" style="background:#2dd4bf;border:none;padding:5px;border-radius:4px;cursor:pointer;">Accept</button> <button onclick="updateStatus('${app.user_id}','denied')" style="background:transparent;border:1px solid #ef4444;color:#ef4444;padding:5px;border-radius:4px;cursor:pointer;">Deny</button>`;
+            actions += `<button onclick="deleteApplication('${app.user_id}')" style="background:none;border:none;color:#64748b;font-size:1.1rem;cursor:pointer;margin-left:5px;"><i class='bx bx-trash'></i></button>`;
+            const row = `<tr><td><div style="font-weight:bold;color:#fff;">${app.discord_handle||'No Discord'}</div><div style="font-size:0.8rem;color:#64748b;">${app.email}</div></td><td><div style="color:#cbd5e1;font-size:0.85rem;">Exp: ${app.experience}</div><div style="color:#2dd4bf;font-size:0.85rem;">${app.capital}</div><button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px;background:none;border:none;color:#818cf8;text-decoration:underline;cursor:pointer;font-size:0.75rem;padding:0;">View Answer</button></td><td><span style="padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:800;text-transform:uppercase;background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'};color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span></td><td><div style="display:flex;gap:5px;">${actions}</div></td></tr>`;
+            tbody.innerHTML += row;
+        });
+        allAppsData = data;
+    }
+
+    function viewFullApp(uid) {
+        const app = allAppsData.find(a => a.user_id === uid);
+        document.getElementById('appModalContent').innerHTML = `<div style="background:#0f172a;padding:15px;border-radius:8px;border:1px solid var(--border);color:#cbd5e1;">${app.why_join}</div>`;
+        document.getElementById('appModal').style.display = 'flex';
+    }
+
+    async function updateStatus(id, s) { if(confirm("Confirm?")) { await supabaseClient.from('mentorship_applications').update({status:s}).eq('user_id',id); fetchApplications(); } }
+    async function deleteApplication(id) { if(confirm("Delete?")) { await supabaseClient.from('mentorship_applications').delete().eq('user_id',id); fetchApplications(); } }
+
+    async function loadLiveSession() {
+        const { data } = await supabaseClient.from('live_settings').select('*').order('created_at', { ascending: false }).limit(1);
+        if (data && data.length > 0) {
+            const s = data[0];
+            document.getElementById('displayLink').href = s.zoom_link;
+            
+            // Format time nicely for "Next Session" text
+            const d = new Date(s.session_time);
+            const formatted = d.toLocaleDateString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' });
+            document.getElementById('displayTime').innerText = formatted;
+
+            // Populate Admin input 
+            if(document.getElementById('liveTimeInput')) {
+                document.getElementById('liveTimeInput').value = s.session_time;
+                document.getElementById('liveLinkInput').value = s.zoom_link;
+            }
+
+            startCountdown(s.session_time);
+        }
+    }
+
+    function startCountdown(targetDateString) {
+        if(countdownInterval) clearInterval(countdownInterval);
+
+        const targetDate = new Date(targetDateString).getTime();
+        
+        countdownInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            // LIVE OR EXPIRED LOGIC
+            if (distance < 0) {
+                if (distance > -7200000) { // If within 2 hours of start time, show LIVE
+                    clearInterval(countdownInterval);
+                    document.getElementById("countdownContainer").style.display = "none";
+                    document.getElementById("sessionLiveMsg").style.display = "block";
+                    
+                    document.getElementById("statusBadge").style.display = "flex"; 
+                    const btn = document.getElementById("displayLink");
+                    btn.style.background = "#ef4444"; 
+                    btn.style.color = "#fff";
+                    btn.innerHTML = "<i class='bx bxs-video'></i> JOIN NOW";
+                } else {
+                    clearInterval(countdownInterval);
+                    document.getElementById("countdownContainer").style.display = "none";
+                    document.getElementById("sessionLiveMsg").innerText = "Session Ended";
+                    document.getElementById("sessionLiveMsg").style.display = "block";
+                    document.getElementById("sessionLiveMsg").style.color = "var(--text-dim)";
+                }
+                return;
+            }
+
+            document.getElementById("countdownContainer").style.display = "flex";
+            document.getElementById("sessionLiveMsg").style.display = "none";
+            document.getElementById("statusBadge").style.display = "none";
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("dVal").innerText = days < 10 ? "0" + days : days;
+            document.getElementById("hVal").innerText = hours < 10 ? "0" + hours : hours;
+            document.getElementById("mVal").innerText = minutes < 10 ? "0" + minutes : minutes;
+            document.getElementById("sVal").innerText = seconds < 10 ? "0" + seconds : seconds;
+
+        }, 1000);
+    }
+
+    async function updateLiveSession() {
+        const time = document.getElementById('liveTimeInput').value;
+        const link = document.getElementById('liveLinkInput').value;
+
+        if(!time || !link) return alert("Time and Link are required!");
+
+        const { error } = await supabaseClient
+            .from('live_settings')
+            .insert([{ session_time: time, zoom_link: link }]);
+
+        if(error) alert("Error: " + error.message);
+        else { alert("✅ Dashboard Updated!"); loadLiveSession(); }
+    }
+</script>
+</body>
+</html>

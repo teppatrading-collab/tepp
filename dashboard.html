@@ -6,7 +6,7 @@
     <title>Teppa Trading | Pro Terminal</title>
     
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -650,6 +650,9 @@
             loadTrades(activeFilter); 
         }
 
+        // ==================================================================
+        // THIS IS THE MAIN UPDATE: CLEAN CARD DESIGN
+        // ==================================================================
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
             document.getElementById('btn-all').classList.toggle('active-filter', filterMode === 'all');
@@ -666,7 +669,7 @@
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
-            // Stats Calculations (excluding Breakeven from certain stats if needed, but including in total)
+            // Stats Calculations
             let wins = trades.filter(t => t.outcome === 'Win').length;
             let totalDecisive = trades.filter(t => t.outcome === 'Win' || t.outcome === 'Loss').length;
             let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
@@ -675,7 +678,7 @@
 
             let currentStreak = 0;
             for (let i = 0; i < trades.length; i++) {
-                if(trades[i].outcome === 'Breakeven') continue; // Skip BE for streak
+                if(trades[i].outcome === 'Breakeven') continue; 
                 if(trades[i].outcome === 'Win') currentStreak++; else break; 
             }
 
@@ -703,26 +706,21 @@
             updateEquityChart(trades);
             renderCalendar(trades); 
 
+            // --- BUILD CLEAN CARDS ---
             trades.forEach(trade => {
                 const card = document.createElement('div');
                 const blurClass = isBacktestMode ? 'backtest-blur' : '';
                 card.className = `trade-log-card ${trade.is_playbook ? 'playbook-card' : ''}`;
                 const tradeDataStr = encodeURIComponent(JSON.stringify(trade));
                 
-                // CLICK HANDLER MODIFIED HERE
+                // CLICK HANDLER
                 card.onclick = (e) => {
-                    // If clicking internal buttons/images, do nothing
                     if (e.target.closest('button') || e.target.closest('.trade-img-preview')) return;
-
-                    if (isBacktestMode) {
-                        openReplay(tradeDataStr);
-                    } else {
-                        // NEW: Open detailed view
-                        openViewTrade(tradeDataStr);
-                    }
+                    if (isBacktestMode) { openReplay(tradeDataStr); } 
+                    else { openViewTrade(tradeDataStr); }
                 };
 
-                // --- MULTIPLE IMAGE DISPLAY LOGIC ---
+                // IMAGE LOGIC (Clean Strip)
                 let imgHtml = '';
                 if (trade.chart_screenshot) {
                     const urls = trade.chart_screenshot.split(',');
@@ -735,31 +733,52 @@
                     }
                 }
 
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span class="pair-badge">${trade.pair}</span>
-                        <div style="display:flex; gap:5px; align-items:center;">
-                             ${trade.is_playbook ? '<span class="pb-tag">🏆 Playbook</span>' : ''}
-                             <span class="outcome-tag ${trade.outcome?.toLowerCase()} ${blurClass}">${trade.outcome || 'Pending'}</span>
-                        </div>
-                        <div class="card-actions">
-                            <button class="action-btn" title="Replay on Chart" onclick="event.stopPropagation(); openReplay('${tradeDataStr}')"><i class='bx bx-play-circle'></i></button>
-                            <button class="action-btn" title="Share Trade" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')"><i class='bx bx-share-alt'></i></button>
-                            <button class="action-btn" onclick="event.stopPropagation(); openEditModal('${tradeDataStr}')"><i class='bx bx-pencil'></i></button>
-                            <button class="action-btn delete" onclick="event.stopPropagation(); deleteTrade('${trade.id}')"><i class='bx bx-trash'></i></button>
-                        </div>
-                    </div>
-                    <div class="${blurClass}" style="margin-bottom:10px; font-size:1.1rem; font-weight:800; color:${(trade.pnl || 0) >= 0 ? 'var(--primary)' : '#ef4444'}">
-                        ${(trade.pnl || 0) >= 0 ? '+' : '-'}$${Math.abs(trade.pnl || 0)}
-                    </div>
-                    
-                    ${imgHtml}
+                // DATE FORMATTING
+                const d = new Date(trade.created_at);
+                const dateStr = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+                
+                // PNL COLOR
+                const pnlClass = (trade.pnl || 0) >= 0 ? 'pnl-win' : 'pnl-loss';
+                const pnlSign = (trade.pnl || 0) >= 0 ? '+' : '-';
+                
+                // OUTCOME COLOR
+                let outcomeClass = 'tag-neutral';
+                if(trade.outcome === 'Win') outcomeClass = 'tag-win';
+                if(trade.outcome === 'Loss') outcomeClass = 'tag-loss';
+                if(trade.outcome === 'Breakeven') outcomeClass = 'tag-warn';
 
-                    <div class="card-meta">
-                        <span><i class='bx bx-time'></i> ${trade.session}</span> | <span><i class='bx bx-brain'></i> ${trade.emotion}</span>
+                // --- NEW CLEAN HTML STRUCTURE ---
+                card.innerHTML = `
+                    <div class="card-body">
+                        <div class="card-top">
+                            <span>${dateStr}</span>
+                            <div class="card-actions">
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); openReplay('${tradeDataStr}')" title="Replay"><i class='bx bx-play-circle'></i></button>
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')" title="Share"><i class='bx bx-share-alt'></i></button>
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); openEditModal('${tradeDataStr}')" title="Edit"><i class='bx bx-pencil'></i></button>
+                                <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${trade.id}')" title="Delete"><i class='bx bx-trash'></i></button>
+                            </div>
+                        </div>
+
+                        <div class="card-main ${blurClass}">
+                            <span class="pair-text">${trade.pair}</span>
+                            <span class="pnl-text ${pnlClass}">${pnlSign}$${Math.abs(trade.pnl)}</span>
+                        </div>
+
+                        <div class="tag-row ${blurClass}">
+                            <span class="tag-pill tag-neutral">${trade.session}</span>
+                            <span class="tag-pill ${outcomeClass}">${trade.outcome}</span>
+                            ${trade.is_playbook ? '<span class="tag-pill tag-gold">🏆 Playbook</span>' : ''}
+                        </div>
+
+                        <div class="${blurClass}">
+                            ${imgHtml}
+                        </div>
+
+                        <p class="card-note ${blurClass}">${trade.reason || 'No notes added.'}</p>
                     </div>
-                    <p class="trade-reason">${trade.reason}</p>
-                    ${isBacktestMode ? '<div class="click-reveal-hint" style="text-align:center; font-size:0.75rem; color:#94a3b8; margin-top:5px;">(Click to Enter Terminal)</div>' : ''}
+
+                    ${isBacktestMode ? '<div class="click-reveal-hint">(Click to Reveal)</div>' : ''}
                 `;
                 feed.appendChild(card);
             });
@@ -1208,48 +1227,135 @@
             gap: 25px; 
         }
         
+        /* --- NEW CLEAN CARD STYLES --- */
         .trade-log-card { 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            padding: 20px; 
-            border-radius: 16px; 
-            position: relative; 
+            background: #1e293b; /* Slightly lighter navy */
+            border: 1px solid #334155; 
+            border-radius: 12px; 
             overflow: hidden; 
-            cursor: pointer; 
-            transition: transform 0.2s;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
+            position: relative; 
+            display: flex;
+            flex-direction: column;
         }
         .trade-log-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
             border-color: var(--primary);
+        }
+        .card-body {
+            padding: 16px;
+            flex: 1;
         }
         
-        /* MULTIPLE IMAGES GALLERY CSS */
+        /* Card Top Row: Date & Actions */
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            height: 24px; /* Fixed height for alignment */
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 5px;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s;
+        }
+        .trade-log-card:hover .card-actions {
+            opacity: 1; /* Show on hover */
+        }
+        
+        .action-icon-btn {
+            background: rgba(255,255,255,0.05);
+            border: none;
+            color: #cbd5e1;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+        .action-icon-btn:hover { background: var(--primary); color: #0f172a; }
+        .action-icon-btn.delete-icon:hover { background: #ef4444; color: #fff; }
+
+        /* Card Main Info: Pair & PnL */
+        .card-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .pair-text {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        .pnl-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .pnl-win { color: var(--primary); }
+        .pnl-loss { color: #ef4444; }
+
+        /* Tags Row */
+        .tag-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .tag-pill {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .tag-neutral { background: #334155; color: #cbd5e1; }
+        .tag-win { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
+        .tag-loss { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .tag-warn { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .tag-gold { background: linear-gradient(135deg, #fbbf24, #d97706); color: #000; font-weight: 800; }
+
+        /* Card Note */
+        .card-note {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin: 0;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Clean Image Gallery */
         .trade-gallery {
             display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            margin-top: 10px;
-            padding-bottom: 5px;
-        }
-        .trade-gallery::-webkit-scrollbar {
-            height: 6px;
-        }
-        .trade-gallery::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 3px;
+            gap: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            height: 80px; /* Fixed height strip */
+            border-radius: 6px;
         }
         .trade-img-preview {
-            height: 150px; /* Fixed height thumbnails */
+            height: 100%;
             width: auto;
-            border-radius: 8px;
+            object-fit: cover;
             cursor: pointer;
-            transition: transform 0.2s;
-            border: 1px solid #334155;
+            transition: opacity 0.2s;
+            border-radius: 4px;
         }
-        .trade-img-preview:hover {
-            transform: scale(1.05);
-            border-color: var(--primary);
-        }
+        .trade-img-preview:hover { opacity: 0.8; }
 
         .backtest-blur { 
             filter: blur(5px); 
@@ -1267,30 +1373,19 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.6);
-            padding: 5px 10px;
-            border-radius: 4px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
             font-size: 0.8rem;
+            color: #fff;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s;
+            border: 1px solid var(--primary);
         }
         .trade-log-card:hover .click-reveal-hint {
             opacity: 1;
         }
-        
-        /* Outcome Tags Colors */
-        .outcome-tag {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .outcome-tag.win { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; border: 1px solid #2dd4bf; }
-        .outcome-tag.loss { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
-        .outcome-tag.pending { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid #94a3b8; }
-        .outcome-tag.breakeven { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
 
         /* Small stats box for View Modal */
         .stat-box-small { 

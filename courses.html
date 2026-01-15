@@ -6,6 +6,7 @@
     <title>Teppa Academy | Courses</title>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
     <style>
         /* --- PRO THEME: DEEP SLATE --- */
@@ -13,7 +14,7 @@
             --primary: #2dd4bf; 
             --secondary: #818cf8; 
             --bg: #0f172a; 
-            --card: rgba(30, 41, 59, 0.8); 
+            --card: #1e293b; 
             --border: #334155; 
             --text: #f8fafc;
             --text-dim: #94a3b8; 
@@ -40,10 +41,10 @@
 
         .container { max-width: 1200px; margin: 0 auto; padding: 40px 5%; }
         
-        .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
+        .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; border-left: 4px solid var(--primary); padding-left: 15px; }
         .section-title i { color: var(--primary); }
 
-        /* --- NEW HERO CARD STYLES --- */
+        /* --- HERO CARD STYLES --- */
         .hero-card {
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
             border: 1px solid var(--border);
@@ -58,150 +59,132 @@
             overflow: hidden;
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
-
-        /* Subtle glow effect */
         .hero-card::before {
-            content: '';
-            position: absolute;
-            top: 0; right: 0;
-            width: 300px; height: 100%;
-            background: radial-gradient(circle, rgba(45, 212, 191, 0.05) 0%, transparent 70%);
-            pointer-events: none;
+            content: ''; position: absolute; top: 0; right: 0; width: 300px; height: 100%;
+            background: radial-gradient(circle, rgba(45, 212, 191, 0.05) 0%, transparent 70%); pointer-events: none;
         }
 
         .hero-left { display: flex; align-items: center; gap: 20px; z-index: 1; }
         .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 15px; z-index: 1; }
 
-        .hero-logo {
-            width: 90px; height: 90px;
-            border-radius: 16px;
-            object-fit: cover;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
+        .hero-logo { width: 90px; height: 90px; border-radius: 16px; object-fit: cover; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
         .timer-group { display: flex; gap: 10px; }
-        .mini-count-box {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            border-radius: 8px;
-            text-align: center;
-            min-width: 50px;
-        }
+        .mini-count-box { background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; text-align: center; min-width: 50px; }
         .mini-val { font-size: 1.2rem; font-weight: 800; color: #fff; display: block; line-height: 1; }
         .mini-label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
 
-        .live-badge {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            display: flex; align-items: center; gap: 6px;
-        }
-
+        .live-badge { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
         .pulse-dot { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse-red 2s infinite; }
-
         @keyframes pulse-red { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { opacity: 1; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* Mobile Response */
+        /* --- NEW CLEAN CARD DESIGN --- */
+        .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+
+        .course-card {
+            background: var(--card); 
+            border: 1px solid var(--border);
+            border-radius: 12px; 
+            overflow: hidden; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
+            position: relative; 
+            display: flex;
+            flex-direction: column;
+        }
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border-color: var(--primary);
+        }
+
+        /* Thumb Image Area */
+        .card-thumb-area {
+            height: 160px;
+            position: relative;
+            background: #0f172a;
+            overflow: hidden;
+        }
+        .card-thumb-img {
+            width: 100%; height: 100%; object-fit: cover; opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+        .course-card:hover .card-thumb-img { opacity: 1; }
+
+        /* Admin Controls (Hidden by default) */
+        .admin-overlay {
+            position: absolute; top: 10px; right: 10px;
+            display: flex; gap: 5px;
+            opacity: 0; transition: opacity 0.2s;
+            z-index: 10;
+        }
+        .course-card:hover .admin-overlay { opacity: 1; }
+
+        .icon-btn {
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .btn-edit { background: #3b82f6; }
+        .btn-del { background: #ef4444; }
+
+        /* Card Content */
+        .card-content { padding: 16px; display: flex; flex-direction: column; flex: 1; }
+
+        .card-meta-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.75rem; color: var(--text-dim); margin-bottom: 8px;
+        }
+        .card-date { display: flex; align-items: center; gap: 5px; }
+
+        .card-title {
+            font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
+
+        .tags-row { display: flex; gap: 6px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tag-pill {
+            font-size: 0.7rem; padding: 3px 8px; border-radius: 4px;
+            font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .tag-london { background: rgba(45, 212, 191, 0.15); color: var(--primary); border: 1px solid rgba(45, 212, 191, 0.3); }
+        .tag-ny { background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.3); }
+        .tag-zoom { background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .tag-premium { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 800; border: none; }
+
+        .watch-btn {
+            margin-top: auto; width: 100%; padding: 10px; text-align: center;
+            background: #334155; color: #fff; border-radius: 6px; border: none;
+            font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+        }
+        .watch-btn:hover { background: var(--primary); color: #000; }
+        .watch-btn.locked { background: rgba(0,0,0,0.3); color: #64748b; cursor: not-allowed; }
+
+        /* Premium Glow */
+        .course-card.premium-card { border-color: rgba(251, 191, 36, 0.3); }
+        .course-card.premium-card:hover { border-color: #fbbf24; box-shadow: 0 10px 30px rgba(251, 191, 36, 0.15); }
+
+        /* --- ADMIN PANEL --- */
+        .admin-section { display: none; gap: 40px; margin-bottom: 60px; } 
+        .admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .admin-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none; box-sizing: border-box; }
+        .file-upload-box { border: 1px dashed var(--border); padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 15px; background: rgba(15, 23, 42, 0.5); }
+        .btn-action { padding: 12px 25px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 12px 20px; border-radius: 8px; cursor: pointer; display: none; }
+
+        /* --- MODAL --- */
+        .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
+        .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
+        .close-v { position: absolute; top: 15px; right: 15px; color: #fff; font-size: 2rem; cursor: pointer; z-index: 50; background: rgba(0,0,0,0.5); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+
+        /* Mobile */
         @media (max-width: 768px) {
             .hero-card { flex-direction: column; text-align: center; }
             .hero-left { flex-direction: column; }
             .hero-right { align-items: center; width: 100%; }
-            .hero-right a { width: 100%; justify-content: center; }
+            .admin-section { grid-template-columns: 1fr !important; }
         }
-
-        /* --- ADMIN STYLES --- */
-        .admin-section { display: none; gap: 40px; margin-bottom: 60px; } 
-        .admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
-        .admin-title { font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; color: var(--text-dim); font-size: 0.85rem; margin-bottom: 8px; font-weight: 600; }
-        .admin-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none; box-sizing: border-box; }
-        .admin-input:focus { border-color: var(--primary); }
-        textarea.admin-input { resize: vertical; min-height: 100px; font-family: 'Inter', sans-serif; }
-        
-        .file-upload-box { border: 1px dashed var(--border); padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 15px; background: rgba(15, 23, 42, 0.5); }
-        .upload-status { font-size: 0.8rem; font-weight: bold; }
-
-        .btn-action { padding: 12px 25px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-action:hover { opacity: 0.9; }
-
-        /* --- COURSE GRID --- */
-        .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-
-        .course-card {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; overflow: hidden; transition: 0.3s;
-            position: relative;
-        }
-        .course-card:hover { transform: translateY(-5px); border-color: var(--primary); }
-        
-        .thumb-area { height: 180px; background: #1e293b; position: relative; }
-        .thumb-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
-        
-        .premium-lock {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; color: #fbbf24;
-            backdrop-filter: blur(3px); z-index: 2;
-        }
-        
-        .badge-free { position: absolute; top: 10px; right: 10px; background: var(--primary); color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .badge-pro { position: absolute; top: 10px; right: 10px; background: #fbbf24; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-
-        /* New Admin Controls on Card */
-        .admin-controls {
-            position: absolute; top: 10px; left: 10px; z-index: 10;
-            display: flex; gap: 8px;
-        }
-        .admin-btn-card {
-            width: 30px; height: 30px; border-radius: 50%; border: none;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 1rem; color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        .btn-edit { background: #3b82f6; } /* Blue for edit */
-        .btn-del { background: #ef4444; } /* Red for delete */
-
-        .card-body { padding: 20px; }
-        .c-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
-        .c-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
-        
-        .watch-btn {
-            display: block; width: 100%; padding: 10px; text-align: center;
-            background: var(--border); color: #fff; border-radius: 6px;
-            text-decoration: none; font-weight: 600; font-size: 0.85rem; transition: 0.2s;
-        }
-        .watch-btn:hover { background: var(--primary); color: #000; }
-        .watch-btn.locked { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-
-        /* --- UPDATED MODAL STYLES --- */
-        .v-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center; }
-        .v-box { width: 90%; max-width: 900px; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
-        .close-v { 
-            position: absolute; top: 15px; right: 15px; 
-            color: #fff; font-size: 2rem; cursor: pointer; z-index: 50;
-            background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px;
-            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-        }
-        
-        /* Table Styles */
-        .app-table { width: 100%; border-collapse: collapse; background: rgba(15, 23, 42, 0.5); border-radius: 8px; overflow: hidden; }
-        .app-table th, .app-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: middle; }
-        .app-table th { background: #0f172a; color: var(--text-dim); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
-
-        .app-modal-content {
-            background: #1e293b; padding: 30px; max-width: 500px; width: 90%; border-radius: 12px; border: 1px solid var(--border); position: relative;
-        }
-        .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); margin-left: 10px; padding: 12px 20px; border-radius: 8px; cursor: pointer; display: none; }
     </style>
 </head>
 <body>
@@ -221,81 +204,54 @@
             
             <div class="admin-card" style="border-color: #2dd4bf;">
                 <div class="admin-header">
-                    <div class="admin-title" style="color: #2dd4bf;">
+                    <div class="admin-title" style="color: #2dd4bf; font-weight:bold;">
                         <i class='bx bxs-video'></i> Update Session Time
                     </div>
                 </div>
-                
-                <div class="form-group">
-                    <label>Next Session Start (Date & Time)</label>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#94a3b8; font-size:0.8rem; margin-bottom:5px;">Next Session Start</label>
                     <input type="datetime-local" id="liveTimeInput" class="admin-input">
                 </div>
-
-                <div class="form-group">
-                    <label>Zoom Link</label>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#94a3b8; font-size:0.8rem; margin-bottom:5px;">Zoom Link</label>
                     <input type="text" id="liveLinkInput" class="admin-input" placeholder="https://zoom.us/...">
                 </div>
-
-                <button onclick="updateLiveSession()" class="btn-action" style="width:100%; margin-top:10px;">Update Dashboard</button>
+                <button onclick="updateLiveSession()" class="btn-action" style="width:100%;">Update Dashboard</button>
             </div>
 
             <div class="admin-card">
                 <div class="admin-header">
-                    <div class="admin-title" id="formHeader"><i class='bx bx-cloud-upload'></i> Upload New Course</div>
+                    <div class="admin-title" id="formHeader" style="color:#fff; font-weight:bold;"><i class='bx bx-cloud-upload'></i> Upload New Course</div>
                 </div>
-                <div class="form-group">
-                    <label>Course Title</label>
-                    <input type="text" id="cTitle" class="admin-input" placeholder="e.g. Market Structure Logic">
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="cDesc" class="admin-input" rows="4"></textarea>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div class="form-group">
-                        <label>YouTube Link</label>
-                        <input type="text" id="cVideo" class="admin-input">
+                <input type="text" id="cTitle" class="admin-input" placeholder="Title (e.g. 1-15-26 London Pre Market)" style="margin-bottom:15px;">
+                <textarea id="cDesc" class="admin-input" rows="3" placeholder="Description..." style="margin-bottom:15px;"></textarea>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom:15px;">
+                    <input type="text" id="cVideo" class="admin-input" placeholder="YouTube URL">
+                    <div class="file-upload-box">
+                        <input type="file" id="cThumbFile" accept="image/*" style="color: var(--text-dim); font-size: 0.8rem;">
+                        <span id="uploadStatus" style="font-size:0.8rem; color:var(--text-dim);">No file</span>
                     </div>
-                    <div class="form-group">
-                        <label>Thumbnail Image</label>
-                        <div class="file-upload-box">
-                            <input type="file" id="cThumbFile" accept="image/*" style="color: var(--text-dim); font-size: 0.85rem;">
-                            <span id="uploadStatus" class="upload-status" style="color: var(--text-dim);">No file chosen</span>
-                        </div>
-                        <input type="hidden" id="cThumbUrl"> 
-                    </div>
+                    <input type="hidden" id="cThumbUrl"> 
                 </div>
-                <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
                     <input type="checkbox" id="cPremium" style="width:16px; height:16px; cursor: pointer;">
-                    <label for="cPremium" style="margin:0; cursor:pointer;">Premium Member Only?</label>
+                    <label for="cPremium" style="margin:0; cursor:pointer; color:#fff;">Premium Member Only?</label>
                 </div>
-                <div style="margin-top: 15px;">
+                
+                <div>
                     <button onclick="handleCourseSubmit()" id="btnUpload" class="btn-action">Publish Course</button>
-                    <button onclick="cancelEdit()" id="btnCancel" class="btn-cancel">Cancel Edit</button>
+                    <button onclick="cancelEdit()" id="btnCancel" class="btn-cancel">Cancel</button>
                 </div>
-            </div>
-
-            <div class="admin-card">
-                <div class="admin-header">
-                    <div class="admin-title"><i class='bx bx-user-check'></i> Mentorship Applications</div>
-                    <button onclick="fetchApplications()" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); padding:5px 10px; border-radius:5px; cursor:pointer; font-size: 0.8rem;">Refresh</button>
-                </div>
-                <table class="app-table">
-                    <thead><tr><th>Applicant</th><th>Details</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody id="appTableBody">
-                        <tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">Loading...</td></tr>
-                    </tbody>
-                </table>
             </div>
         </div>
 
         <div class="hero-card">
-            
             <div class="hero-left">
                 <img src="https://xuifnaypkeeukyjvlapi.supabase.co/storage/v1/object/public/thumbnails/logo.png.png" 
                      onerror="this.src='https://via.placeholder.com/100?text=LOGO'" 
                      class="hero-logo" alt="Teppa Logo">
-                
                 <div style="text-align: left;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
                         <h2 style="margin: 0; font-size: 1.8rem; color: #fff;">Live Trading Floor</h2>
@@ -310,37 +266,20 @@
             </div>
 
             <div class="hero-right">
-                
                 <div id="countdownContainer" class="timer-group">
-                    <div class="mini-count-box">
-                        <span id="dVal" class="mini-val">00</span>
-                        <span class="mini-label">Day</span>
-                    </div>
-                    <div class="mini-count-box">
-                        <span id="hVal" class="mini-val">00</span>
-                        <span class="mini-label">Hr</span>
-                    </div>
-                    <div class="mini-count-box">
-                        <span id="mVal" class="mini-val">00</span>
-                        <span class="mini-label">Min</span>
-                    </div>
-                    <div class="mini-count-box">
-                        <span id="sVal" class="mini-val">00</span>
-                        <span class="mini-label">Sec</span>
-                    </div>
+                    <div class="mini-count-box"><span id="dVal" class="mini-val">00</span><span class="mini-label">Day</span></div>
+                    <div class="mini-count-box"><span id="hVal" class="mini-val">00</span><span class="mini-label">Hr</span></div>
+                    <div class="mini-count-box"><span id="mVal" class="mini-val">00</span><span class="mini-label">Min</span></div>
+                    <div class="mini-count-box"><span id="sVal" class="mini-val">00</span><span class="mini-label">Sec</span></div>
                 </div>
 
                 <a id="displayLink" href="#" target="_blank" 
                    style="background: var(--primary); color: #000; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(45, 212, 191, 0.2);" 
                    onmouseover="this.style.transform='translateY(-2px)'" 
                    onmouseout="this.style.transform='translateY(0)'">
-                    <i class='bx bxl-zoom' style="font-size: 1.3rem;"></i>
-                    JOIN ROOM
+                    <i class='bx bxl-zoom' style="font-size: 1.3rem;"></i> JOIN ROOM
                 </a>
-
-                <div id="sessionLiveMsg" style="display: none; color: #ef4444; font-weight: bold; font-size: 0.9rem;">
-                    Session is currently active!
-                </div>
+                <div id="sessionLiveMsg" style="display: none; color: #ef4444; font-weight: bold; font-size: 0.9rem;">Session is currently active!</div>
             </div>
         </div>
 
@@ -360,14 +299,6 @@
         </div>
     </div>
 
-    <div id="appModal" class="v-modal" style="z-index: 2001;">
-        <div class="app-modal-content">
-            <i class='bx bx-x' onclick="document.getElementById('appModal').style.display='none';" style="position:absolute; top:15px; right:15px; font-size:1.5rem; color:#fff; cursor:pointer;"></i>
-            <h3 style="margin-top:0; color: #fff; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:20px;">Application Details</h3>
-            <div id="appModalContent" style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.6;"></div>
-        </div>
-    </div>
-
 <script>
     const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
     const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
@@ -377,10 +308,8 @@
     let userIsPro = false; 
     let userIsAdmin = false; 
     let currentUserEmail = "";
-    let allAppsData = [];
     let allCoursesData = []; 
     let dbImageColumn = 'thumbnail'; 
-
     let isEditing = false;
     let editingCourseId = null;
     const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
@@ -399,9 +328,8 @@
             const panel = document.getElementById('adminPanel');
             panel.style.display = 'grid'; 
             panel.style.gridTemplateColumns = '1fr'; 
-            if(window.innerWidth > 900) { panel.style.gridTemplateColumns = '1.2fr 0.8fr'; }
+            if(window.innerWidth > 900) { panel.style.gridTemplateColumns = '0.8fr 1.2fr'; }
             userIsPro = true; 
-            fetchApplications(); 
         }
 
         if (currentUserEmail.includes("pro") || userIsAdmin) {
@@ -418,6 +346,7 @@
     }
     init();
 
+    // --- MAIN FUNCTION TO LOAD & RENDER CARDS ---
     async function loadCourses() {
         const { data: courses, error } = await supabaseClient.from('courses').select('*').order('created_at', { ascending: false });
         if(error) return console.error(error);
@@ -435,17 +364,69 @@
 
         courses.forEach(course => {
             const isLocked = course.is_premium && !userIsPro;
-            const card = document.createElement('div');
-            card.className = 'course-card';
+            const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Academy';
             
-            let adminControls = "";
-            if(userIsAdmin) {
-                adminControls = `<div class="admin-controls"><button onclick="startEdit('${course.id}')" class="admin-btn-card btn-edit"><i class='bx bx-pencil'></i></button><button onclick="deleteCourse('${course.id}')" class="admin-btn-card btn-del"><i class='bx bx-trash'></i></button></div>`;
+            // --- 1. DATE & TITLE EXTRACTION LOGIC ---
+            // Regex to find dates like 1-15-26, 12/30/25, 2026-01-15 at the start of string
+            const dateRegex = /^(\d{1,2}[-./]\d{1,2}[-./]\d{2,4})\s+(.*)$/;
+            let displayDate = "";
+            let displayTitle = course.title;
+
+            // Check if title starts with a date
+            const match = course.title.match(dateRegex);
+            if (match) {
+                displayDate = match[1]; // e.g. "1-15-26"
+                displayTitle = match[2]; // e.g. "London Pre Market Analysis"
+            } else {
+                // Fallback: Use created_at if no date in title
+                const d = new Date(course.created_at);
+                displayDate = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
             }
 
-            const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Course';
+            // --- 2. AUTO TAGGING LOGIC ---
+            let tagsHtml = "";
+            const lowerTitle = course.title.toLowerCase();
+            if(lowerTitle.includes("london")) tagsHtml += `<span class="tag-pill tag-london">London</span>`;
+            if(lowerTitle.includes("new york") || lowerTitle.includes("ny session")) tagsHtml += `<span class="tag-pill tag-ny">New York</span>`;
+            if(lowerTitle.includes("zoom") || lowerTitle.includes("qa")) tagsHtml += `<span class="tag-pill tag-zoom">Zoom Call</span>`;
+            if(course.is_premium) tagsHtml += `<span class="tag-pill tag-premium">Premium</span>`;
 
-            card.innerHTML = `<div class="thumb-area">${adminControls}<img src="${thumbSrc}" class="thumb-img"><span class="${course.is_premium ? 'badge-pro' : 'badge-free'}">${course.is_premium ? 'PREMIUM' : 'FREE'}</span>${isLocked ? `<div class="premium-lock"><i class='bx bxs-lock-alt' style="font-size:3rem; margin-bottom:10px;"></i><span>Upgrade to Watch</span></div>` : ''}</div><div class="card-body"><div class="c-title">${course.title}</div><div class="c-desc">${course.description}</div><button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">${isLocked ? 'Locked' : 'Watch Now'}</button></div>`;
+            // --- 3. ADMIN BUTTONS (Hidden by default) ---
+            let adminHtml = "";
+            if(userIsAdmin) {
+                adminHtml = `
+                    <div class="admin-overlay">
+                        <button onclick="startEdit('${course.id}')" class="icon-btn btn-edit"><i class='bx bx-pencil'></i></button>
+                        <button onclick="deleteCourse('${course.id}')" class="icon-btn btn-del"><i class='bx bx-trash'></i></button>
+                    </div>
+                `;
+            }
+
+            // --- 4. BUILD HTML ---
+            const card = document.createElement('div');
+            card.className = `course-card ${course.is_premium ? 'premium-card' : ''}`;
+            
+            card.innerHTML = `
+                <div class="card-thumb-area">
+                    <img src="${thumbSrc}" class="card-thumb-img">
+                    ${adminHtml}
+                </div>
+                
+                <div class="card-content">
+                    <div class="card-meta-row">
+                        <div class="card-date"><i class='bx bx-calendar'></i> ${displayDate}</div>
+                        ${isLocked ? '<i class="bx bxs-lock-alt"></i>' : ''}
+                    </div>
+
+                    <h3 class="card-title">${displayTitle}</h3>
+                    
+                    <div class="tags-row">${tagsHtml}</div>
+                    
+                    <button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">
+                        ${isLocked ? '<i class="bx bxs-lock"></i> Locked' : '<i class="bx bx-play"></i> Watch Replay'}
+                    </button>
+                </div>
+            `;
 
             if(course.is_premium) proGrid.appendChild(card); else freeGrid.appendChild(card);
         });
@@ -482,7 +463,7 @@
         document.getElementById('cVideo').value = course.video_url;
         document.getElementById('cThumbUrl').value = currentThumb;
         document.getElementById('cPremium').checked = course.is_premium;
-        document.getElementById('uploadStatus').innerHTML = `<div style="display:flex; align-items:center; gap:10px; margin-top:5px;"><img src="${currentThumb}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><span style="font-size:0.75rem; color:#94a3b8;">Current Image</span></div>`;
+        document.getElementById('uploadStatus').innerHTML = `<span style="color:#2dd4bf;">Editing...</span>`;
         isEditing = true; editingCourseId = courseId;
         document.getElementById('formHeader').innerHTML = "<i class='bx bx-edit'></i> Edit Course";
         document.getElementById('btnUpload').innerText = "Save Changes";
@@ -507,7 +488,7 @@
     }
 
     async function deleteCourse(id) {
-        if(!confirm("Are you sure?")) return;
+        if(!confirm("Are you sure you want to delete this course?")) return;
         const { error } = await supabaseClient.from('courses').delete().eq('id', id);
         if(error) alert("Error: " + error.message); else loadCourses(); 
     }
@@ -520,7 +501,7 @@
         const isPremium = document.getElementById('cPremium').checked;
         const btn = document.getElementById('btnUpload');
 
-        if(!title || !video || !thumb) return alert("All fields required");
+        if(!title || !video || !thumb) return alert("Title, Video Link, and Thumbnail are required.");
         btn.innerText = isEditing ? "Saving..." : "Uploading...";
         
         const payload = { title, description: desc, video_url: video, is_premium: isPremium };
@@ -552,32 +533,11 @@
             const { data } = supabaseClient.storage.from('thumbnails').getPublicUrl(fileName);
             document.getElementById('cThumbUrl').value = data.publicUrl;
             statusContainer.innerHTML = `<span style="color:#2dd4bf; font-weight:bold;">✅ Ready</span>`;
-        } catch (error) { statusContainer.innerHTML = `<span style="color:#ef4444;">❌ Error</span>`; }
+        } catch (error) { 
+            console.error(error);
+            statusContainer.innerHTML = `<span style="color:#ef4444;">❌ Error</span>`; 
+        }
     });
-
-    async function fetchApplications() {
-        const { data, error } = await supabaseClient.from('mentorship_applications').select('*').order('created_at', { ascending: false });
-        const tbody = document.getElementById('appTableBody');
-        tbody.innerHTML = '';
-        if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No applications found.</td></tr>'; return; }
-        data.forEach((app) => {
-            let actions = '';
-            if(app.status === 'pending') actions = `<button onclick="updateStatus('${app.user_id}','approved')" style="background:#2dd4bf;border:none;padding:5px;border-radius:4px;cursor:pointer;">Accept</button> <button onclick="updateStatus('${app.user_id}','denied')" style="background:transparent;border:1px solid #ef4444;color:#ef4444;padding:5px;border-radius:4px;cursor:pointer;">Deny</button>`;
-            actions += `<button onclick="deleteApplication('${app.user_id}')" style="background:none;border:none;color:#64748b;font-size:1.1rem;cursor:pointer;margin-left:5px;"><i class='bx bx-trash'></i></button>`;
-            const row = `<tr><td><div style="font-weight:bold;color:#fff;">${app.discord_handle||'No Discord'}</div><div style="font-size:0.8rem;color:#64748b;">${app.email}</div></td><td><div style="color:#cbd5e1;font-size:0.85rem;">Exp: ${app.experience}</div><div style="color:#2dd4bf;font-size:0.85rem;">${app.capital}</div><button onclick="viewFullApp('${app.user_id}')" style="margin-top:5px;background:none;border:none;color:#818cf8;text-decoration:underline;cursor:pointer;font-size:0.75rem;padding:0;">View Answer</button></td><td><span style="padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:800;text-transform:uppercase;background:${app.status==='pending'?'#fbbf2420':app.status==='approved'?'#2dd4bf20':'#ef444420'};color:${app.status==='pending'?'#fbbf24':app.status==='approved'?'#2dd4bf':'#ef4444'};">${app.status}</span></td><td><div style="display:flex;gap:5px;">${actions}</div></td></tr>`;
-            tbody.innerHTML += row;
-        });
-        allAppsData = data;
-    }
-
-    function viewFullApp(uid) {
-        const app = allAppsData.find(a => a.user_id === uid);
-        document.getElementById('appModalContent').innerHTML = `<div style="background:#0f172a;padding:15px;border-radius:8px;border:1px solid var(--border);color:#cbd5e1;">${app.why_join}</div>`;
-        document.getElementById('appModal').style.display = 'flex';
-    }
-
-    async function updateStatus(id, s) { if(confirm("Confirm?")) { await supabaseClient.from('mentorship_applications').update({status:s}).eq('user_id',id); fetchApplications(); } }
-    async function deleteApplication(id) { if(confirm("Delete?")) { await supabaseClient.from('mentorship_applications').delete().eq('user_id',id); fetchApplications(); } }
 
     async function loadLiveSession() {
         const { data } = await supabaseClient.from('live_settings').select('*').order('created_at', { ascending: false }).limit(1);
@@ -585,12 +545,10 @@
             const s = data[0];
             document.getElementById('displayLink').href = s.zoom_link;
             
-            // Format time nicely for "Next Session" text
             const d = new Date(s.session_time);
             const formatted = d.toLocaleDateString('en-US', { weekday:'short', hour:'numeric', minute:'2-digit' });
             document.getElementById('displayTime').innerText = formatted;
 
-            // Populate Admin input 
             if(document.getElementById('liveTimeInput')) {
                 document.getElementById('liveTimeInput').value = s.session_time;
                 document.getElementById('liveLinkInput').value = s.zoom_link;
@@ -609,9 +567,8 @@
             const now = new Date().getTime();
             const distance = targetDate - now;
 
-            // LIVE OR EXPIRED LOGIC
             if (distance < 0) {
-                if (distance > -7200000) { // If within 2 hours of start time, show LIVE
+                if (distance > -7200000) { 
                     clearInterval(countdownInterval);
                     document.getElementById("countdownContainer").style.display = "none";
                     document.getElementById("sessionLiveMsg").style.display = "block";

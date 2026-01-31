@@ -29,6 +29,7 @@
             min-height: 100vh;
         }
 
+        /* Navbar */
         .navbar {
             padding: 20px 5%;
             display: flex;
@@ -45,9 +46,11 @@
         .nav-links a { color: var(--text-dim); text-decoration: none; margin-left: 20px; font-weight: bold; font-size: 0.9rem; transition: 0.2s; }
         .nav-links a:hover, .nav-links a.active { color: var(--primary); }
 
+        /* Main Container */
         .container { max-width: 1400px; margin: 60px auto; padding: 0 2%; }
         h1 { border-left: 4px solid var(--primary); padding-left: 15px; margin-bottom: 30px; }
 
+        /* Table Styles */
         .table-wrapper {
             background: var(--bg-card);
             border-radius: 12px;
@@ -204,7 +207,7 @@
             const tbody = document.getElementById('tableBody');
             
             try {
-                // Fetch data including 'motivation' column
+                // Fetch ALL columns so we get 'motivation' AND 'why_join'
                 const { data, error } = await supabaseClient
                     .from('mentorship_applications') 
                     .select('*')
@@ -223,7 +226,6 @@
                 data.forEach(app => {
                     const date = new Date(app.created_at).toLocaleDateString();
                     const status = app.status || 'pending';
-                    // FIX: Use user_id because 'id' column doesn't exist
                     const appId = app.user_id; 
                     
                     let actionHtml = '';
@@ -261,7 +263,6 @@
 
         // --- 3. OPEN REVIEW MODAL ---
         function openReview(id) {
-            // FIX: Find by user_id instead of id
             const app = allApplications.find(a => a.user_id == id);
             
             if(!app) {
@@ -270,13 +271,14 @@
             }
 
             // Populate Modal
-            document.getElementById('currentAppId').value = app.user_id; // Store user_id
+            document.getElementById('currentAppId').value = app.user_id;
             document.getElementById('modalEmail').innerText = app.email;
             document.getElementById('modalDiscord').innerText = app.discord_handle;
             document.getElementById('modalExp').innerText = app.experience;
             document.getElementById('modalCap').innerText = app.capital;
             
-            const motivationText = app.motivation || app.reason || "No motivation text found. (Did you add the 'motivation' column to Supabase?)";
+            // CHECK BOTH COLUMNS: 'why_join' OR 'motivation'
+            const motivationText = app.why_join || app.motivation || "No response provided in database.";
             document.getElementById('modalMotivation').innerText = motivationText;
 
             // Show Modal
@@ -292,13 +294,11 @@
             const id = document.getElementById('currentAppId').value;
             if(!id) return;
 
-            // Optimistic UI Update
             closeModal();
             const cell = document.getElementById(`actions-${id}`);
             cell.innerHTML = `<span style="color:#94a3b8;">Updating...</span>`;
 
             try {
-                // FIX: Update using 'user_id' as the key
                 const { error } = await supabaseClient
                     .from('mentorship_applications')
                     .update({ status: newStatus })
@@ -306,7 +306,6 @@
 
                 if (error) throw error;
 
-                // Update Row Visuals
                 if (newStatus === 'accepted') {
                     cell.innerHTML = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
                 } else {
@@ -315,12 +314,11 @@
 
             } catch (err) {
                 console.error(err);
-                alert("Failed to update status. Check your permissions.");
-                loadApplications(); // Revert on error
+                alert("Failed to update status.");
+                loadApplications(); 
             }
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
             if (event.target == document.getElementById('reviewModal')) {
                 closeModal();

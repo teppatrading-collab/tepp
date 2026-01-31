@@ -55,6 +55,15 @@
                 window.location.replace("index.html");
             } else {
                 document.getElementById('userEmail').innerText = session.user.email;
+                
+                // --- NEW: ADMIN CHECK ---
+                // If it is you, show the Applications button
+                if (session.user.email === 'yaseen.salih6@gmail.com') {
+                    const adminBtn = document.getElementById('btn-admin-apps');
+                    if(adminBtn) adminBtn.style.display = 'flex';
+                }
+                // ------------------------
+
                 checkProSubscription(session.user.id); 
                 loadTrades();
                 setDefaultSession();
@@ -1901,6 +1910,10 @@
         <button class="nav-btn" onclick="window.location.href='news.html'"><i class='bx bx-news'></i> NEWS</button>
         <button class="nav-btn" onclick="window.location.href='psychology.html'"><i class='bx bx-brain'></i> PSYCHOLOGY</button>
         
+        <button id="btn-admin-apps" class="nav-btn" style="display:none; color:#2dd4bf;" onclick="window.location.href='applications.html'">
+            <i class='bx bx-list-check'></i> APPLICATIONS
+        </button>
+
         <button id="btn-mentor-nav" class="nav-btn" style="display:none; color:#fbbf24;" onclick="openMentor()"><i class='bx bx-bot'></i> SMART MENTOR</button>
         <button id="btn-ghost-nav" class="nav-btn" style="display:none; color:var(--primary);" onclick="openGhost()"><i class='bx bxs-ghost'></i> GHOST TRADE</button>
         <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>

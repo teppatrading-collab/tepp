@@ -88,7 +88,7 @@
         .status-accepted { color: var(--success); }
         .status-rejected { color: var(--danger); }
 
-        /* --- THE MISSING PART: MODAL STYLES --- */
+        /* Modal Styles */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;
@@ -223,13 +223,14 @@
                 data.forEach(app => {
                     const date = new Date(app.created_at).toLocaleDateString();
                     const status = app.status || 'pending';
+                    // FIX: Use user_id because 'id' column doesn't exist
+                    const appId = app.user_id; 
                     
                     let actionHtml = '';
 
                     if (status === 'pending') {
-                        // Show "Review" button
                         actionHtml = `
-                            <button onclick="openReview('${app.id}')" class="btn-action btn-view">
+                            <button onclick="openReview('${appId}')" class="btn-action btn-view">
                                 <i class='bx bx-search'></i> Review
                             </button>
                         `;
@@ -240,13 +241,13 @@
                     }
 
                     const row = `
-                        <tr id="row-${app.id}">
+                        <tr id="row-${appId}">
                             <td style="color: #64748b;">${date}</td>
                             <td style="font-weight: 600;">${app.email || 'N/A'}</td>
                             <td><span class="discord-tag"><i class='bx bxl-discord-alt'></i> ${app.discord_handle || '-'}</span></td>
                             <td>${app.experience || '-'}</td>
                             <td><span class="badge-capital">${app.capital || '-'}</span></td>
-                            <td id="actions-${app.id}">${actionHtml}</td>
+                            <td id="actions-${appId}">${actionHtml}</td>
                         </tr>
                     `;
                     tbody.innerHTML += row;
@@ -260,8 +261,8 @@
 
         // --- 3. OPEN REVIEW MODAL ---
         function openReview(id) {
-            // Find specific app from loaded data
-            const app = allApplications.find(a => a.id == id);
+            // FIX: Find by user_id instead of id
+            const app = allApplications.find(a => a.user_id == id);
             
             if(!app) {
                 alert("Error: Application data not found in memory.");
@@ -269,14 +270,12 @@
             }
 
             // Populate Modal
-            document.getElementById('currentAppId').value = app.id;
+            document.getElementById('currentAppId').value = app.user_id; // Store user_id
             document.getElementById('modalEmail').innerText = app.email;
             document.getElementById('modalDiscord').innerText = app.discord_handle;
             document.getElementById('modalExp').innerText = app.experience;
             document.getElementById('modalCap').innerText = app.capital;
             
-            // Handle motivation text
-            // Note: If you haven't added the 'motivation' column to Supabase, this will be empty.
             const motivationText = app.motivation || app.reason || "No motivation text found. (Did you add the 'motivation' column to Supabase?)";
             document.getElementById('modalMotivation').innerText = motivationText;
 
@@ -293,20 +292,21 @@
             const id = document.getElementById('currentAppId').value;
             if(!id) return;
 
-            // Optimistic UI Update (Change to "Updating..." immediately)
+            // Optimistic UI Update
             closeModal();
             const cell = document.getElementById(`actions-${id}`);
             cell.innerHTML = `<span style="color:#94a3b8;">Updating...</span>`;
 
             try {
+                // FIX: Update using 'user_id' as the key
                 const { error } = await supabaseClient
                     .from('mentorship_applications')
                     .update({ status: newStatus })
-                    .eq('id', id);
+                    .eq('user_id', id);
 
                 if (error) throw error;
 
-                // Update Row Visuals to Final Status
+                // Update Row Visuals
                 if (newStatus === 'accepted') {
                     cell.innerHTML = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
                 } else {
@@ -315,7 +315,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("Failed to update status. Check your internet or Supabase policies.");
+                alert("Failed to update status. Check your permissions.");
                 loadApplications(); // Revert on error
             }
         }

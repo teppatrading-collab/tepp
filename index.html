@@ -161,33 +161,70 @@
         .footer-col a:hover { color: var(--primary); }
         .copyright { text-align: center; color: #475569; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;}
 
-        /* --- MODAL STYLES --- */
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-            display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: 0.3s;
+        /* --- NEW PROFESSIONAL MODAL STYLES --- */
+        .pro-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
+            z-index: 2000; align-items: center; justify-content: center;
+            animation: fadeIn 0.3s ease-out;
         }
-        .modal.active { opacity: 1; pointer-events: all; }
-        
-        .modal-box {
-            background: #1e293b; border: 1px solid var(--border); padding: 40px; border-radius: 16px; 
-            width: 100%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
-            transform: scale(0.9); transition: 0.3s;
+
+        .pro-modal-box {
+            background: rgba(15, 23, 42, 0.85); width: 100%; max-width: 500px;
+            padding: 40px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); position: relative;
         }
-        .modal.active .modal-box { transform: scale(1); }
-        
-        .modal-input {
-            width: 100%; padding: 12px; margin-bottom: 15px; background: #0f172a; 
-            border: 1px solid var(--border); color: #fff; border-radius: 8px; outline: none;
+
+        /* Top Glow */
+        .pro-modal-box::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(45, 212, 191, 0.5), transparent);
         }
-        .modal-input:focus { border-color: var(--primary); }
-        select.modal-input { color: #fff; } 
-        textarea.modal-input { resize: vertical; }
+
+        .pro-header { text-align: center; margin-bottom: 30px; }
+        .pro-header h2 { color: #fff; font-size: 1.8rem; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+        .pro-header p { color: #94a3b8; font-size: 0.9rem; margin-top: 8px; }
+
+        .form-grid { display: grid; gap: 20px; }
+        .input-group { position: relative; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .pro-input {
+            width: 100%; background: #0d1117; border: 1px solid #334155; color: #fff;
+            padding: 14px 16px 14px 45px; border-radius: 10px; font-size: 0.95rem; outline: none;
+            transition: all 0.2s ease; box-sizing: border-box; font-family: 'Inter', sans-serif;
+        }
+        .pro-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.1); background: #12171e; }
+
+        .input-icon {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+            color: #64748b; font-size: 1.2rem; pointer-events: none;
+        }
+
+        textarea.pro-input { padding-left: 16px; resize: none; min-height: 100px; }
+
+        .pro-btn {
+            width: 100%; background: var(--primary); color: #0f172a; font-weight: 800;
+            padding: 16px; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; transition: transform 0.1s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        .pro-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(45, 212, 191, 0.4); }
+
+        .cancel-link {
+            display: block; text-align: center; margin-top: 15px; color: #64748b;
+            font-size: 0.85rem; cursor: pointer; transition: color 0.2s;
+        }
+        .cancel-link:hover { color: #fff; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         @media (max-width: 768px) {
             .hero { flex-direction: column; text-align: center; padding-top: 140px; }
             .hero h1 { font-size: 2.8rem; }
             .dash-preview { transform: none; width: 100%; margin-top: 40px; animation: none; }
             .ticker-wrap { top: 60px; }
+            .input-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -199,7 +236,7 @@
         <div class="logo"><i class='bx bx-candles'></i> TEPPA <span>TRADING</span></div>
         <div class="nav-actions">
             <button onclick="openModal('Login')" class="btn btn-ghost">Login</button>
-            <button onclick="openModal('Sign Up')" class="btn btn-primary">Get Started</button>
+            <button onclick="openProModal()" class="btn btn-primary">Get Started</button>
         </div>
     </nav>
 
@@ -226,8 +263,8 @@
             <h1>Stop Gambling.<br>Start <span id="typewriter" style="color:var(--primary)">Winning</span><span class="typing-cursor"></span>.</h1>
             <p>The professional trading terminal for serious traders. Track your equity, analyze your psychology, and build a Playbook that actually works.</p>
             <div style="display:flex; gap:15px; flex-wrap:wrap;">
-                <button onclick="openModal('Sign Up')" class="btn btn-primary">Start For Free</button>
-                <button onclick="document.getElementById('appModal').classList.add('active')" class="btn btn-ghost">Apply For Mentorship</button>
+                <button onclick="openProModal()" class="btn btn-primary">Start For Free</button>
+                <button onclick="openProModal()" class="btn btn-ghost">Apply For Mentorship</button>
             </div>
         </div>
         <div class="hero-image">
@@ -307,48 +344,74 @@
         </div>
     </footer>
 
-    <div id="authModal" class="modal">
-        <div class="modal-box">
-            <h2 id="authTitle" style="color:#fff; margin-bottom:20px;">Login</h2>
-            <input id="email" class="modal-input" type="email" placeholder="Email Address">
-            <input id="password" class="modal-input" type="password" placeholder="Password">
-            <button id="submitAuth" class="btn btn-primary" style="width:100%;">Submit</button>
-            
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="reset-password.html" style="color: var(--primary); font-size: 0.8rem; text-decoration: none;">Forgot Password?</a>
+    <div id="authModal" class="pro-modal-overlay">
+        <div class="pro-modal-box">
+            <h2 id="authTitle" style="color:#fff; margin-bottom:20px; text-align:center;">Login</h2>
+            <div class="form-grid">
+                <div class="input-group">
+                    <i class='bx bx-envelope input-icon'></i>
+                    <input id="email" class="pro-input" type="email" placeholder="Email Address">
+                </div>
+                <div class="input-group">
+                    <i class='bx bx-lock-alt input-icon'></i>
+                    <input id="password" class="pro-input" type="password" placeholder="Password">
+                </div>
+                <button id="submitAuth" class="pro-btn">Submit</button>
+                <div class="cancel-link" onclick="document.getElementById('authModal').style.display='none'">Close</div>
             </div>
-
-            <p onclick="document.getElementById('authModal').classList.remove('active')" style="color:#94a3b8; margin-top:20px; cursor:pointer; font-size:0.8rem; text-align: center;">Close</p>
         </div>
     </div>
 
-    <div id="appModal" class="modal">
-        <div class="modal-box">
-            <h2 style="color:#fff; margin-bottom:10px;">Mentorship Application</h2>
-            <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">Application Only. Limited spots.</p>
-            
-            <input id="appEmail" class="modal-input" type="email" placeholder="Your Email Address (Required)">
-            <input id="appDiscord" class="modal-input" type="text" placeholder="Discord Username (e.g. trader#1234)">
-            
-            <select id="appExp" class="modal-input">
-                <option value="" disabled selected>Years Trading</option>
-                <option>Less than 1 year</option>
-                <option>1-3 Years</option>
-                <option>3+ Years</option>
-            </select>
-            
-            <select id="appCap" class="modal-input">
-                <option value="" disabled selected>Trading Capital</option>
-                <option>Under $1,000</option>
-                <option>$1,000 - $10,000</option>
-                <option>$10,000 - $50,000</option>
-                <option>$50,000+</option>
-            </select>
-            
-            <textarea id="appWhy" class="modal-input" rows="3" placeholder="Why do you want to join?" style="resize:none;"></textarea>
-            
-            <button onclick="submitApp()" id="btnSubmitApp" class="btn btn-primary" style="width:100%;">Submit Application</button>
-            <p onclick="document.getElementById('appModal').classList.remove('active')" style="color:#94a3b8; margin-top:20px; cursor:pointer; font-size:0.8rem;">Close</p>
+    <div id="proAppModal" class="pro-modal-overlay">
+        <div class="pro-modal-box">
+            <div class="pro-header">
+                <h2>Apply for Access</h2>
+                <p>Limited spots available for the next cohort.</p>
+            </div>
+
+            <form id="applicationForm" onsubmit="handleProSubmit(event)">
+                <div class="form-grid">
+                    
+                    <div class="input-group">
+                        <i class='bx bx-envelope input-icon'></i>
+                        <input type="email" id="appEmail" class="pro-input" placeholder="Email Address" required>
+                    </div>
+
+                    <div class="input-group">
+                        <i class='bx bxl-discord-alt input-icon'></i>
+                        <input type="text" id="appDiscord" class="pro-input" placeholder="Discord Username" required>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <i class='bx bx-time-five input-icon'></i>
+                            <select id="appExp" class="pro-input" required>
+                                <option value="" disabled selected>Experience</option>
+                                <option value="Less than 1 year">Less than 1 year</option>
+                                <option value="1-3 Years">1-3 Years</option>
+                                <option value="3+ Years">3+ Years</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <i class='bx bx-dollar-circle input-icon'></i>
+                            <select id="appCap" class="pro-input" required>
+                                <option value="" disabled selected>Capital</option>
+                                <option value="Under $1,000">Under $1,000</option>
+                                <option value="$1,000 - $10,000">$1k - $10k</option>
+                                <option value="$10,000 - $50,000">$10k - $50k</option>
+                                <option value="$50,000+">$50k+</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <textarea id="appWhy" class="pro-input" placeholder="Why do you want to join Teppa Academy?" required></textarea>
+                    </div>
+
+                    <button type="submit" class="pro-btn">Request Access</button>
+                    <div class="cancel-link" onclick="closeProModal()">Cancel Application</div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -358,52 +421,96 @@
             'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob'
         );
 
+        // --- MODAL LOGIC ---
         function openModal(mode) {
             document.getElementById('authTitle').innerText = mode;
-            document.getElementById('authModal').classList.add('active');
+            document.getElementById('authModal').style.display = 'flex';
         }
 
-        // --- GUEST APPLICATION SUBMIT ---
-        async function submitApp() {
+        function openProModal() {
+            document.getElementById('proAppModal').style.display = 'flex';
+        }
+
+        function closeProModal() {
+            document.getElementById('proAppModal').style.display = 'none';
+        }
+
+        // --- PRO APPLICATION SUBMIT ---
+        async function handleProSubmit(e) {
+            e.preventDefault();
+            
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
             const email = document.getElementById('appEmail').value;
             const discord = document.getElementById('appDiscord').value;
-            const exp = document.getElementById('appExp').value;
-            const cap = document.getElementById('appCap').value;
-            const why = document.getElementById('appWhy').value;
-            const btn = document.getElementById('btnSubmitApp');
+            const experience = document.getElementById('appExp').value;
+            const capital = document.getElementById('appCap').value;
+            const why_join = document.getElementById('appWhy').value;
 
-            if(!email || !discord || !why) return alert("Please fill out all fields so we can contact you.");
+            try {
+                // Generate a random UUID for user_id (allowing guests to apply)
+                const randomID = crypto.randomUUID();
 
-            btn.innerText = "Sending...";
+                const { error } = await supabaseClient
+                    .from('mentorship_applications')
+                    .insert({
+                        user_id: randomID,
+                        email: email,
+                        discord_handle: discord,
+                        experience: experience,
+                        capital: capital,
+                        why_join: why_join, 
+                        status: 'pending'
+                    });
 
-            // Generate a random UUID since we aren't using Auth IDs
-            const randomID = crypto.randomUUID();
+                if (error) throw error;
 
-            const { error } = await supabaseClient
-                .from('mentorship_applications')
-                .insert([{ 
-                    user_id: randomID, 
-                    email: email,
-                    discord_handle: discord,
-                    experience: exp,
-                    capital: cap,
-                    why_join: why,
-                    status: 'pending' 
-                }]);
+                // Success
+                btn.style.background = "#22c55e"; 
+                btn.innerText = "Application Sent!";
+                setTimeout(() => {
+                    closeProModal();
+                    btn.innerText = originalText;
+                    btn.style.background = "#2dd4bf"; 
+                    btn.disabled = false;
+                    e.target.reset();
+                }, 1500);
 
-            if (error) {
-                console.error(error);
-                alert("Error: " + error.message);
-                btn.innerText = "Submit Application";
-            } else {
-                alert("Application Received! We will contact you at " + email + " if accepted.");
-                document.getElementById('appModal').classList.remove('active');
-                btn.innerText = "Submit Application";
-                // Clear fields
-                document.getElementById('appEmail').value = "";
-                document.getElementById('appWhy').value = "";
+            } catch (err) {
+                console.error(err);
+                alert("Error submitting: " + err.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
         }
+
+        // --- AUTH SUBMIT ---
+        document.getElementById('submitAuth').onclick = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const mode = document.getElementById('authTitle').innerText;
+            const btn = document.getElementById('submitAuth');
+            
+            btn.innerText = "Processing...";
+            
+            const { data, error } = mode === 'Login' 
+                ? await supabaseClient.auth.signInWithPassword({ email, password })
+                : await supabaseClient.auth.signUp({ email, password });
+
+            if(error) {
+                alert(error.message);
+                btn.innerText = "Submit";
+            } else {
+                window.location.href = "dashboard.html";
+            }
+        };
+
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if(session) window.location.href = "dashboard.html";
+        });
 
         // --- TYPING EFFECT ---
         const words = ["Winning", "Scaling", "Journaling", "Trading"];
@@ -436,31 +543,6 @@
             const futureVal = bal * Math.pow((1 + ret/100), 12);
             document.getElementById('resultAmnt').innerText = "$" + Math.floor(futureVal).toLocaleString();
         }
-
-        // --- AUTH SUBMIT ---
-        document.getElementById('submitAuth').onclick = async () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const mode = document.getElementById('authTitle').innerText;
-            const btn = document.getElementById('submitAuth');
-            
-            btn.innerText = "Processing...";
-            
-            const { data, error } = mode === 'Login' 
-                ? await supabaseClient.auth.signInWithPassword({ email, password })
-                : await supabaseClient.auth.signUp({ email, password });
-
-            if(error) {
-                alert(error.message);
-                btn.innerText = "Submit";
-            } else {
-                window.location.href = "dashboard.html";
-            }
-        };
-
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            if(session) window.location.href = "dashboard.html";
-        });
     </script>
 
 </body>

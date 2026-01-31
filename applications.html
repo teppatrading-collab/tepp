@@ -29,7 +29,6 @@
             min-height: 100vh;
         }
 
-        /* Navbar */
         .navbar {
             padding: 20px 5%;
             display: flex;
@@ -46,11 +45,9 @@
         .nav-links a { color: var(--text-dim); text-decoration: none; margin-left: 20px; font-weight: bold; font-size: 0.9rem; transition: 0.2s; }
         .nav-links a:hover, .nav-links a.active { color: var(--primary); }
 
-        /* Main Container */
         .container { max-width: 1400px; margin: 60px auto; padding: 0 2%; }
         h1 { border-left: 4px solid var(--primary); padding-left: 15px; margin-bottom: 30px; }
 
-        /* Table Styles */
         .table-wrapper {
             background: var(--bg-card);
             border-radius: 12px;
@@ -91,7 +88,7 @@
         .status-accepted { color: var(--success); }
         .status-rejected { color: var(--danger); }
 
-        /* Modal Styles */
+        /* --- THE MISSING PART: MODAL STYLES --- */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;
@@ -195,14 +192,14 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- 1. CONFIGURATION ---
         const SUPABASE_URL = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let allApplications = [];
 
-        // --- FETCH DATA ---
+        // --- 2. FETCH DATA ---
         async function loadApplications() {
             const tbody = document.getElementById('tableBody');
             
@@ -261,21 +258,29 @@
             }
         }
 
-        // --- OPEN REVIEW MODAL ---
+        // --- 3. OPEN REVIEW MODAL ---
         function openReview(id) {
-            const app = allApplications.find(a => a.id == id); // Use weak equality for string/number match
-            if(!app) return;
+            // Find specific app from loaded data
+            const app = allApplications.find(a => a.id == id);
+            
+            if(!app) {
+                alert("Error: Application data not found in memory.");
+                return;
+            }
 
+            // Populate Modal
             document.getElementById('currentAppId').value = app.id;
             document.getElementById('modalEmail').innerText = app.email;
             document.getElementById('modalDiscord').innerText = app.discord_handle;
             document.getElementById('modalExp').innerText = app.experience;
             document.getElementById('modalCap').innerText = app.capital;
             
-            // Handle motivation text (requires 'motivation' column in DB)
-            const motivationText = app.motivation || app.reason || "No motivation text provided in database.";
+            // Handle motivation text
+            // Note: If you haven't added the 'motivation' column to Supabase, this will be empty.
+            const motivationText = app.motivation || app.reason || "No motivation text found. (Did you add the 'motivation' column to Supabase?)";
             document.getElementById('modalMotivation').innerText = motivationText;
 
+            // Show Modal
             document.getElementById('reviewModal').style.display = 'flex';
         }
 
@@ -283,12 +288,12 @@
             document.getElementById('reviewModal').style.display = 'none';
         }
 
-        // --- PROCESS DECISION ---
+        // --- 4. PROCESS DECISION ---
         async function processDecision(newStatus) {
             const id = document.getElementById('currentAppId').value;
             if(!id) return;
 
-            // Optimistic UI Update
+            // Optimistic UI Update (Change to "Updating..." immediately)
             closeModal();
             const cell = document.getElementById(`actions-${id}`);
             cell.innerHTML = `<span style="color:#94a3b8;">Updating...</span>`;
@@ -301,7 +306,7 @@
 
                 if (error) throw error;
 
-                // Update Row Visuals
+                // Update Row Visuals to Final Status
                 if (newStatus === 'accepted') {
                     cell.innerHTML = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
                 } else {
@@ -310,7 +315,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("Failed to update. Check your connection or permissions.");
+                alert("Failed to update status. Check your internet or Supabase policies.");
                 loadApplications(); // Revert on error
             }
         }

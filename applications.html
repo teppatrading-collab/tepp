@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teppa Academy | Applications</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -81,6 +82,7 @@
         }
 
         .loading-text { text-align: center; padding: 40px; color: var(--text-dim); font-style: italic; }
+        .error-text { color: #ef4444; text-align: center; padding: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -110,25 +112,34 @@
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="5" class="loading-text">Loading data from Supabase...</td></tr>
+                    <tr><td colspan="5" class="loading-text">Loading data...</td></tr>
                 </tbody>
             </table>
         </div>
-        <p id="errorMsg" style="color: #ef4444; text-align: center; margin-top: 20px; display: none;"></p>
+        <p id="debugMsg" style="color: #94a3b8; text-align: center; margin-top: 20px; font-size: 0.8rem;"></p>
     </div>
 
     <script>
         // --- 1. CONFIGURATION ---
-        // REPLACE THESE WITH YOUR ACTUAL KEYS FROM SUPABASE DASHBOARD
-        const SUPABASE_URL = 'https://xuifnaypkeeukyjvlapi.supabase.co'; 
-        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // <--- PASTE YOUR KEY HERE
+        const SUPABASE_URL = 'https://xuifnaypkeeukyjvlapi.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- 2. FETCH DATA FUNCTION ---
         async function loadApplications() {
+            const tbody = document.getElementById('tableBody');
+            const debugMsg = document.getElementById('debugMsg');
+
             try {
-                // Fetching from the table name seen in your screenshot
+                // 1. Check User Session (Required for RLS)
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (!session) {
+                    console.warn("No active session found. RLS might block this request.");
+                }
+
+                // 2. Fetch Data from 'mentorship_applications'
                 const { data, error } = await supabase
                     .from('mentorship_applications') 
                     .select('*')
@@ -136,15 +147,23 @@
 
                 if (error) throw error;
 
-                const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = ''; // Clear loading text
 
+                // 3. Handle Empty Data (Likely RLS blocking it)
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="loading-text">No applications found.</td></tr>';
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="loading-text">
+                                No applications visible.<br>
+                                <span style="font-size:0.8rem; color:#ef4444;">
+                                (If you know data exists, check your Supabase RLS Policies)
+                                </span>
+                            </td>
+                        </tr>`;
                     return;
                 }
 
-                // Loop through data and create rows
+                // 4. Render Rows
                 data.forEach(app => {
                     const date = new Date(app.created_at).toLocaleDateString();
                     
@@ -167,10 +186,8 @@
 
             } catch (err) {
                 console.error("Supabase Error:", err);
-                document.getElementById('tableBody').innerHTML = '';
-                const msg = document.getElementById('errorMsg');
-                msg.innerText = "Error loading data: " + err.message + " (Check Console)";
-                msg.style.display = 'block';
+                tbody.innerHTML = `<tr><td colspan="5" class="error-text">Error: ${err.message}</td></tr>`;
+                debugMsg.innerText = "Check the console (F12) for more details.";
             }
         }
 

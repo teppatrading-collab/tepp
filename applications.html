@@ -236,7 +236,9 @@
                 data.forEach(app => {
                     const date = new Date(app.created_at).toLocaleDateString();
                     const status = app.status || 'pending';
-                    const appId = app.id || app.user_id; 
+                    
+                    // FIXED: Strictly use user_id because the column 'id' doesn't exist
+                    const appId = app.user_id; 
                     
                     let statusBadge = '';
                     if (status === 'accepted') statusBadge = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
@@ -272,14 +274,16 @@
 
         // --- 3. OPEN REVIEW MODAL ---
         function openReview(id) {
-            const app = allApplications.find(a => a.id == id || a.user_id == id);
+            // Find app by user_id
+            const app = allApplications.find(a => a.user_id == id);
             
             if(!app) {
                 alert("Error: Application data not found.");
                 return;
             }
 
-            document.getElementById('currentAppId').value = app.id; 
+            // FIXED: Populate Modal using user_id
+            document.getElementById('currentAppId').value = app.user_id; 
             document.getElementById('currentEmail').value = app.email;
             document.getElementById('modalEmail').innerText = app.email;
             document.getElementById('modalDiscord').innerText = app.discord_handle;
@@ -297,7 +301,7 @@
             document.getElementById('reviewModal').style.display = 'none';
         }
 
-        // --- 4. PROCESS DECISION (Handles Upgrading & Downgrading) ---
+        // --- 4. PROCESS DECISION ---
         async function processDecision(newStatus) {
             const appId = document.getElementById('currentAppId').value;
             const email = document.getElementById('currentEmail').value;
@@ -308,17 +312,15 @@
             btn.disabled = true;
 
             try {
-                // A. Update the Application Status
+                // FIXED: Use .eq('user_id', appId) instead of 'id'
                 const { error: appError } = await supabaseClient
                     .from('mentorship_applications')
                     .update({ status: newStatus })
-                    .eq('id', appId);
+                    .eq('user_id', appId);
 
                 if (appError) throw appError;
 
-                // B. Update the User's Role 
-                // If Accepted -> Role = 'pro'. 
-                // If Rejected -> Role = 'user' (This acts as the downgrade/revoke)
+                // Update Profile Role
                 const newRole = (newStatus === 'accepted') ? 'pro' : 'user';
 
                 const { data: profileData, error: profileError } = await supabaseClient
@@ -329,10 +331,10 @@
 
                 if (profileError) throw profileError;
 
-                // Success Message & Close
+                // Success
                 alert(`User has been ${newStatus.toUpperCase()} and role set to ${newRole.toUpperCase()}.`);
                 closeModal();
-                loadApplications(); // Refresh table
+                loadApplications(); 
 
             } catch (err) {
                 console.error(err);
@@ -348,14 +350,15 @@
             if(!confirm("Are you sure you want to permanently DELETE this application?")) return;
 
             try {
+                // FIXED: Use .eq('user_id', id) instead of 'id'
                 const { error } = await supabaseClient
                     .from('mentorship_applications')
                     .delete()
-                    .eq('id', id);
+                    .eq('user_id', id);
 
                 if (error) throw error;
                 
-                loadApplications(); // Refresh list
+                loadApplications(); 
 
             } catch (err) {
                 alert("Error deleting: " + err.message);

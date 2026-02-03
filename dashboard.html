@@ -46,7 +46,7 @@
         let currentReplayTrade = null;
 
         // ==================================================================
-        // 2. AUTHENTICATION & SUBSCRIPTION CHECK
+        // 2. AUTHENTICATION & SUBSCRIPTION CHECK (FIXED)
         // ==================================================================
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -56,40 +56,52 @@
             } else {
                 document.getElementById('userEmail').innerText = session.user.email;
                 
-                // --- NEW: ADMIN CHECK ---
-                // If it is you, show the Applications button
-                if (session.user.email === 'yaseen.salih6@gmail.com') {
-                    const adminBtn = document.getElementById('btn-admin-apps');
-                    if(adminBtn) adminBtn.style.display = 'flex';
-                }
-                // ------------------------
-
-                checkProSubscription(session.user.id); 
+                // Check Profile Role (Pro/Admin)
+                checkProStatus(session.user.id); 
+                
                 loadTrades();
                 setDefaultSession();
             }
         }
         checkAuth();
 
-        async function checkProSubscription(userId) {
-            const { data } = await supabaseClient
-                .from('subscriptions')
-                .select('plan, status')
-                .eq('user_id', userId)
+        async function checkProStatus(userId) {
+            // FIX: Look at 'profiles' table, not 'subscriptions'
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
                 .single();
             
-            // IF USER IS PRO, UNHIDE FEATURES
-            if (data && data.plan === 'pro' && data.status === 'active') {
-                document.getElementById('btn-ghost-nav').style.display = 'flex';
-                document.getElementById('btn-mentor-nav').style.display = 'flex';
-                document.getElementById('btn-unlock-indicator').style.display = 'flex';
-                document.getElementById('proBadge').style.display = 'inline-block';
-                loadLeaderboard(); 
-            }
-            
-            // Show standard features
+            // Default: Free features only
             document.getElementById('btn-teppa-nav').style.display = 'flex';
             document.getElementById('btn-doctor-nav').style.display = 'flex';
+
+            if (data && (data.role === 'pro' || data.role === 'admin')) {
+                // UNLOCK PRO FEATURES
+                document.getElementById('btn-ghost-nav').style.display = 'flex';
+                document.getElementById('btn-mentor-nav').style.display = 'flex';
+                
+                // Show Pro Badge
+                const badge = document.getElementById('proBadge');
+                badge.style.display = 'inline-block';
+                badge.innerText = "PRO MEMBER";
+                
+                // Update "Unlock" button to "Active"
+                const unlockBtn = document.getElementById('btn-unlock-indicator');
+                unlockBtn.style.display = 'flex';
+                unlockBtn.innerHTML = "<i class='bx bx-check-circle'></i> INDICATOR ACTIVE";
+                unlockBtn.style.color = "#2dd4bf";
+                unlockBtn.onclick = null; // Disable click
+
+                loadLeaderboard(); 
+            }
+
+            // ADMIN SPECIFIC
+            if (data && data.role === 'admin') {
+                const adminBtn = document.getElementById('btn-admin-apps');
+                if(adminBtn) adminBtn.style.display = 'flex';
+            }
         }
 
         // ==================================================================

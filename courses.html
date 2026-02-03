@@ -317,7 +317,6 @@
     let dbImageColumn = 'thumbnail'; 
     let isEditing = false;
     let editingCourseId = null;
-    const ADMIN_EMAIL = "yaseen.salih6@gmail.com"; 
 
     // COUNTDOWN VAR
     let countdownInterval = null;
@@ -328,30 +327,47 @@
         
         currentUserEmail = session.user.email;
         
-        if(currentUserEmail.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase()) {
-            userIsAdmin = true; 
-            const panel = document.getElementById('adminPanel');
-            panel.style.display = 'grid'; 
-            panel.style.gridTemplateColumns = '1fr'; 
-            if(window.innerWidth > 900) { panel.style.gridTemplateColumns = '0.8fr 1.2fr'; }
-            userIsPro = true; 
-            
-            // --- SHOW APPLICATIONS LINK ---
-            document.getElementById('adminAppLink').style.display = 'inline';
-        }
-
-        if (currentUserEmail.includes("pro") || userIsAdmin) {
-            userIsPro = true;
-            document.getElementById('userStatus').innerText = "PRO MEMBER";
-            document.getElementById('userStatus').style.borderColor = "#fbbf24";
-            document.getElementById('userStatus').style.color = "#fbbf24";
-        } else {
-            document.getElementById('userStatus').innerText = "FREE MEMBER";
-        }
+        // --- UPGRADED LOGIC: Check Database for Role ---
+        await checkUserStatus(session.user.id);
 
         loadCourses();
         loadLiveSession(); 
     }
+    
+    // New function to check role from profiles table
+    async function checkUserStatus(userId) {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .single();
+
+        if (data) {
+            // ADMIN LOGIC
+            if (data.role === 'admin') {
+                userIsAdmin = true; 
+                userIsPro = true; 
+                const panel = document.getElementById('adminPanel');
+                panel.style.display = 'grid'; 
+                panel.style.gridTemplateColumns = '1fr'; 
+                if(window.innerWidth > 900) { panel.style.gridTemplateColumns = '0.8fr 1.2fr'; }
+                
+                // Show Applications Link
+                document.getElementById('adminAppLink').style.display = 'inline';
+            }
+
+            // PRO LOGIC (Admins are also Pro)
+            if (data.role === 'pro' || data.role === 'admin') {
+                userIsPro = true;
+                document.getElementById('userStatus').innerText = "PRO MEMBER";
+                document.getElementById('userStatus').style.borderColor = "#fbbf24";
+                document.getElementById('userStatus').style.color = "#fbbf24";
+            } else {
+                document.getElementById('userStatus').innerText = "FREE MEMBER";
+            }
+        }
+    }
+
     init();
 
     // --- MAIN FUNCTION TO LOAD & RENDER CARDS ---
@@ -371,22 +387,20 @@
         freeGrid.innerHTML = ""; proGrid.innerHTML = "";
 
         courses.forEach(course => {
+            // LOCKED Logic: Locked if Premium AND User is NOT Pro
             const isLocked = course.is_premium && !userIsPro;
             const thumbSrc = course.thumbnail_url || course.thumbnail || 'https://via.placeholder.com/400x250/0f172a/ffffff?text=Teppa+Academy';
             
             // --- 1. DATE & TITLE EXTRACTION LOGIC ---
-            // Regex to find dates like 1-15-26, 12/30/25, 2026-01-15 at the start of string
             const dateRegex = /^(\d{1,2}[-./]\d{1,2}[-./]\d{2,4})\s+(.*)$/;
             let displayDate = "";
             let displayTitle = course.title;
 
-            // Check if title starts with a date
             const match = course.title.match(dateRegex);
             if (match) {
-                displayDate = match[1]; // e.g. "1-15-26"
-                displayTitle = match[2]; // e.g. "London Pre Market Analysis"
+                displayDate = match[1]; 
+                displayTitle = match[2]; 
             } else {
-                // Fallback: Use created_at if no date in title
                 const d = new Date(course.created_at);
                 displayDate = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
             }
@@ -399,7 +413,7 @@
             if(lowerTitle.includes("zoom") || lowerTitle.includes("qa")) tagsHtml += `<span class="tag-pill tag-zoom">Zoom Call</span>`;
             if(course.is_premium) tagsHtml += `<span class="tag-pill tag-premium">Premium</span>`;
 
-            // --- 3. ADMIN BUTTONS (Hidden by default) ---
+            // --- 3. ADMIN BUTTONS ---
             let adminHtml = "";
             if(userIsAdmin) {
                 adminHtml = `
@@ -430,7 +444,7 @@
                     
                     <div class="tags-row">${tagsHtml}</div>
                     
-                    <button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}">
+                    <button onclick="openVideo('${course.video_url}')" class="watch-btn ${isLocked ? 'locked' : ''}" ${isLocked ? 'disabled' : ''}>
                         ${isLocked ? '<i class="bx bxs-lock"></i> Locked' : '<i class="bx bx-play"></i> Watch Replay'}
                     </button>
                 </div>
@@ -453,6 +467,7 @@
     }
 
     function openVideo(url) {
+        if(!userIsPro && document.querySelector('.locked')) return; // Extra check
         document.getElementById('vFrame').src = getEmbedUrl(url);
         document.getElementById('videoModal').style.display = 'flex';
     }

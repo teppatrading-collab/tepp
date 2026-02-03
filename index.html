@@ -236,7 +236,7 @@
         <div class="logo"><i class='bx bx-candles'></i> TEPPA <span>TRADING</span></div>
         <div class="nav-actions">
             <button onclick="openModal('Login')" class="btn btn-ghost">Login</button>
-            <button onclick="openProModal()" class="btn btn-primary">Get Started</button>
+            <button onclick="openModal('Sign Up')" class="btn btn-primary">Get Started</button>
         </div>
     </nav>
 
@@ -263,7 +263,7 @@
             <h1>Stop Gambling.<br>Start <span id="typewriter" style="color:var(--primary)">Winning</span><span class="typing-cursor"></span>.</h1>
             <p>The professional trading terminal for serious traders. Track your equity, analyze your psychology, and build a Playbook that actually works.</p>
             <div style="display:flex; gap:15px; flex-wrap:wrap;">
-                <button onclick="openProModal()" class="btn btn-primary">Start For Free</button>
+                <button onclick="openModal('Sign Up')" class="btn btn-primary">Start For Free</button>
                 <button onclick="openProModal()" class="btn btn-ghost">Apply For Mentorship</button>
             </div>
         </div>
@@ -501,6 +501,7 @@
             
             btn.innerText = "Processing...";
             
+            // LOGIC: If title is 'Login' -> Login. If 'Sign Up' -> Sign Up.
             const { data, error } = mode === 'Login' 
                 ? await supabaseClient.auth.signInWithPassword({ email, password })
                 : await supabaseClient.auth.signUp({ email, password });

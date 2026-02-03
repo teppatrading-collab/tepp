@@ -78,18 +78,26 @@
             font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px;
             transition: 0.2s; margin-right: 5px;
         }
+        
+        /* Manage / Edit Button */
         .btn-view { background: #334155; color: #fff; border: 1px solid var(--border); }
         .btn-view:hover { background: #475569; }
 
+        /* Delete Button */
+        .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-delete:hover { background: var(--danger); color: #fff; }
+
+        /* Modal Action Buttons */
         .btn-accept { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.3); }
         .btn-accept:hover { background: var(--success); color: #000; }
         
         .btn-deny { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
         .btn-deny:hover { background: var(--danger); color: #fff; }
 
-        .status-badge { font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .status-badge { font-weight: bold; display: flex; align-items: center; gap: 5px; font-size: 0.85rem;}
         .status-accepted { color: var(--success); }
         .status-rejected { color: var(--danger); }
+        .status-pending { color: #fbbf24; }
 
         /* Modal Styles */
         .modal-overlay {
@@ -143,11 +151,12 @@
                         <th>Discord</th>
                         <th>Experience</th>
                         <th>Capital</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">Loading applications...</td></tr>
+                    <tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">Loading applications...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -156,7 +165,7 @@
     <div id="reviewModal" class="modal-overlay">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 style="margin:0; color:#fff;">Application Details</h3>
+                <h3 style="margin:0; color:#fff;">Manage Application</h3>
                 <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             <div class="modal-body">
@@ -188,8 +197,9 @@
             </div>
             <div class="modal-actions">
                 <input type="hidden" id="currentAppId">
-                <button onclick="processDecision('accepted')" class="btn-action btn-accept">Accept Applicant</button>
-                <button onclick="processDecision('rejected')" class="btn-action btn-deny">Reject</button>
+                <input type="hidden" id="currentEmail">
+                <button onclick="processDecision('accepted')" class="btn-action btn-accept">Accept & Grant PRO</button>
+                <button onclick="processDecision('rejected')" class="btn-action btn-deny">Reject (Set to Free)</button>
             </div>
         </div>
     </div>
@@ -207,7 +217,7 @@
             const tbody = document.getElementById('tableBody');
             
             try {
-                // Fetch ALL columns so we get 'motivation' AND 'why_join'
+                // Fetch applications
                 const { data, error } = await supabaseClient
                     .from('mentorship_applications') 
                     .select('*')
@@ -219,28 +229,19 @@
                 tbody.innerHTML = ''; 
 
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">No applications found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px;">No applications found.</td></tr>';
                     return;
                 }
 
                 data.forEach(app => {
                     const date = new Date(app.created_at).toLocaleDateString();
                     const status = app.status || 'pending';
-                    const appId = app.user_id; 
+                    const appId = app.id || app.user_id; 
                     
-                    let actionHtml = '';
-
-                    if (status === 'pending') {
-                        actionHtml = `
-                            <button onclick="openReview('${appId}')" class="btn-action btn-view">
-                                <i class='bx bx-search'></i> Review
-                            </button>
-                        `;
-                    } else if (status === 'accepted') {
-                        actionHtml = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
-                    } else if (status === 'rejected') {
-                        actionHtml = `<span class="status-badge status-rejected"><i class='bx bxs-x-circle'></i> Rejected</span>`;
-                    }
+                    let statusBadge = '';
+                    if (status === 'accepted') statusBadge = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
+                    else if (status === 'rejected') statusBadge = `<span class="status-badge status-rejected"><i class='bx bxs-x-circle'></i> Rejected</span>`;
+                    else statusBadge = `<span class="status-badge status-pending"><i class='bx bx-time'></i> Pending</span>`;
 
                     const row = `
                         <tr id="row-${appId}">
@@ -249,7 +250,15 @@
                             <td><span class="discord-tag"><i class='bx bxl-discord-alt'></i> ${app.discord_handle || '-'}</span></td>
                             <td>${app.experience || '-'}</td>
                             <td><span class="badge-capital">${app.capital || '-'}</span></td>
-                            <td id="actions-${appId}">${actionHtml}</td>
+                            <td id="status-${appId}">${statusBadge}</td>
+                            <td>
+                                <button onclick="openReview('${appId}')" class="btn-action btn-view" title="Review / Change Status">
+                                    <i class='bx bx-edit-alt'></i> Manage
+                                </button>
+                                <button onclick="deleteApp('${appId}')" class="btn-action btn-delete" title="Delete Application">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </td>
                         </tr>
                     `;
                     tbody.innerHTML += row;
@@ -257,28 +266,27 @@
 
             } catch (err) {
                 console.error(err);
-                tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444; text-align:center;">Error: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444; text-align:center;">Error: ${err.message}</td></tr>`;
             }
         }
 
         // --- 3. OPEN REVIEW MODAL ---
         function openReview(id) {
-            const app = allApplications.find(a => a.user_id == id);
+            const app = allApplications.find(a => a.id == id || a.user_id == id);
             
             if(!app) {
-                alert("Error: Application data not found in memory.");
+                alert("Error: Application data not found.");
                 return;
             }
 
-            // Populate Modal
-            document.getElementById('currentAppId').value = app.user_id;
+            document.getElementById('currentAppId').value = app.id; 
+            document.getElementById('currentEmail').value = app.email;
             document.getElementById('modalEmail').innerText = app.email;
             document.getElementById('modalDiscord').innerText = app.discord_handle;
             document.getElementById('modalExp').innerText = app.experience;
             document.getElementById('modalCap').innerText = app.capital;
             
-            // CHECK BOTH COLUMNS: 'why_join' OR 'motivation'
-            const motivationText = app.why_join || app.motivation || "No response provided in database.";
+            const motivationText = app.why_join || app.motivation || "No response provided.";
             document.getElementById('modalMotivation').innerText = motivationText;
 
             // Show Modal
@@ -289,33 +297,68 @@
             document.getElementById('reviewModal').style.display = 'none';
         }
 
-        // --- 4. PROCESS DECISION ---
+        // --- 4. PROCESS DECISION (Handles Upgrading & Downgrading) ---
         async function processDecision(newStatus) {
-            const id = document.getElementById('currentAppId').value;
-            if(!id) return;
+            const appId = document.getElementById('currentAppId').value;
+            const email = document.getElementById('currentEmail').value;
+            const btn = event.target;
+            const originalText = btn.innerText;
+            
+            btn.innerText = "Processing...";
+            btn.disabled = true;
 
-            closeModal();
-            const cell = document.getElementById(`actions-${id}`);
-            cell.innerHTML = `<span style="color:#94a3b8;">Updating...</span>`;
+            try {
+                // A. Update the Application Status
+                const { error: appError } = await supabaseClient
+                    .from('mentorship_applications')
+                    .update({ status: newStatus })
+                    .eq('id', appId);
+
+                if (appError) throw appError;
+
+                // B. Update the User's Role 
+                // If Accepted -> Role = 'pro'. 
+                // If Rejected -> Role = 'user' (This acts as the downgrade/revoke)
+                const newRole = (newStatus === 'accepted') ? 'pro' : 'user';
+
+                const { data: profileData, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .update({ role: newRole })
+                    .eq('email', email)
+                    .select();
+
+                if (profileError) throw profileError;
+
+                // Success Message & Close
+                alert(`User has been ${newStatus.toUpperCase()} and role set to ${newRole.toUpperCase()}.`);
+                closeModal();
+                loadApplications(); // Refresh table
+
+            } catch (err) {
+                console.error(err);
+                alert("Error updating status: " + err.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // --- 5. DELETE FUNCTION ---
+        async function deleteApp(id) {
+            if(!confirm("Are you sure you want to permanently DELETE this application?")) return;
 
             try {
                 const { error } = await supabaseClient
                     .from('mentorship_applications')
-                    .update({ status: newStatus })
-                    .eq('user_id', id);
+                    .delete()
+                    .eq('id', id);
 
                 if (error) throw error;
-
-                if (newStatus === 'accepted') {
-                    cell.innerHTML = `<span class="status-badge status-accepted"><i class='bx bxs-check-circle'></i> Accepted</span>`;
-                } else {
-                    cell.innerHTML = `<span class="status-badge status-rejected"><i class='bx bxs-x-circle'></i> Rejected</span>`;
-                }
+                
+                loadApplications(); // Refresh list
 
             } catch (err) {
-                console.error(err);
-                alert("Failed to update status.");
-                loadApplications(); 
+                alert("Error deleting: " + err.message);
             }
         }
 

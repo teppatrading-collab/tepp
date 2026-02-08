@@ -44,6 +44,9 @@
         let allTradesCache = []; 
         let currentGhostTrade = null;
         let currentReplayTrade = null;
+        
+        // NEW: Track the trade currently being viewed/edited
+        let viewingTradeId = null;
 
         // ==================================================================
         // 2. AUTHENTICATION & SUBSCRIPTION CHECK (FIXED)
@@ -576,18 +579,20 @@
         }
 
         // ==================================================================
-        // NEW FEATURE: VIEW TRADE DETAIL POPUP
+        // NEW FEATURE: VIEW & EDIT TRADE DETAIL POPUP
         // ==================================================================
+        
+        // 1. UPDATED OPEN VIEW FUNCTION
         function openViewTrade(tradeDataStr) {
             const trade = JSON.parse(decodeURIComponent(tradeDataStr));
+            viewingTradeId = trade.id; // Store ID for editing
             
-            // 1. Populate Header
+            // --- Populate READ ONLY View ---
             document.getElementById('viewPair').innerText = trade.pair;
             const typeColor = trade.type === 'Buy' ? '#2dd4bf' : '#ef4444';
             const outcomeColor = trade.outcome === 'Win' ? '#2dd4bf' : (trade.outcome === 'Loss' ? '#ef4444' : '#fbbf24');
             document.getElementById('viewMeta').innerHTML = `<span style="color:${typeColor}; font-weight:bold;">${trade.type.toUpperCase()}</span> &bull; <span style="color:${outcomeColor}">${trade.outcome.toUpperCase()}</span>`;
 
-            // 2. Populate Stats
             const pnl = parseFloat(trade.pnl || 0);
             const pnlEl = document.getElementById('viewPnL');
             pnlEl.innerText = (pnl >= 0 ? "+" : "-") + "$" + Math.abs(pnl);
@@ -597,11 +602,9 @@
             document.getElementById('viewDate').innerText = d.toLocaleDateString() + " " + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
             document.getElementById('viewSession').innerText = trade.session;
             document.getElementById('viewStrategy').innerText = trade.strategy || "None";
-
-            // 3. Populate Notes
             document.getElementById('viewReason').innerText = trade.reason || "No notes provided.";
 
-            // 4. Populate Images (Stack them)
+            // Images
             const imgContainer = document.getElementById('viewImages');
             imgContainer.innerHTML = "";
             if (trade.chart_screenshot) {
@@ -613,8 +616,7 @@
                         img.style.width = "100%";
                         img.style.borderRadius = "8px";
                         img.style.border = "1px solid #334155";
-                        img.onclick = () => window.open(url, '_blank'); // Click to open original
-                        img.title = "Click to view full size";
+                        img.onclick = () => window.open(url, '_blank');
                         img.style.cursor = "zoom-in";
                         imgContainer.appendChild(img);
                     }
@@ -623,7 +625,68 @@
                 imgContainer.innerHTML = "<p style='color:#64748b; font-style:italic;'>No screenshots attached.</p>";
             }
 
+            // --- Populate EDIT Inputs ---
+            document.getElementById('inpEditPnL').value = trade.pnl;
+            document.getElementById('inpEditOutcome').value = trade.outcome;
+            document.getElementById('inpEditSession').value = trade.session;
+            document.getElementById('inpEditStrategy').value = trade.strategy || "";
+            document.getElementById('inpEditReason').value = trade.reason || "";
+
+            // Reset UI to View Mode
+            document.getElementById('viewModeContent').style.display = 'block';
+            document.getElementById('editModeContent').style.display = 'none';
+            document.getElementById('btnEditToggle').style.display = 'block';
+
             document.getElementById('viewModal').style.display = 'flex';
+        }
+
+        // 2. TOGGLE EDIT MODE
+        function toggleEditMode() {
+            const viewDiv = document.getElementById('viewModeContent');
+            const editDiv = document.getElementById('editModeContent');
+            const editBtn = document.getElementById('btnEditToggle');
+
+            if(viewDiv.style.display !== 'none') {
+                // Switch to Edit
+                viewDiv.style.display = 'none';
+                editDiv.style.display = 'block';
+                editBtn.style.display = 'none';
+            } else {
+                // Switch back to View
+                viewDiv.style.display = 'block';
+                editDiv.style.display = 'none';
+                editBtn.style.display = 'block';
+            }
+        }
+
+        // 3. SAVE CHANGES
+        async function saveFullEdit() {
+            if(!viewingTradeId) return;
+
+            const pnl = document.getElementById('inpEditPnL').value;
+            const outcome = document.getElementById('inpEditOutcome').value;
+            const session = document.getElementById('inpEditSession').value;
+            const strategy = document.getElementById('inpEditStrategy').value;
+            const reason = document.getElementById('inpEditReason').value;
+
+            const { error } = await supabaseClient
+                .from('trades')
+                .update({
+                    pnl: parseFloat(pnl),
+                    outcome: outcome,
+                    session: session,
+                    strategy: strategy,
+                    reason: reason
+                })
+                .eq('id', viewingTradeId);
+
+            if(error) {
+                alert("Error updating trade: " + error.message);
+            } else {
+                // Refresh trades and close modal
+                loadTrades(activeFilter);
+                closeViewModal();
+            }
         }
 
         function closeViewModal() {
@@ -748,8 +811,9 @@
                 // CLICK HANDLER
                 card.onclick = (e) => {
                     if (e.target.closest('button') || e.target.closest('.trade-img-preview')) return;
-                    if (isBacktestMode) { openReplay(tradeDataStr); } 
-                    else { openViewTrade(tradeDataStr); }
+                    // FIX: Always open the View Modal (which now has Edit). 
+                    // Use the small Play button on the card if you want Replay mode.
+                    openViewTrade(tradeDataStr);
                 };
 
                 // IMAGE LOGIC (Clean Strip)
@@ -791,7 +855,7 @@
                             <div class="card-actions">
                                 <button class="action-icon-btn" onclick="event.stopPropagation(); openReplay('${tradeDataStr}')" title="Replay"><i class='bx bx-play-circle'></i></button>
                                 <button class="action-icon-btn" onclick="event.stopPropagation(); shareTrade('${tradeDataStr}')" title="Share"><i class='bx bx-share-alt'></i></button>
-                                <button class="action-icon-btn" onclick="event.stopPropagation(); openEditModal('${tradeDataStr}')" title="Edit"><i class='bx bx-pencil'></i></button>
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); openViewTrade('${tradeDataStr}')" title="Edit"><i class='bx bx-pencil'></i></button>
                                 <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${trade.id}')" title="Delete"><i class='bx bx-trash'></i></button>
                             </div>
                         </div>
@@ -1774,32 +1838,76 @@
 
     <div id="viewModal" class="modal-overlay">
         <div style="background:var(--card); width:800px; max-width:95%; max-height:90vh; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
+            
             <div style="padding:20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#0f172a;">
                 <div>
                     <h2 id="viewPair" style="margin:0; color:#fff;">--</h2>
                     <div id="viewMeta" style="color:#94a3b8; font-size:0.9rem; margin-top:5px;"></div>
                 </div>
-                <button onclick="closeViewModal()" style="background:transparent; border:none; color:#fff; font-size:2rem; cursor:pointer;">&times;</button>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button id="btnEditToggle" onclick="toggleEditMode()" style="background:#334155; border:none; color:#fff; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.8rem;">
+                        <i class='bx bx-pencil'></i> EDIT
+                    </button>
+                    <button onclick="closeViewModal()" style="background:transparent; border:none; color:#fff; font-size:2rem; cursor:pointer; line-height:1;">&times;</button>
+                </div>
             </div>
             
             <div style="flex:1; overflow-y:auto; padding:20px;">
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:20px;">
-                    <div class="stat-box-small"><span>PnL</span><b id="viewPnL" style="font-size:1.2rem;">--</b></div>
-                    <div class="stat-box-small"><span>Date</span><b id="viewDate">--</b></div>
-                    <div class="stat-box-small"><span>Session</span><b id="viewSession">--</b></div>
-                    <div class="stat-box-small"><span>Strategy</span><b id="viewStrategy">--</b></div>
+                
+                <div id="viewModeContent">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:20px;">
+                        <div class="stat-box-small"><span>PnL</span><b id="viewPnL" style="font-size:1.2rem;">--</b></div>
+                        <div class="stat-box-small"><span>Date</span><b id="viewDate">--</b></div>
+                        <div class="stat-box-small"><span>Session</span><b id="viewSession">--</b></div>
+                        <div class="stat-box-small"><span>Strategy</span><b id="viewStrategy">--</b></div>
+                    </div>
+
+                    <div style="margin-bottom:20px;">
+                        <h4 style="color:#94a3b8; margin-bottom:10px; border-bottom:1px solid #334155; padding-bottom:5px;">NOTES & REASONING</h4>
+                        <p id="viewReason" style="line-height:1.6; color:#e2e8f0; white-space:pre-wrap;">No notes.</p>
+                    </div>
+
+                    <div>
+                        <h4 style="color:#94a3b8; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:5px;">CHART SCREENSHOTS</h4>
+                        <div id="viewImages" style="display:flex; flex-direction:column; gap:20px;"></div>
+                    </div>
                 </div>
 
-                <div style="margin-bottom:20px;">
-                    <h4 style="color:#94a3b8; margin-bottom:10px; border-bottom:1px solid #334155; padding-bottom:5px;">NOTES & REASONING</h4>
-                    <p id="viewReason" style="line-height:1.6; color:#e2e8f0; white-space:pre-wrap;">No notes.</p>
-                </div>
-
-                <div>
-                    <h4 style="color:#94a3b8; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:5px;">CHART SCREENSHOTS</h4>
-                    <div id="viewImages" style="display:flex; flex-direction:column; gap:20px;">
+                <div id="editModeContent" style="display:none;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div>
+                            <label style="color:#94a3b8; font-size:0.8rem;">PnL ($)</label>
+                            <input type="number" id="inpEditPnL" class="side-input" style="margin-bottom:0;">
                         </div>
+                        <div>
+                            <label style="color:#94a3b8; font-size:0.8rem;">Outcome</label>
+                            <select id="inpEditOutcome" class="side-input" style="margin-bottom:0;">
+                                <option>Win</option><option>Loss</option><option>Breakeven</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color:#94a3b8; font-size:0.8rem;">Session</label>
+                            <select id="inpEditSession" class="side-input" style="margin-bottom:0;">
+                                <option>London</option><option>New York</option><option>Asian</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color:#94a3b8; font-size:0.8rem;">Strategy</label>
+                            <input type="text" id="inpEditStrategy" class="side-input" style="margin-bottom:0;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:20px;">
+                        <label style="color:#94a3b8; font-size:0.8rem;">Notes</label>
+                        <textarea id="inpEditReason" class="side-input" rows="6"></textarea>
+                    </div>
+
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="saveFullEdit()" class="side-btn" style="background:#2dd4bf; color:#000;">Save Changes</button>
+                        <button onclick="toggleEditMode()" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>

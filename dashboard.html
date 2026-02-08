@@ -488,7 +488,7 @@
         }
 
         // ==================================================================
-        // 9. DATA HANDLING
+        // 9. DATA HANDLING (UPDATED FOR BACKTEST)
         // ==================================================================
         async function saveTradeWithImage() {
             const pair = document.getElementById('tradePair').value;
@@ -504,6 +504,9 @@
             const timeInput = document.getElementById('tradeTime').value;
             
             const isPlaybook = document.getElementById('playbookCheck').checked;
+            // --- NEW: Capture Backtest Value ---
+            const isBacktest = document.getElementById('backtestCheck').checked;
+
             const fileInput = document.getElementById('chartUpload');
             const status = document.getElementById('journalStatus');
             const currentSession = document.getElementById('tradeSession').value; 
@@ -547,6 +550,7 @@
                     pair, type, reason, tradingview_link: chartLink, 
                     chart_screenshot: finalImageString, outcome, emotion, 
                     session: currentSession, strategy, is_playbook: isPlaybook, 
+                    is_backtest: isBacktest, // <--- SAVING TO DB
                     pnl: pnl ? parseFloat(pnl) : 0, created_at: finalTimestamp 
                 }
             ]);
@@ -563,7 +567,8 @@
                 document.getElementById('tradeReason').value = '';
                 document.getElementById('tradePnL').value = ''; 
                 document.getElementById('playbookCheck').checked = false;
-                document.getElementById('chartUpload').value = ''; // Reset file input
+                document.getElementById('backtestCheck').checked = false; // Reset
+                document.getElementById('chartUpload').value = ''; 
                 document.querySelectorAll('#newStrategyContainer .strat-btn').forEach(b => b.classList.remove('active-strat'));
                 setDefaultSession(); 
                 if(window.innerWidth <= 768) toggleSidebar();
@@ -666,13 +671,13 @@
                 btn.innerHTML = "<i class='bx bx-show-alt'></i> REVEAL MODE";
             } else {
                 btn.classList.remove('active-filter');
-                btn.innerHTML = "<i class='bx bx-hide'></i> BACKTEST MODE";
+                btn.innerHTML = "<i class='bx bx-hide'></i> REVEAL MODE";
             }
             loadTrades(activeFilter); 
         }
 
         // ==================================================================
-        // THIS IS THE MAIN UPDATE: CLEAN CARD DESIGN
+        // THIS IS THE MAIN UPDATE: CLEAN CARD DESIGN & LOGIC SPLIT
         // ==================================================================
         async function loadTrades(filterMode = 'all') {
             activeFilter = filterMode;
@@ -687,26 +692,31 @@
             
             allTradesCache = rawTrades; 
             const trades = filterTradesByTime(rawTrades);
+            
+            // --- CRITICAL UPDATE: SPLIT LIVE DATA FROM BACKTEST DATA ---
+            const liveTrades = trades.filter(t => t.is_backtest !== true);
+            // -----------------------------------------------------------
+
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = '';
             
-            // Stats Calculations
-            let wins = trades.filter(t => t.outcome === 'Win').length;
-            let totalDecisive = trades.filter(t => t.outcome === 'Win' || t.outcome === 'Loss').length;
-            let netPnL = trades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
-            let grossWin = trades.filter(t => (t.pnl || 0) > 0).reduce((a, b) => a + b.pnl, 0);
-            let grossLoss = Math.abs(trades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
+            // Stats Calculations (USING ONLY LIVE TRADES)
+            let wins = liveTrades.filter(t => t.outcome === 'Win').length;
+            let totalDecisive = liveTrades.filter(t => t.outcome === 'Win' || t.outcome === 'Loss').length;
+            let netPnL = liveTrades.reduce((acc, trade) => acc + (trade.pnl || 0), 0);
+            let grossWin = liveTrades.filter(t => (t.pnl || 0) > 0).reduce((a, b) => a + b.pnl, 0);
+            let grossLoss = Math.abs(liveTrades.filter(t => (t.pnl || 0) < 0).reduce((a, b) => a + b.pnl, 0));
 
             let currentStreak = 0;
-            for (let i = 0; i < trades.length; i++) {
-                if(trades[i].outcome === 'Breakeven') continue; 
-                if(trades[i].outcome === 'Win') currentStreak++; else break; 
+            for (let i = 0; i < liveTrades.length; i++) {
+                if(liveTrades[i].outcome === 'Breakeven') continue; 
+                if(liveTrades[i].outcome === 'Win') currentStreak++; else break; 
             }
 
             let sessionStats = { "London": { wins: 0, losses: 0 }, "New York": { wins: 0, losses: 0 }, "Asian": { wins: 0, losses: 0 } };
             let psychStats = {};
 
-            trades.forEach(t => {
+            liveTrades.forEach(t => {
                 if(!sessionStats[t.session]) sessionStats[t.session] = { wins: 0, losses: 0 };
                 if(t.outcome === 'Win') sessionStats[t.session].wins++;
                 if(t.outcome === 'Loss') sessionStats[t.session].losses++;
@@ -715,6 +725,7 @@
                 psychStats[em] += (t.pnl || 0);
             });
 
+            // Update Stats UI
             updateGoalTracker(netPnL);
             document.getElementById('netPnLStat').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('netPnLStat').style.color = netPnL >= 0 ? 'var(--primary)' : '#ef4444';
@@ -724,10 +735,10 @@
             
             updateSessionChart(sessionStats);
             updatePsychChart(psychStats);
-            updateEquityChart(trades);
-            renderCalendar(trades); 
+            updateEquityChart(liveTrades); // Only graph live equity
+            renderCalendar(liveTrades); // Only show live trades on PnL calendar
 
-            // --- BUILD CLEAN CARDS ---
+            // --- RENDER CARDS (SHOW ALL, BUT TAG BACKTESTS) ---
             trades.forEach(trade => {
                 const card = document.createElement('div');
                 const blurClass = isBacktestMode ? 'backtest-blur' : '';
@@ -768,7 +779,11 @@
                 if(trade.outcome === 'Loss') outcomeClass = 'tag-loss';
                 if(trade.outcome === 'Breakeven') outcomeClass = 'tag-warn';
 
-                // --- NEW CLEAN HTML STRUCTURE ---
+                // --- BACKTEST BADGE HTML ---
+                const backtestBadge = trade.is_backtest 
+                    ? `<span class="tag-pill" style="background:#6366f1; color:#fff; border:none;">🧪 Backtest</span>` 
+                    : '';
+
                 card.innerHTML = `
                     <div class="card-body">
                         <div class="card-top">
@@ -790,6 +805,7 @@
                             <span class="tag-pill tag-neutral">${trade.session}</span>
                             <span class="tag-pill ${outcomeClass}">${trade.outcome}</span>
                             ${trade.is_playbook ? '<span class="tag-pill tag-gold">🏆 Playbook</span>' : ''}
+                            ${backtestBadge}
                         </div>
 
                         <div class="${blurClass}">
@@ -811,7 +827,9 @@
             const today = new Date();
             const year = today.getFullYear();
             const month = today.getMonth();
+            const monthName = today.toLocaleDateString('en-US', { month: 'short' }); // "Feb"
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
             const dailyPnL = {};
             trades.forEach(t => {
                 const d = new Date(t.created_at);
@@ -825,10 +843,14 @@
             for(let i=1; i<=daysInMonth; i++) {
                 const dayBox = document.createElement('div');
                 dayBox.className = 'cal-day';
+                
                 const dateNum = document.createElement('div');
                 dateNum.className = 'cal-num';
-                dateNum.innerText = i;
+                // UPDATED: Now shows "Feb 8" instead of just "8"
+                dateNum.innerText = `${monthName} ${i}`;
+                
                 dayBox.appendChild(dateNum);
+                
                 if(dailyPnL[i] !== undefined) {
                     const pnlVal = document.createElement('div');
                     pnlVal.className = 'cal-pnl';
@@ -1994,6 +2016,10 @@
                     <label class="playbook-option" style="display:flex; align-items:center; gap:5px; margin:10px 0; color:#fbbf24; font-weight:bold;">
                         <input type="checkbox" id="playbookCheck"> <span>🏆 Add to Playbook</span>
                     </label>
+                    
+                    <label class="playbook-option" style="display:flex; align-items:center; gap:5px; margin-bottom:5px; color:#6366f1; font-weight:bold;">
+                        <input type="checkbox" id="backtestCheck"> <span>🧪 Mark as Backtest</span>
+                    </label>
                 </div>
             </div>
 
@@ -2055,7 +2081,7 @@
             </div>
             
             <button id="btn-backtest-toggle" class="filter-btn" onclick="toggleBacktestMode()">
-                <i class='bx bx-hide'></i> BACKTEST MODE
+                <i class='bx bx-hide'></i> REVEAL MODE
             </button>
 
             <div class="tf-container">

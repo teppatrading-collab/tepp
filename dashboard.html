@@ -762,6 +762,147 @@
                 loadTrades(); 
             }
         }
+        async function deleteTrade(id) {
+    if(confirm("Delete trade?")) {
+        await supabaseClient.from('trades').delete().eq('id', id);
+        loadTrades();
+    }
+}
+
+
+// =============================
+// ANALYTICS ENGINE
+// =============================
+
+async function calculateAnalytics() {
+
+    const { data: trades, error } = await supabaseClient
+        .from('trades')
+        .select('*');
+
+    if (error || !trades || trades.length === 0) {
+        console.error("No trades found");
+        return;
+    }
+
+    let total = trades.length;
+    let wins = 0;
+    let losses = 0;
+    let totalPnL = 0;
+
+    let dayStats = {};
+    let sessionStats = {};
+    let strategyStats = {};
+
+    trades.forEach(trade => {
+
+        totalPnL += trade.pnl || 0;
+
+        if (trade.outcome === "Win") wins++;
+        if (trade.outcome === "Loss") losses++;
+
+        if (trade.day_of_week) {
+            if (!dayStats[trade.day_of_week]) {
+                dayStats[trade.day_of_week] = { wins: 0, total: 0 };
+            }
+            dayStats[trade.day_of_week].total++;
+            if (trade.outcome === "Win") dayStats[trade.day_of_week].wins++;
+        }
+
+        if (trade.session) {
+            if (!sessionStats[trade.session]) {
+                sessionStats[trade.session] = { wins: 0, total: 0 };
+            }
+            sessionStats[trade.session].total++;
+            if (trade.outcome === "Win") sessionStats[trade.session].wins++;
+        }
+
+        if (trade.strategy) {
+            if (!strategyStats[trade.strategy]) {
+                strategyStats[trade.strategy] = { wins: 0, total: 0 };
+            }
+            strategyStats[trade.strategy].total++;
+            if (trade.outcome === "Win") strategyStats[trade.strategy].wins++;
+        }
+
+    });
+
+    const winRate = ((wins / total) * 100).toFixed(1);
+
+    const bestDay = getBestCategory(dayStats);
+    const bestSession = getBestCategory(sessionStats);
+    const bestStrategy = getBestCategory(strategyStats);
+
+    generateAISummary({
+        total,
+        wins,
+        losses,
+        winRate,
+        totalPnL,
+        bestDay,
+        bestSession,
+        bestStrategy
+    });
+}
+
+
+function getBestCategory(statsObj) {
+
+    let best = null;
+    let bestRate = 0;
+
+    for (let key in statsObj) {
+        const { wins, total } = statsObj[key];
+        if (total > 0) {
+            const rate = wins / total;
+            if (rate > bestRate) {
+                bestRate = rate;
+                best = key;
+            }
+        }
+    }
+
+    return best || "Not enough data";
+}
+
+
+function generateAISummary(data) {
+
+    const {
+        total,
+        wins,
+        losses,
+        winRate,
+        totalPnL,
+        bestDay,
+        bestSession,
+        bestStrategy
+    } = data;
+
+    let summary = `
+📊 Total Trades: ${total}
+🏆 Win Rate: ${winRate}%
+💰 Total PnL: $${totalPnL.toFixed(2)}
+
+🔥 Best Day: ${bestDay}
+🌎 Best Session: ${bestSession}
+🎯 Best Strategy: ${bestStrategy}
+`;
+
+    if (winRate < 40) {
+        summary += "\n⚠️ Warning: Your win rate is low. Review discipline.";
+    }
+
+    if (totalPnL < 0) {
+        summary += "\n⚠️ You are currently negative overall.";
+    }
+
+    const box = document.getElementById("aiSummaryBox");
+    if (box) {
+        box.innerText = summary;
+    }
+}
+
         function handleFileImport() { alert("Import feature placeholder"); }
         function toggleAIChat() { const w=document.getElementById('aiChatWindow'); w.style.display=w.style.display==='flex'?'none':'flex'; }
         async function sendAIChat() { /* AI Logic */ }

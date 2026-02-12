@@ -1106,6 +1106,62 @@
                 btn.innerText = "Request Access";
             }
         }
+
+        // ==================================================================
+        // 12. FEATURE: CONSISTENCY CALCULATOR (ADDED)
+        // ==================================================================
+        function openConsistencyModal() { 
+            document.getElementById('consistencyModal').style.display = 'flex'; 
+        }
+
+        function closeConsistencyModal() { 
+            document.getElementById('consistencyModal').style.display = 'none'; 
+        }
+
+        function calcConsistency() {
+            // 1. Get Values
+            const rule = parseFloat(document.getElementById('consistRule').value);
+            const high = parseFloat(document.getElementById('consistHigh').value);
+            const total = parseFloat(document.getElementById('consistTotal').value);
+
+            if(!rule || !high || !total) return;
+
+            // 2. Calculate
+            const currentPerc = (high / total) * 100;
+            const resultBox = document.getElementById('consistResult');
+            const badge = document.getElementById('consistBadge');
+            const fixMsg = document.getElementById('consistFix');
+            const percentText = document.getElementById('consistPercent');
+
+            // 3. Update UI
+            resultBox.style.display = 'block';
+            percentText.innerText = currentPerc.toFixed(2) + "%";
+
+            if(currentPerc <= rule) {
+                // PASS
+                badge.style.background = "rgba(45, 212, 191, 0.2)";
+                badge.style.color = "#2dd4bf";
+                badge.style.border = "1px solid #2dd4bf";
+                badge.innerText = "✅ ELIGIBLE FOR PAYOUT";
+                fixMsg.style.display = 'none';
+            } else {
+                // FAIL
+                badge.style.background = "rgba(239, 68, 68, 0.2)";
+                badge.style.color = "#ef4444";
+                badge.style.border = "1px solid #ef4444";
+                badge.innerText = "❌ NOT ELIGIBLE";
+                
+                // Calculate Fix
+                const targetTotal = high / (rule / 100);
+                const needed = targetTotal - total;
+                
+                fixMsg.style.display = 'block';
+                fixMsg.innerHTML = `
+                    <div style="margin-bottom:5px;">To get under ${rule}%, you need a Total Profit of <strong style="color:#fff">$${targetTotal.toLocaleString(undefined, {maximumFractionDigits:0})}</strong>.</div>
+                    <div>You need to make <strong style="color:#ef4444;">$${needed.toLocaleString(undefined, {maximumFractionDigits:2})}</strong> more.</div>
+                `;
+            }
+        }
     </script>
 
     <style>
@@ -1974,6 +2030,43 @@
         </div>
     </div>
 
+    <div id="consistencyModal" class="modal-overlay">
+        <div style="background:var(--card); padding:30px; border-radius:12px; width:450px; border:1px solid var(--primary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; color:#fff;">📊 CONSISTENCY CHECK</h3>
+                <button onclick="closeConsistencyModal()" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <div>
+                    <label style="color:#94a3b8; font-size:0.8rem;">Rule % (Usually 30-50%)</label>
+                    <input type="number" id="consistRule" class="side-input" value="40" style="margin-bottom:0;">
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="color:#94a3b8; font-size:0.8rem;">Highest Day P&L ($)</label>
+                        <input type="number" id="consistHigh" class="side-input" placeholder="e.g. 1000" style="margin-bottom:0;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="color:#94a3b8; font-size:0.8rem;">Total Profit ($)</label>
+                        <input type="number" id="consistTotal" class="side-input" placeholder="e.g. 2500" style="margin-bottom:0;">
+                    </div>
+                </div>
+
+                <button onclick="calcConsistency()" class="side-btn" style="background:var(--primary); color:#000; margin-top:10px;">Check Status</button>
+
+                <div id="consistResult" style="display:none; margin-top:15px; background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; border:1px solid #334155;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="color:#94a3b8;">Current Consistency:</span>
+                        <span id="consistPercent" style="font-weight:bold; color:#fff;">0%</span>
+                    </div>
+                    <div id="consistBadge" style="text-align:center; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:10px;"></div>
+                    <div id="consistFix" style="font-size:0.85rem; color:#94a3b8; line-height:1.5; display:none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="ghostModal" class="modal-overlay">
         <div style="background:#000; padding:20px; border-radius:12px; width:90%; height:90%; border:1px solid #334155; display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
@@ -2061,6 +2154,10 @@
         <button id="btn-teppa-nav" class="nav-btn" style="display:none; color:#a78bfa;" onclick="openTeppaEngine()"><i class='bx bx-slider-alt'></i> TEPPA ENGINE</button>
         <button id="btn-doctor-nav" class="nav-btn" style="display:none; color:#ef4444;" onclick="openDoctor()"><i class='bx bx-first-aid'></i> DRAWDOWN DOC</button>
         <button id="btn-unlock-indicator" class="nav-btn" onclick="openAccessModal()" style="display:none; color:#2dd4bf;"><i class='bx bx-lock-open-alt'></i> UNLOCK INDICATOR</button>
+        
+        <button class="nav-btn" style="color:#fbbf24;" onclick="openConsistencyModal()">
+            <i class='bx bx-pie-chart-alt-2'></i> CONSISTENCY CHECK
+        </button>
         
         <div style="height:20px;"></div>
 

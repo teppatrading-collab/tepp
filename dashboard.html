@@ -34,7 +34,7 @@
         .metric-row { display: flex; gap: 15px; justify-content: flex-end; font-size: 0.9rem; color: #94a3b8; }
         .win-rate-badge { background: rgba(45, 212, 191, 0.2); color: var(--primary); padding: 5px 10px; border-radius: 8px; font-weight: bold; }
 
-        /* --- LUMINOUS GLOW STYLES (CALENDAR & CARDS) --- */
+        /* --- LUMINOUS CALENDAR STYLES (THE GLOW) --- */
         .calendar-wrapper { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 30px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
         .calendar-header-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 10px; color: #64748b; font-size: 0.8rem; font-weight: bold; }
@@ -45,25 +45,16 @@
         .cal-num { position: absolute; top: 8px; left: 8px; font-size: 0.75rem; color: #64748b; font-weight: bold; }
         .cal-pnl { font-weight: 800; font-size: 0.9rem; margin-top: 10px; z-index: 2; }
         
-        /* 🔥 THE NEON GLOW CLASSES 🔥 */
-        /* Used for both Calendar Days AND Trade Cards */
-        .glow-win { 
-            background: rgba(34, 197, 94, 0.1) !important; /* Green Tint */
-            border: 1px solid #22c55e !important; 
-            box-shadow: 0 0 15px rgba(34, 197, 94, 0.2) inset; /* Inner Glow */
-        }
+        /* 🔥 GLOW EFFECTS 🔥 */
+        .glow-win { background: rgba(34, 197, 94, 0.1) !important; border: 1px solid #22c55e !important; box-shadow: 0 0 15px rgba(34, 197, 94, 0.2) inset; }
         .glow-win .cal-pnl, .glow-win .pnl-text { color: #4ade80 !important; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
         
-        .glow-loss { 
-            background: rgba(239, 68, 68, 0.1) !important; /* Red Tint */
-            border: 1px solid #ef4444 !important; 
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) inset; /* Inner Glow */
-        }
+        .glow-loss { background: rgba(239, 68, 68, 0.1) !important; border: 1px solid #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) inset; }
         .glow-loss .cal-pnl, .glow-loss .pnl-text { color: #f87171 !important; text-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
 
         .weekly-stats-col { background: #1e293b; border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .week-stat-box { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155; }
-        .week-label { color: #94a3b8; font-size: 0.8rem; display: block; margin-bottom: 5px; }
+        .week-label { color: #94a3b8; font-size: 0.75rem; display: block; margin-bottom: 5px; font-weight: bold; letter-spacing: 0.5px; }
         .week-val { color: var(--primary); font-size: 1.5rem; font-weight: bold; }
 
         /* --- SIDEBAR LOGO --- */
@@ -81,7 +72,6 @@
         .trade-log-card:hover { transform: translateY(-4px); }
         .card-body { padding: 16px; flex: 1; }
         
-        /* Actions on Card */
         .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #94a3b8; font-size: 0.75rem; height: 24px; }
         .card-actions { display: flex; gap: 5px; opacity: 0; transition: opacity 0.2s; }
         .trade-log-card:hover .card-actions { opacity: 1; }
@@ -239,7 +229,6 @@
 
                 <h4 style="color:#94a3b8; margin-bottom:10px;">Notes</h4>
                 <p id="viewReason" style="color:#e2e8f0; white-space:pre-wrap; background:#0f172a; padding:15px; border-radius:8px;">--</p>
-                
                 <h4 style="color:#94a3b8; margin-top:20px;">Screenshots</h4>
                 <div id="viewImages" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
@@ -248,7 +237,7 @@
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
                     <div><label class="week-label">PnL ($)</label><input type="number" id="inpEditPnL" class="side-input"></div>
                     <div><label class="week-label">Outcome</label><select id="inpEditOutcome" class="side-input"><option>Win</option><option>Loss</option><option>Breakeven</option></select></div>
-                    <div><label class="week-label">Session</label><select id="inpEditSession" class="side-input"><option>London</option><option>New York</option><option>Asian</option></select></div>
+                    <div><label class="week-label">Session</label><select id="inpEditSession" class="side-input"><option>London</option><option>New York</option><option>Asia</option></select></div>
                     <div><label class="week-label">Strategy</label><input type="text" id="inpEditStrategy" class="side-input"></div>
                 </div>
                 <div style="margin-bottom:20px;"><label class="week-label">Notes</label><textarea id="inpEditReason" class="side-input" rows="6"></textarea></div>
@@ -261,14 +250,71 @@
     </div>
 
     <div id="addTradeModal" class="modal-overlay">
-        <div style="background:var(--card); padding:30px; border-radius:12px; width:400px; border:1px solid var(--border);">
-            <h3>New Trade</h3>
-            <input type="text" id="tradePair" class="side-input" placeholder="Pair (e.g. BTCUSD)">
-            <input type="number" id="tradePnL" class="side-input" placeholder="PnL ($)">
-            <textarea id="tradeReason" class="side-input" placeholder="Notes..."></textarea>
+        <div style="background:var(--card); padding:30px; border-radius:12px; width:650px; max-width:95%; border:1px solid var(--border);">
+            <h3 style="margin-top:0; color:white; margin-bottom:20px;">New Trade Entry</h3>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <div><label class="week-label">Pair</label><input type="text" id="tradePair" class="side-input" placeholder="e.g. GBPUSD" style="margin-bottom:0;"></div>
+                <div><label class="week-label">Session</label>
+                    <select id="tradeSession" class="side-input" style="margin-bottom:0;">
+                        <option>London</option><option>New York</option><option>Asia</option>
+                    </select>
+                </div>
+
+                <div><label class="week-label">Trend</label>
+                    <select id="tradeTrend" class="side-input" style="margin-bottom:0;">
+                        <option>Pro Trend</option><option>Counter Trend</option><option>Complex Pullback</option>
+                    </select>
+                </div>
+                <div><label class="week-label">Strategy</label>
+                    <select id="tradeStrategy" class="side-input" style="margin-bottom:0;">
+                        <option>Continuation</option><option>Reversal</option>
+                    </select>
+                </div>
+
+                <div style="grid-column: span 2;"><label class="week-label">Module</label>
+                    <select id="tradeModule" class="side-input" style="margin-bottom:0;">
+                        <option>SMT Trap Continuation</option>
+                        <option>SMT Trap Reversal</option>
+                        <option>50% of Asia Continuation</option>
+                    </select>
+                </div>
+
+                <div style="grid-column: span 2;">
+                    <label class="week-label">Time of Day</label>
+                    <div style="display:flex; gap:10px;">
+                        <select id="tradeHour" class="side-input" style="margin-bottom:0;"><option>01</option><option>02</option><option>03</option><option>04</option><option>05</option><option>06</option><option>07</option><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option></select>
+                        <select id="tradeMin" class="side-input" style="margin-bottom:0;"><option>00</option><option>15</option><option>30</option><option>45</option></select>
+                        <select id="tradeAmPm" class="side-input" style="margin-bottom:0;"><option>AM</option><option>PM</option></select>
+                    </div>
+                </div>
+
+                <div><label class="week-label">Execution</label>
+                    <select id="tradeExec" class="side-input" style="margin-bottom:0;">
+                        <option>Market Execution</option><option>Limit Order</option>
+                    </select>
+                </div>
+                <div><label class="week-label">LTF Confirmation</label>
+                    <select id="tradeConfirm" class="side-input" style="margin-bottom:0;">
+                        <option>2 Legs</option><option>Break and Test</option><option>M1 SMT Trap</option><option>POI Entry</option>
+                    </select>
+                </div>
+
+                <div><label class="week-label">PnL ($)</label><input type="number" id="tradePnL" class="side-input" style="margin-bottom:0;"></div>
+                <div><label class="week-label">Chart Link</label><input type="text" id="chartLink" class="side-input" style="margin-bottom:0;"></div>
+            </div>
+
+            <div style="margin-top:15px;">
+                <label class="week-label">Notes</label>
+                <textarea id="tradeReason" class="side-input" placeholder="Confluence, mental state..."></textarea>
+            </div>
+            
             <input type="file" id="chartUpload" class="side-input">
-            <button class="side-btn" onclick="saveTrade()">Save Trade</button>
-            <button class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444; margin-top:10px;" onclick="document.getElementById('addTradeModal').style.display='none'">Cancel</button>
+            
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="side-btn" onclick="saveTrade()">Save Entry</button>
+                <button class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;" onclick="document.getElementById('addTradeModal').style.display='none'">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -451,13 +497,11 @@
         function openViewModal(trade, startInEditMode = false) {
             viewingTradeId = trade.id;
             
-            // Populate View
             document.getElementById('viewPair').innerText = trade.pair;
             document.getElementById('viewPnL').innerText = "$" + trade.pnl;
             document.getElementById('viewReason').innerText = trade.reason;
             document.getElementById('viewStrategy').innerText = trade.strategy || "Trend";
             
-            // Populate Edit Inputs
             document.getElementById('inpEditPnL').value = trade.pnl;
             document.getElementById('inpEditOutcome').value = trade.outcome;
             document.getElementById('inpEditSession').value = trade.session;
@@ -484,7 +528,6 @@
 
             document.getElementById('viewModal').style.display = 'flex';
             
-            // Handle Direct Edit Mode
             if(startInEditMode) {
                 document.getElementById('viewModeContent').style.display = 'none';
                 document.getElementById('editModeContent').style.display = 'block';
@@ -571,7 +614,7 @@
             body.scrollTop = body.scrollHeight;
         }
 
-        // --- 7. UTILS ---
+        // --- 7. UTILS & SAVE TRADE ---
         function calcConsistency() {
             const high = parseFloat(document.getElementById('consistHigh').value);
             const total = parseFloat(document.getElementById('consistTotal').value);
@@ -580,17 +623,41 @@
             if((high/total) < 0.4) res.innerText = "✅ PASS"; else res.innerText = "❌ FAIL";
         }
         function openConsistencyModal() { document.getElementById('consistencyModal').style.display='flex'; }
+        
         async function saveTrade() {
+            // GATHER ALL NEW INPUTS
             const pair = document.getElementById('tradePair').value;
+            const session = document.getElementById('tradeSession').value;
+            const trend = document.getElementById('tradeTrend').value;
+            const strategyType = document.getElementById('tradeStrategy').value;
+            const module = document.getElementById('tradeModule').value;
+            const time = `${document.getElementById('tradeHour').value}:${document.getElementById('tradeMin').value} ${document.getElementById('tradeAmPm').value}`;
+            const exec = document.getElementById('tradeExec').value;
+            const confirm = document.getElementById('tradeConfirm').value;
             const pnl = document.getElementById('tradePnL').value;
-            const reason = document.getElementById('tradeReason').value;
+            const chartLink = document.getElementById('chartLink').value;
+            const notes = document.getElementById('tradeReason').value;
+            
+            // COMBINE FOR DATABASE (To allow saving without schema change)
+            const combinedStrategy = `${trend} | ${strategyType} | ${module}`;
+            const combinedNotes = `[${time} - ${exec} - ${confirm}]\n\n${notes}`;
+            const outcome = parseFloat(pnl) >= 0 ? "Win" : "Loss";
+
             await supabaseClient.from('trades').insert([{
-                pair: pair, pnl: parseFloat(pnl), reason: reason, 
-                created_at: new Date().toISOString(), session: "New York", outcome: parseFloat(pnl)>=0?"Win":"Loss"
+                pair: pair, 
+                pnl: parseFloat(pnl), 
+                reason: combinedNotes, 
+                strategy: combinedStrategy,
+                tradingview_link: chartLink,
+                created_at: new Date().toISOString(), 
+                session: session, 
+                outcome: outcome
             }]);
+            
             document.getElementById('addTradeModal').style.display='none';
             loadTrades();
         }
+        
         async function deleteTrade(id) { 
             if(confirm("Delete trade?")) { 
                 await supabaseClient.from('trades').delete().eq('id',id); 

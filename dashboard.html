@@ -34,7 +34,7 @@
         .metric-row { display: flex; gap: 15px; justify-content: flex-end; font-size: 0.9rem; color: #94a3b8; }
         .win-rate-badge { background: rgba(45, 212, 191, 0.2); color: var(--primary); padding: 5px 10px; border-radius: 8px; font-weight: bold; }
 
-        /* --- LUMINOUS CALENDAR STYLES --- */
+        /* --- LUMINOUS CALENDAR STYLES (THE GLOW) --- */
         .calendar-wrapper { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 30px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
         .calendar-header-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 10px; color: #64748b; font-size: 0.8rem; font-weight: bold; }
@@ -57,31 +57,34 @@
         .cal-num { position: absolute; top: 8px; left: 8px; font-size: 0.75rem; color: #64748b; font-weight: bold; }
         .cal-pnl { font-weight: 800; font-size: 0.9rem; margin-top: 10px; z-index: 2; }
         
-        /* THE GLOW EFFECT */
+        /* 🔥 GLOW EFFECTS 🔥 */
+        /* Winning Day - Green Luminate */
         .cal-win { 
-            background: rgba(16, 185, 129, 0.15); /* Solid Green Tint */
-            border: 1px solid rgba(16, 185, 129, 0.5); 
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15) inset; /* Inner Glow */
+            background: rgba(34, 197, 94, 0.15) !important; /* Green Tint */
+            border: 1px solid #22c55e !important; 
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.2) inset; /* Inner Glow */
         }
-        .cal-win .cal-pnl { color: #34d399; text-shadow: 0 0 10px rgba(52, 211, 153, 0.4); }
+        .cal-win .cal-pnl { color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
         
+        /* Losing Day - Red Luminate */
         .cal-loss { 
-            background: rgba(239, 68, 68, 0.15); /* Solid Red Tint */
-            border: 1px solid rgba(239, 68, 68, 0.5); 
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.15) inset; /* Inner Glow */
+            background: rgba(239, 68, 68, 0.15) !important; /* Red Tint */
+            border: 1px solid #ef4444 !important; 
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) inset; /* Inner Glow */
         }
-        .cal-loss .cal-pnl { color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.4); }
+        .cal-loss .cal-pnl { color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
 
         .weekly-stats-col { background: #1e293b; border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .week-stat-box { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155; }
         .week-label { color: #94a3b8; font-size: 0.8rem; display: block; margin-bottom: 5px; }
         .week-val { color: var(--primary); font-size: 1.5rem; font-weight: bold; }
 
-        /* --- STANDARD COMPONENTS (Sidebar, Grid, etc) --- */
-        .brand-title { display: flex; align-items: center; gap: 12px; font-weight: 900; font-size: 1.4rem; margin-bottom: 30px; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
-        .brand-title img { height: 32px; width: auto; }
-        .brand-title span { color: var(--primary); }
-        
+        /* --- SIDEBAR LOGO --- */
+        .brand-container { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+        .brand-logo { width: 45px; height: 45px; object-fit: contain; }
+        .brand-text { font-weight: 900; font-size: 1.4rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; line-height: 1; }
+        .brand-text span { color: var(--primary); display: block; font-size: 0.8rem; letter-spacing: 3px; }
+
         .nav-btn { width:100%; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; margin-bottom:10px; text-align:left; display:flex; align-items:center; gap:10px; border:1px solid transparent; background:transparent; color:#94a3b8; transition:0.2s; }
         .nav-btn:hover { color:#fff; border-color:var(--border); }
         .nav-btn.special { background:linear-gradient(135deg, var(--primary), var(--secondary)); color:#000; justify-content:center; }
@@ -130,9 +133,9 @@
     </div>
 
     <aside class="sidebar">
-        <div class="brand-title">
-            <img src="logo.png" alt="Logo">
-            <div>TEPPA <span>TRADING</span></div>
+        <div class="brand-container">
+            <img src="logo-512.png" alt="Teppa Logo" class="brand-logo" onerror="this.style.display='none'">
+            <div class="brand-text">TEPPA <span>TRADING</span></div>
         </div>
         
         <button class="nav-btn special" onclick="window.location.href='courses.html'">🎓 ACADEMY</button>
@@ -195,7 +198,7 @@
             
             <div class="weekly-stats-col">
                 <div class="week-stat-box">
-                    <span class="week-label">MONTHLY STATS</span>
+                    <span class="week-label">TOTAL P&L</span>
                     <span class="week-val" id="monthStatsVal">$0.00</span>
                 </div>
                 <div class="week-stat-box" style="border:none;">
@@ -410,7 +413,7 @@
                 if(daily[i] !== undefined) {
                     const isWin = daily[i] >= 0;
                     day.className += isWin ? " cal-win" : " cal-loss";
-                    content += `<span class="cal-pnl" style="color:${isWin?'#34d399':'#f87171'}">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
+                    content += `<span class="cal-pnl" style="color:${isWin?'#4ade80':'#f87171'}">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
                 }
                 
                 day.innerHTML = content;
@@ -441,6 +444,28 @@
             document.getElementById('aiCoachOutput').style.display = 'none';
             document.getElementById('aiCoachOutput').innerHTML = "";
             document.getElementById('viewModal').style.display = 'flex';
+            
+            // --- FIXED IMAGE RENDERING ---
+            const imgContainer = document.getElementById('viewImages');
+            imgContainer.innerHTML = "";
+            if (trade.chart_screenshot) {
+                const urls = trade.chart_screenshot.split(',');
+                urls.forEach(url => {
+                    if(url.trim()) {
+                        const img = document.createElement('img');
+                        img.src = url.trim();
+                        img.style.width = "100%";
+                        img.style.borderRadius = "8px";
+                        img.style.border = "1px solid #334155";
+                        img.style.marginTop = "10px";
+                        img.onclick = () => window.open(url, '_blank');
+                        img.style.cursor = "zoom-in";
+                        imgContainer.appendChild(img);
+                    }
+                });
+            } else {
+                imgContainer.innerHTML = "<p style='color:#64748b; font-style:italic;'>No screenshots attached.</p>";
+            }
         }
 
         async function runAIText() {

@@ -34,45 +34,32 @@
         .metric-row { display: flex; gap: 15px; justify-content: flex-end; font-size: 0.9rem; color: #94a3b8; }
         .win-rate-badge { background: rgba(45, 212, 191, 0.2); color: var(--primary); padding: 5px 10px; border-radius: 8px; font-weight: bold; }
 
-        /* --- LUMINOUS CALENDAR STYLES (THE GLOW) --- */
+        /* --- LUMINOUS GLOW STYLES (CALENDAR & CARDS) --- */
         .calendar-wrapper { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 30px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
         .calendar-header-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 10px; color: #64748b; font-size: 0.8rem; font-weight: bold; }
         
-        .cal-day { 
-            aspect-ratio: 1; 
-            background: #0f172a; 
-            border: 1px solid #334155; 
-            border-radius: 8px; 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            flex-direction: column; 
-            transition: 0.3s ease; 
-        }
+        .cal-day { aspect-ratio: 1; background: #0f172a; border: 1px solid #334155; border-radius: 8px; position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: 0.3s ease; }
         .cal-day:hover { border-color: var(--primary); transform: translateY(-2px); }
         .cal-day.empty { background: transparent; border: none; }
-        
         .cal-num { position: absolute; top: 8px; left: 8px; font-size: 0.75rem; color: #64748b; font-weight: bold; }
         .cal-pnl { font-weight: 800; font-size: 0.9rem; margin-top: 10px; z-index: 2; }
         
-        /* 🔥 GLOW EFFECTS 🔥 */
-        /* Winning Day - Green Luminate */
-        .cal-win { 
-            background: rgba(34, 197, 94, 0.15) !important; /* Green Tint */
+        /* 🔥 THE NEON GLOW CLASSES 🔥 */
+        /* Used for both Calendar Days AND Trade Cards */
+        .glow-win { 
+            background: rgba(34, 197, 94, 0.1) !important; /* Green Tint */
             border: 1px solid #22c55e !important; 
             box-shadow: 0 0 15px rgba(34, 197, 94, 0.2) inset; /* Inner Glow */
         }
-        .cal-win .cal-pnl { color: #4ade80; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
+        .glow-win .cal-pnl, .glow-win .pnl-text { color: #4ade80 !important; text-shadow: 0 0 10px rgba(74, 222, 128, 0.5); }
         
-        /* Losing Day - Red Luminate */
-        .cal-loss { 
-            background: rgba(239, 68, 68, 0.15) !important; /* Red Tint */
+        .glow-loss { 
+            background: rgba(239, 68, 68, 0.1) !important; /* Red Tint */
             border: 1px solid #ef4444 !important; 
             box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) inset; /* Inner Glow */
         }
-        .cal-loss .cal-pnl { color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
+        .glow-loss .cal-pnl, .glow-loss .pnl-text { color: #f87171 !important; text-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
 
         .weekly-stats-col { background: #1e293b; border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .week-stat-box { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155; }
@@ -91,9 +78,16 @@
         
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
         .trade-log-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; transition: transform 0.2s; position: relative; display: flex; flex-direction: column; cursor: pointer; }
-        .trade-log-card:hover { transform: translateY(-4px); border-color: var(--primary); }
+        .trade-log-card:hover { transform: translateY(-4px); }
         .card-body { padding: 16px; flex: 1; }
         
+        /* Actions on Card */
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #94a3b8; font-size: 0.75rem; height: 24px; }
+        .card-actions { display: flex; gap: 5px; opacity: 0; transition: opacity 0.2s; }
+        .trade-log-card:hover .card-actions { opacity: 1; }
+        .action-icon-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .action-icon-btn:hover { background: var(--primary); color: #000; }
+
         /* --- AI FEATURES & MODALS --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .side-input { width: 100%; background: #0f172a; color: white; border: 1px solid var(--border); padding: 12px; margin-bottom: 12px; border-radius: 8px; }
@@ -220,9 +214,13 @@
         <div style="background:var(--card); width:800px; max-width:95%; max-height:90vh; border-radius:12px; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
             <div style="padding:20px; background:#0f172a; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">
                 <h2 id="viewPair" style="margin:0; color:#fff;">--</h2>
-                <button onclick="document.getElementById('viewModal').style.display='none'" style="background:transparent; border:none; color:#fff; font-size:1.5rem;">&times;</button>
+                <div style="display:flex; gap:10px;">
+                    <button id="btnEditToggle" onclick="toggleEditMode()" style="background:#334155; border:none; color:#fff; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.8rem;">EDIT</button>
+                    <button onclick="document.getElementById('viewModal').style.display='none'" style="background:transparent; border:none; color:#fff; font-size:1.5rem;">&times;</button>
+                </div>
             </div>
-            <div style="padding:20px; overflow-y:auto;">
+            
+            <div id="viewModeContent" style="padding:20px; overflow-y:auto;">
                 <div style="display:flex; gap:15px; margin-bottom:20px;">
                     <div class="stat-pill"><span id="viewPnL" style="font-weight:bold;">--</span></div>
                     <div class="stat-pill"><span id="viewStrategy">--</span></div>
@@ -244,6 +242,20 @@
                 
                 <h4 style="color:#94a3b8; margin-top:20px;">Screenshots</h4>
                 <div id="viewImages" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <div id="editModeContent" style="padding:20px; overflow-y:auto; display:none;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div><label class="week-label">PnL ($)</label><input type="number" id="inpEditPnL" class="side-input"></div>
+                    <div><label class="week-label">Outcome</label><select id="inpEditOutcome" class="side-input"><option>Win</option><option>Loss</option><option>Breakeven</option></select></div>
+                    <div><label class="week-label">Session</label><select id="inpEditSession" class="side-input"><option>London</option><option>New York</option><option>Asian</option></select></div>
+                    <div><label class="week-label">Strategy</label><input type="text" id="inpEditStrategy" class="side-input"></div>
+                </div>
+                <div style="margin-bottom:20px;"><label class="week-label">Notes</label><textarea id="inpEditReason" class="side-input" rows="6"></textarea></div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="saveFullEdit()" class="side-btn">Save Changes</button>
+                    <button onclick="toggleEditMode()" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
@@ -287,7 +299,8 @@
 
         let allTradesCache = [];
         let ACCOUNT_BALANCE = 1000;
-        let currentCalDate = new Date(); // To track current calendar month
+        let currentCalDate = new Date(); 
+        let viewingTradeId = null;
 
         // --- 2. INIT ---
         async function init() {
@@ -307,7 +320,6 @@
             
             // Calc Stats
             let netPnL = 0, wins = 0, loss = 0;
-            const sessionStats = { wins:0, losses:0 }; 
             
             trades.forEach(t => {
                 netPnL += (t.pnl || 0);
@@ -343,18 +355,31 @@
             trades.forEach(t => {
                 const card = document.createElement('div');
                 card.className = "trade-log-card";
-                card.onclick = () => openViewModal(t);
+                
+                // --- APPLY GLOW CLASS BASED ON OUTCOME ---
+                if (t.outcome === 'Win') card.classList.add('glow-win');
+                else if (t.outcome === 'Loss') card.classList.add('glow-loss');
+                
+                // Normal click view
+                card.onclick = (e) => {
+                    if(!e.target.closest('button')) openViewModal(t); 
+                };
                 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "#ef4444";
+                const tradeDataStr = encodeURIComponent(JSON.stringify(t));
+
                 card.innerHTML = `
                     <div class="card-body">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.8rem; color:#94a3b8;">
+                        <div class="card-top">
                             <span>${new Date(t.created_at).toLocaleDateString()}</span>
-                            <span>${t.session}</span>
+                            <div class="card-actions">
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); openViewModal(JSON.parse(decodeURIComponent('${tradeDataStr}')), true)" title="Edit"><i class='bx bx-pencil'></i></button>
+                                <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')" title="Delete"><i class='bx bx-trash'></i></button>
+                            </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-size:1.2rem; font-weight:800; color:#fff;">${t.pair}</span>
-                            <span style="font-size:1.1rem; font-weight:bold; color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span>
+                            <span class="pnl-text" style="font-size:1.1rem; font-weight:bold; color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span>
                         </div>
                         <p style="color:#64748b; font-size:0.8rem; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.reason || 'No notes'}</p>
                     </div>
@@ -363,7 +388,7 @@
             });
         }
 
-        // --- CALENDAR LOGIC (UPDATED WITH MONTH SWITCHING) ---
+        // --- CALENDAR LOGIC ---
         function changeMonth(offset) {
             currentCalDate.setMonth(currentCalDate.getMonth() + offset);
             renderCalendar(allTradesCache);
@@ -372,23 +397,17 @@
         function renderCalendar(trades) {
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = "";
-            
             const year = currentCalDate.getFullYear();
             const month = currentCalDate.getMonth();
-            
-            // 1. Update Month Label
             const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
             document.getElementById('calMonthLabel').innerText = `${monthNames[month]} ${year}`;
 
-            // 2. Logic: Get Days
-            const firstDayIndex = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+            const firstDayIndex = new Date(year, month, 1).getDay(); 
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            // 3. Aggregate Daily PnL for selected month
             const daily = {};
             trades.forEach(t => {
                 const tDate = new Date(t.created_at);
-                // Must match current selected month/year
                 if(tDate.getMonth() === month && tDate.getFullYear() === year) {
                     const d = tDate.getDate();
                     if(!daily[d]) daily[d] = 0;
@@ -396,26 +415,21 @@
                 }
             });
 
-            // 4. Render Empty slots (before the 1st of month)
             for(let i=0; i<firstDayIndex; i++) {
                 const empty = document.createElement('div');
                 empty.className = "cal-day empty";
                 grid.appendChild(empty);
             }
 
-            // 5. Render Actual Days
             for(let i=1; i<=daysInMonth; i++) {
                 const day = document.createElement('div');
                 day.className = "cal-day";
-                
                 let content = `<span class="cal-num">${i}</span>`;
-                
                 if(daily[i] !== undefined) {
                     const isWin = daily[i] >= 0;
-                    day.className += isWin ? " cal-win" : " cal-loss";
-                    content += `<span class="cal-pnl" style="color:${isWin?'#4ade80':'#f87171'}">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
+                    day.className += isWin ? " glow-win" : " glow-loss";
+                    content += `<span class="cal-pnl">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
                 }
-                
                 day.innerHTML = content;
                 grid.appendChild(day);
             }
@@ -423,7 +437,6 @@
 
         function renderChart(trades) {
             const ctx = document.getElementById('equityChart').getContext('2d');
-            // Basic chart setup (simplified)
             if(window.myChart) window.myChart.destroy();
             let bal = ACCOUNT_BALANCE;
             const data = trades.slice().reverse().map(t => { bal += t.pnl; return bal; });
@@ -434,20 +447,26 @@
             });
         }
 
-        // --- 5. AI LOGIC (COACH & VISION) ---
-        function openViewModal(trade) {
+        // --- 5. AI LOGIC & EDIT MODAL ---
+        function openViewModal(trade, startInEditMode = false) {
+            viewingTradeId = trade.id;
+            
+            // Populate View
             document.getElementById('viewPair').innerText = trade.pair;
             document.getElementById('viewPnL').innerText = "$" + trade.pnl;
             document.getElementById('viewReason').innerText = trade.reason;
             document.getElementById('viewStrategy').innerText = trade.strategy || "Trend";
-            window.currentViewTrade = trade;
-            document.getElementById('aiCoachOutput').style.display = 'none';
-            document.getElementById('aiCoachOutput').innerHTML = "";
-            document.getElementById('viewModal').style.display = 'flex';
             
-            // --- FIXED IMAGE RENDERING ---
-            const imgContainer = document.getElementById('viewImages');
-            imgContainer.innerHTML = "";
+            // Populate Edit Inputs
+            document.getElementById('inpEditPnL').value = trade.pnl;
+            document.getElementById('inpEditOutcome').value = trade.outcome;
+            document.getElementById('inpEditSession').value = trade.session;
+            document.getElementById('inpEditStrategy').value = trade.strategy || "";
+            document.getElementById('inpEditReason').value = trade.reason || "";
+
+            window.currentViewTrade = trade;
+            
+            document.getElementById('viewImages').innerHTML = "";
             if (trade.chart_screenshot) {
                 const urls = trade.chart_screenshot.split(',');
                 urls.forEach(url => {
@@ -456,16 +475,51 @@
                         img.src = url.trim();
                         img.style.width = "100%";
                         img.style.borderRadius = "8px";
-                        img.style.border = "1px solid #334155";
                         img.style.marginTop = "10px";
                         img.onclick = () => window.open(url, '_blank');
-                        img.style.cursor = "zoom-in";
-                        imgContainer.appendChild(img);
+                        document.getElementById('viewImages').appendChild(img);
                     }
                 });
-            } else {
-                imgContainer.innerHTML = "<p style='color:#64748b; font-style:italic;'>No screenshots attached.</p>";
             }
+
+            document.getElementById('viewModal').style.display = 'flex';
+            
+            // Handle Direct Edit Mode
+            if(startInEditMode) {
+                document.getElementById('viewModeContent').style.display = 'none';
+                document.getElementById('editModeContent').style.display = 'block';
+                document.getElementById('btnEditToggle').style.display = 'none';
+            } else {
+                document.getElementById('viewModeContent').style.display = 'block';
+                document.getElementById('editModeContent').style.display = 'none';
+                document.getElementById('btnEditToggle').style.display = 'block';
+            }
+        }
+
+        function toggleEditMode() {
+            const viewDiv = document.getElementById('viewModeContent');
+            const editDiv = document.getElementById('editModeContent');
+            const editBtn = document.getElementById('btnEditToggle');
+            if(viewDiv.style.display !== 'none') {
+                viewDiv.style.display = 'none'; editDiv.style.display = 'block'; editBtn.style.display = 'none';
+            } else {
+                viewDiv.style.display = 'block'; editDiv.style.display = 'none'; editBtn.style.display = 'block';
+            }
+        }
+
+        async function saveFullEdit() {
+            const pnl = document.getElementById('inpEditPnL').value;
+            const outcome = document.getElementById('inpEditOutcome').value;
+            const session = document.getElementById('inpEditSession').value;
+            const strategy = document.getElementById('inpEditStrategy').value;
+            const reason = document.getElementById('inpEditReason').value;
+
+            await supabaseClient.from('trades').update({
+                pnl: parseFloat(pnl), outcome, session, strategy, reason
+            }).eq('id', viewingTradeId);
+            
+            document.getElementById('viewModal').style.display = 'none';
+            loadTrades();
         }
 
         async function runAIText() {
@@ -473,9 +527,7 @@
             const out = document.getElementById('aiCoachOutput');
             out.style.display = 'block';
             out.innerText = "🧠 Analyzing psychology...";
-            
             const prompt = `You are a pro trading coach. Analyze this trade: Result: ${window.currentViewTrade.pnl}, Notes: "${window.currentViewTrade.reason}". Give 1 sentence on execution and 1 psychological tip.`;
-
             try {
                 const res = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
@@ -498,33 +550,24 @@
             const body = document.getElementById('aiChatBody');
             const txt = input.value;
             if(!txt) return;
-
             body.innerHTML += `<div class="ai-msg user">${txt}</div>`;
             input.value = "";
             body.scrollTop = body.scrollHeight;
-
             if(OPENAI_API_KEY === 'INSERT_YOUR_OPENAI_KEY_HERE') { 
-                body.innerHTML += `<div class="ai-msg bot">⚠️ Please configure API Key in code.</div>`;
-                return; 
+                body.innerHTML += `<div class="ai-msg bot">⚠️ Please configure API Key in code.</div>`; return; 
             }
-
             try {
                 const res = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
                     body: JSON.stringify({ 
                         model: "gpt-4-turbo", 
-                        messages: [
-                            {role: "system", content: "You are Teppa AI, a trading journal assistant. Answer brief trading questions."},
-                            {role: "user", content: txt}
-                        ] 
+                        messages: [{role: "system", content: "You are Teppa AI, a trading journal assistant."}, {role: "user", content: txt}] 
                     })
                 });
                 const data = await res.json();
                 body.innerHTML += `<div class="ai-msg bot">${data.choices[0].message.content}</div>`;
-            } catch(e) {
-                body.innerHTML += `<div class="ai-msg bot">Error connecting.</div>`;
-            }
+            } catch(e) { body.innerHTML += `<div class="ai-msg bot">Error connecting.</div>`; }
             body.scrollTop = body.scrollHeight;
         }
 
@@ -541,13 +584,18 @@
             const pair = document.getElementById('tradePair').value;
             const pnl = document.getElementById('tradePnL').value;
             const reason = document.getElementById('tradeReason').value;
-            
             await supabaseClient.from('trades').insert([{
                 pair: pair, pnl: parseFloat(pnl), reason: reason, 
                 created_at: new Date().toISOString(), session: "New York", outcome: parseFloat(pnl)>=0?"Win":"Loss"
             }]);
             document.getElementById('addTradeModal').style.display='none';
             loadTrades();
+        }
+        async function deleteTrade(id) { 
+            if(confirm("Delete trade?")) { 
+                await supabaseClient.from('trades').delete().eq('id',id); 
+                loadTrades(); 
+            }
         }
         function handleFileImport() { alert("Import feature placeholder"); }
     </script>

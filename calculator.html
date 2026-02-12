@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistency Calculator | Teppa Trading</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f4; padding: 20px; text-align: center; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #333; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">← Back to Home</a>
+
+    <div class="teppa-calculator-widget">
+      <div class="teppa-header">
+        <h3>Consistency Rule Calculator</h3>
+        <p>Check if your trading performance meets the payout requirements.</p>
+      </div>
+
+      <div class="teppa-content">
+        <div class="input-group">
+          <label for="rulePercent">Consistency Rule (%)</label>
+          <input type="number" id="rulePercent" value="40" placeholder="40">
+          <small>Usually 30% - 50% depending on the account type.</small>
+        </div>
+        <div class="input-row">
+          <div class="input-group half">
+            <label for="highDay">Highest Day P&L ($)</label>
+            <input type="number" id="highDay" placeholder="e.g. 1000">
+          </div>
+          <div class="input-group half">
+            <label for="totalProfit">Total Profit ($)</label>
+            <input type="number" id="totalProfit" placeholder="e.g. 2500">
+          </div>
+        </div>
+        <button class="teppa-btn" onclick="calculateTeppaConsistency()">Check Eligibility</button>
+        <div id="resultBox" class="result-box" style="display:none;">
+          <div class="result-row">
+            <span>Current Consistency:</span>
+            <span id="currentPercent" class="bold-text">0%</span>
+          </div>
+          <div id="statusMessage" class="status-box"></div>
+          <div id="fixSection" class="fix-box" style="display:none;">
+            <p><strong>How to fix this:</strong></p>
+            <p>To drop your consistency below <span id="targetRuleText">40</span>%, you need to increase your Total Profit to at least <span id="requiredTotal" class="highlight"></span>.</p>
+            <p>You need to make <span id="amountNeeded" class="highlight-red"></span> more in profit.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .teppa-calculator-widget { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 450px; margin: 0 auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; text-align: left; }
+      .teppa-header { background: #0f172a; color: white; padding: 20px; text-align: center; }
+      .teppa-header h3 { margin: 0; font-size: 1.4rem; }
+      .teppa-header p { margin: 5px 0 0; font-size: 0.9rem; opacity: 0.8; }
+      .teppa-content { padding: 25px; }
+      .input-group { margin-bottom: 15px; }
+      .input-row { display: flex; gap: 15px; }
+      .input-group.half { flex: 1; }
+      .input-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #333; }
+      .input-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+      .input-group small { display: block; margin-top: 4px; color: #666; font-size: 0.75rem; }
+      .teppa-btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+      .teppa-btn:hover { background: #1d4ed8; }
+      .result-box { margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+      .result-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 1.1rem; }
+      .bold-text { font-weight: bold; }
+      .status-box { padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px; }
+      .status-pass { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+      .status-fail { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+      .fix-box { background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; color: #475569; }
+      .highlight { font-weight: bold; color: #333; }
+      .highlight-red { font-weight: bold; color: #dc2626; }
+    </style>
+
+    <script>
+    function calculateTeppaConsistency() {
+      const rulePercent = parseFloat(document.getElementById('rulePercent').value);
+      const highDay = parseFloat(document.getElementById('highDay').value);
+      const totalProfit = parseFloat(document.getElementById('totalProfit').value);
+      if (isNaN(rulePercent) || isNaN(highDay) || isNaN(totalProfit) || totalProfit === 0) { alert("Please enter valid profit numbers."); return; }
+      const currentConsistency = (highDay / totalProfit) * 100;
+      const targetTotal = highDay / (rulePercent / 100);
+      const neededAmount = targetTotal - totalProfit;
+      document.getElementById('resultBox').style.display = 'block';
+      document.getElementById('currentPercent').innerText = currentConsistency.toFixed(2) + "%";
+      document.getElementById('targetRuleText').innerText = rulePercent;
+      const statusBox = document.getElementById('statusMessage');
+      const fixBox = document.getElementById('fixSection');
+      if (currentConsistency <= rulePercent) {
+        statusBox.className = "status-box status-pass";
+        statusBox.innerText = "✅ ELIGIBLE FOR PAYOUT";
+        fixBox.style.display = 'none';
+      } else {
+        statusBox.className = "status-box status-fail";
+        statusBox.innerText = "❌ NOT ELIGIBLE";
+        fixBox.style.display = 'block';
+        document.getElementById('requiredTotal').innerText = "$" + targetTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('amountNeeded').innerText = "$" + neededAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      }
+    }
+    </script>
+</body>
+</html>

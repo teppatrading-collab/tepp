@@ -702,22 +702,59 @@
             res.innerText = (high/total) < 0.4 ? "✅ PASS" : "❌ FAIL";
         }
 
-        async function saveTrade() {
-            // ... (Gather inputs - same as previous) ...
-            const pair = document.getElementById('tradePair').value;
-            const pnl = document.getElementById('tradePnL').value;
-            const mode = document.getElementById('tradeMode').value;
-            const isBacktest = (mode === 'Backtest' || mode === 'Forward');
-            const outcome = parseFloat(pnl) >= 0 ? "Win" : "Loss";
-            
-            await supabaseClient.from('trades').insert([{
-                pair: pair, pnl: parseFloat(pnl), outcome: outcome, 
-                is_backtest: isBacktest, created_at: new Date().toISOString(), session: "New York"
-            }]);
-            
-            document.getElementById('addTradeModal').style.display='none';
-            loadTrades();
-        }
+       async function saveTrade() {
+
+    // ===== BASIC FIELDS =====
+    const pair = document.getElementById('tradePair').value.trim().toUpperCase();
+    const pnlRaw = document.getElementById('tradePnL').value;
+    const mode = document.getElementById('tradeMode').value;
+
+    const pnl = pnlRaw ? parseFloat(pnlRaw) : 0;
+
+    // Optional fields (only if they exist in your form)
+    const session = document.getElementById('tradeSession')?.value || "Unknown";
+    const direction = document.getElementById('tradeDirection')?.value || null;
+    const strategy = document.getElementById('tradeStrategy')?.value || null;
+    const notes = document.getElementById('tradeReason')?.value || null;
+
+    // ===== DATE LOGIC =====
+    const now = new Date();
+    const tradeDate = now.toISOString().split("T")[0];
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+    // ===== RESULT LOGIC =====
+    const isBacktest = (mode === 'Backtest' || mode === 'Forward');
+
+    const outcome =
+        pnl > 0 ? "Win" :
+        pnl < 0 ? "Loss" :
+        "Breakeven";
+
+    // ===== INSERT =====
+    const { error } = await supabaseClient.from('trades').insert([{
+        pair,
+        pnl,
+        outcome,
+        is_backtest: isBacktest,
+        session,
+        direction,
+        strategy,
+        reason: notes,
+        trade_date: tradeDate,
+        day_of_week: dayOfWeek,
+        created_at: now.toISOString()
+    }]);
+
+    if (error) {
+        console.error(error);
+        alert("Error saving trade");
+        return;
+    }
+
+    document.getElementById('addTradeModal').style.display = 'none';
+    loadTrades();
+}
+
         
         async function deleteTrade(id) { 
             if(confirm("Delete trade?")) { 

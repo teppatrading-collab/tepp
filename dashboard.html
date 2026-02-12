@@ -753,13 +753,14 @@
 
     document.getElementById('addTradeModal').style.display = 'none';
     loadTrades();
+     calculateAnalytics();
 }
 
         
         async function deleteTrade(id) { 
             if(confirm("Delete trade?")) { 
                 await supabaseClient.from('trades').delete().eq('id',id); 
-                loadTrades(); 
+                loadTrades();
             }
         }
         async function deleteTrade(id) {

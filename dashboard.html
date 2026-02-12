@@ -902,9 +902,185 @@ function generateAISummary(data) {
 
         function handleFileImport() { alert("Import feature placeholder"); }
         function toggleAIChat() { const w=document.getElementById('aiChatWindow'); w.style.display=w.style.display==='flex'?'none':'flex'; }
-        async function sendAIChat() { /* AI Logic */ }
-        function runAIVision() { /* AI Vision Logic */ }
-        function runAIText() { /* AI Text Logic */ }
+        // =============================
+// 🤖 REAL AI CONNECTED TO OPENAI
+// =============================
+
+async function sendAIChat() {
+
+    const input = document.getElementById("aiChatInput");
+    const message = input.value.trim();
+    if (!message) return;
+
+    const body = document.getElementById("aiChatBody");
+
+    body.innerHTML += `<div class="ai-msg user">${message}</div>`;
+    input.value = "";
+
+    body.innerHTML += `<div class="ai-msg bot">Thinking...</div>`;
+    body.scrollTop = body.scrollHeight;
+
+    try {
+
+        const context = `
+You are a professional trading performance analyst.
+
+Here is the user's trade history:
+${JSON.stringify(allTradesCache)}
+
+User question:
+${message}
+`;
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + OPENAI_API_KEY
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: "You are a professional trading performance coach." },
+                    { role: "user", content: context }
+                ],
+                temperature: 0.7
+            })
+        });
+
+        const data = await response.json();
+
+        const reply = data.choices?.[0]?.message?.content || "No response.";
+
+        // Remove thinking message
+        body.lastChild.remove();
+
+        body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
+        body.scrollTop = body.scrollHeight;
+
+    } catch (error) {
+        body.innerHTML += `<div class="ai-msg bot">AI Error</div>`;
+        console.error(error);
+    }
+}
+
+
+
+// ===== TRADE EXECUTION GRADER =====
+async function runAIText() {
+
+    if (!window.currentViewTrade) {
+        alert("No trade selected");
+        return;
+    }
+
+    const outputBox = document.getElementById("aiCoachOutput");
+    outputBox.style.display = "block";
+    outputBox.innerText = "Analyzing trade...";
+
+    const trade = window.currentViewTrade;
+
+    const prompt = `
+Grade this trade execution and psychology.
+
+Pair: ${trade.pair}
+Session: ${trade.session}
+Strategy: ${trade.strategy}
+PnL: ${trade.pnl}
+Notes: ${trade.reason}
+
+Give:
+- Execution score /10
+- Psychology score /10
+- Mistakes
+- Improvements
+`;
+
+    try {
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + OPENAI_API_KEY
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.7
+            })
+        });
+
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content || "No response.";
+
+        outputBox.innerText = reply;
+
+    } catch (error) {
+        outputBox.innerText = "AI Error";
+        console.error(error);
+    }
+}
+
+
+
+// ===== CHART ANALYZER =====
+async function runAIVision() {
+
+    if (!window.currentViewTrade) {
+        alert("No trade selected");
+        return;
+    }
+
+    const outputBox = document.getElementById("aiCoachOutput");
+    outputBox.style.display = "block";
+    outputBox.innerText = "Analyzing chart...";
+
+    const trade = window.currentViewTrade;
+
+    if (!trade.chart_screenshot) {
+        outputBox.innerText = "No chart screenshot provided.";
+        return;
+    }
+
+    const prompt = `
+Analyze this trade chart and give structural feedback.
+Chart URL:
+${trade.chart_screenshot}
+
+Explain:
+- Market structure
+- Entry quality
+- Risk management
+- Improvement suggestions
+`;
+
+    try {
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + OPENAI_API_KEY
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.7
+            })
+        });
+
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content || "No response.";
+
+        outputBox.innerText = reply;
+
+    } catch (error) {
+        outputBox.innerText = "AI Error";
+        console.error(error);
+    }
+}
+
     </script>
 </body>
 </html>

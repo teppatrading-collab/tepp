@@ -190,12 +190,7 @@
             .metric-row { justify-content: flex-start; }
             
             /* Stack Modal Inputs */
-           .modal-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 15px;
-}
-
+            .modal-grid { grid-template-columns: 1fr !important; }
             .trade-grid { grid-template-columns: 1fr; }
         }
     </style>
@@ -424,36 +419,8 @@
                         <option>Market Execution</option><option>Limit Order</option>
                     </select>
                 </div>
-               <div>
-    <label class="week-label">Outcome</label>
-    <select id="tradeOutcome" class="side-input" style="margin-bottom:0;">
-        <option value="">Auto (Based on PnL)</option>
-        <option>Win</option>
-        <option>Loss</option>
-        <option>Breakeven</option>
-    </select>
-</div>
-
-<div>
-    <label class="week-label">PnL ($)</label>
-    <input type="number" id="tradePnL" class="side-input" style="margin-bottom:0;">
-</div>
-
-<div>
-    <label class="week-label">Risk (%)</label>
-    <input type="number" id="tradeRisk" step="0.1" class="side-input" placeholder="e.g. 1.0">
-</div>
-
-<div>
-    <label class="week-label">Stop Loss (pips)</label>
-    <input type="number" id="tradeSL" class="side-input" placeholder="e.g. 20">
-</div>
-
-<div>
-    <label class="week-label">Risk : Reward</label>
-    <input type="text" id="tradeRR" class="side-input" readonly placeholder="Auto calculated">
-</div>
-
+                <div><label class="week-label">PnL ($)</label><input type="number" id="tradePnL" class="side-input" style="margin-bottom:0;"></div>
+            </div>
 
             <div style="margin-top:15px;">
                 <label class="week-label">Chart Link</label>
@@ -521,21 +488,6 @@
             }
         }
         init();
-document.getElementById('tradePnL').addEventListener('input', calculateRR);
-document.getElementById('tradeSL').addEventListener('input', calculateRR);
-
-function calculateRR() {
-    const pnl = parseFloat(document.getElementById('tradePnL').value);
-    const sl = parseFloat(document.getElementById('tradeSL').value);
-
-    if (!pnl || !sl || sl === 0) {
-        document.getElementById('tradeRR').value = "";
-        return;
-    }
-
-    const rr = (Math.abs(pnl) / sl).toFixed(2);
-    document.getElementById('tradeRR').value = `1 : ${rr}`;
-}
 
         // --- 3. DATA LOADING & WWA UI MAPPING ---
         async function loadTrades(filterDate = null) {
@@ -635,14 +587,6 @@ function calculateRR() {
                         </div>
 
                         <div class="tag-row">
-                        const extraMetrics = `
-<div style="display:flex; gap:10px; font-size:0.75rem; margin-top:8px; color:#94a3b8;">
-    ${t.risk_percent ? `<span>Risk: ${t.risk_percent}%</span>` : ""}
-    ${t.stop_loss_pips ? `<span>SL: ${t.stop_loss_pips}p</span>` : ""}
-    ${t.risk_reward ? `<span>RR: ${t.risk_reward}</span>` : ""}
-</div>
-`;
-
                             <span class="tag-pill tag-session">${t.session}</span>
                             <span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>
                             ${isTest}
@@ -813,12 +757,6 @@ function calculateRR() {
             // ===== BASIC FIELDS =====
             const pair = document.getElementById('tradePair').value.trim().toUpperCase();
             const pnlRaw = document.getElementById('tradePnL').value;
-           const risk = parseFloat(document.getElementById('tradeRisk')?.value) || null;
-const stopLoss = parseFloat(document.getElementById('tradeSL')?.value) || null;
-const rr = document.getElementById('tradeRR')?.value || null;
-
-let selectedOutcome = document.getElementById('tradeOutcome')?.value;
-
             const mode = document.getElementById('tradeMode').value;
         
             const pnl = pnlRaw ? parseFloat(pnlRaw) : 0;
@@ -837,16 +775,10 @@ let selectedOutcome = document.getElementById('tradeOutcome')?.value;
             // ===== RESULT LOGIC =====
             const isBacktest = (mode === 'Backtest' || mode === 'Forward');
         
-let outcome;
-
-if (selectedOutcome) {
-    outcome = selectedOutcome;
-} else {
-    outcome =
-        pnl > 0 ? "Win" :
-        pnl < 0 ? "Loss" :
-        "Breakeven";
-}
+            const outcome =
+                pnl > 0 ? "Win" :
+                pnl < 0 ? "Loss" :
+                "Breakeven";
         
             // ===== INSERT =====
             const { error } = await supabaseClient.from('trades').insert([{

@@ -1057,9 +1057,12 @@
             } catch (error) { outputBox.innerText = "Network Error: Check API Key"; }
         }
 
-        // VISION ANALYZER
+        // ===== VISION ANALYZER (FIXED FOR MULTIPLE IMAGES) =====
         async function runAIVision() {
-            if (!window.currentViewTrade) return alert("No trade loaded.");
+            if (!window.currentViewTrade) {
+                alert("No trade selected");
+                return;
+            }
             const outputBox = document.getElementById("aiCoachOutput");
             outputBox.style.display = "block";
             outputBox.innerText = "Teppa AI is scanning chart...";
@@ -1070,18 +1073,25 @@
                 return;
             }
 
+            // 🔥 THE FIX: Check for commas (multiple images) and take only the first URL
+            let imageUrl = trade.chart_screenshot;
+            if (imageUrl.includes(',')) {
+                // Splits "url1,url2" into a list and takes the first one
+                imageUrl = imageUrl.split(',')[0].trim();
+            }
+
             try {
                 const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
                     body: JSON.stringify({
-                        model: "gpt-4o-mini", 
+                        model: "gpt-4o-mini", 
                         messages: [
                             {
                                 role: "user",
                                 content: [
-                                    { type: "text", text: "Analyze this trading chart market structure." },
-                                    { type: "image_url", image_url: { "url": trade.chart_screenshot } }
+                                    { type: "text", text: "Analyze this trading chart market structure and provide feedback." },
+                                    { type: "image_url", image_url: { "url": imageUrl } }
                                 ]
                             }
                         ],
@@ -1091,12 +1101,14 @@
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown"}`;
+                    // This prints the exact error from OpenAI if it fails
+                    outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown Error"}`;
                 } else {
                     outputBox.innerText = data.choices[0].message.content;
                 }
             } catch (error) {
-                outputBox.innerText = "Network Error. Check API Key.";
+                outputBox.innerText = "Network Error. Check API Key or Console.";
+                console.error(error);
             }
         }
     </script>

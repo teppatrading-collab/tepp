@@ -42,6 +42,7 @@
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
         .calendar-header-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 10px; color: #64748b; font-size: 0.8rem; font-weight: bold; }
         
+        /* UPDATED CAL-DAY for Top Alignment */
         .cal-day { 
             aspect-ratio: 1; 
             background: #0f172a; 
@@ -50,17 +51,44 @@
             position: relative; 
             display: flex; 
             align-items: center; 
-            justify-content: center; 
+            justify-content: flex-start !important; /* Forces content to top */
             flex-direction: column; 
             transition: 0.3s ease; 
             cursor: pointer;
+            padding-top: 28px; /* Space for date number */
+            gap: 4px; /* Space between PnL and trade list */
+            overflow: hidden;
         }
         .cal-day:hover { border-color: var(--primary); transform: translateY(-2px); }
         .cal-day.empty { background: transparent; border: none; cursor: default; }
         
         .cal-num { position: absolute; top: 8px; left: 8px; font-size: 0.75rem; color: #64748b; font-weight: bold; }
-        .cal-pnl { font-weight: 800; font-size: 0.8rem; margin-top: 10px; z-index: 2; }
+        .cal-pnl { font-weight: 800; font-size: 0.8rem; margin-top: 0; z-index: 2; }
         
+        /* --- NEW STYLES FOR TRADES INSIDE CALENDAR --- */
+        .mini-trade-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 0 4px;
+            overflow-y: auto; /* Scroll if too many trades */
+            scrollbar-width: none; /* Hide scrollbar for cleaner look */
+        }
+        .mini-trade-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .mini-trade-item span:first-child { opacity: 0.9; }
+        .mini-trade-item.win { color: #4ade80; border-left: 2px solid #4ade80; }
+        .mini-trade-item.loss { color: #f87171; border-left: 2px solid #f87171; }
+
         /* 🔥 GLOW EFFECTS (Shared for Calendar & Cards) 🔥 */
         .glow-win { 
             background: rgba(34, 197, 94, 0.1) !important; 
@@ -499,6 +527,7 @@
             let feedTrades = trades;
             if (filterDate) {
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
+                // Simplified date check - assumes user is in same locale
                 feedTrades = trades.filter(t => new Date(t.created_at).toLocaleDateString() === filterDate);
             } else {
                 document.getElementById('tradeFeedTitle').innerText = "Recent Activity";
@@ -586,41 +615,63 @@
             const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
             document.getElementById('calMonthLabel').innerText = `${monthNames[month]} ${year}`;
 
-            const firstDayIndex = new Date(year, month, 1).getDay(); 
+            const firstDayIndex = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            const daily = {};
+            // 1. Group trades by day (Object: { pnl: 0, trades: [] })
+            const dailyData = {};
             trades.forEach(t => {
                 const tDate = new Date(t.created_at);
                 if(tDate.getMonth() === month && tDate.getFullYear() === year) {
                     const d = tDate.getDate();
-                    if(!daily[d]) daily[d] = 0;
-                    daily[d] += (t.pnl || 0);
+                    if(!dailyData[d]) dailyData[d] = { pnl: 0, trades: [] };
+                    dailyData[d].pnl += (t.pnl || 0);
+                    dailyData[d].trades.push(t);
                 }
             });
 
+            // 2. Render Empty Slots
             for(let i=0; i<firstDayIndex; i++) {
                 const empty = document.createElement('div');
                 empty.className = "cal-day empty";
                 grid.appendChild(empty);
             }
 
+            // 3. Render Days
             for(let i=1; i<=daysInMonth; i++) {
                 const day = document.createElement('div');
                 day.className = "cal-day";
                 let content = `<span class="cal-num">${i}</span>`;
-                if(daily[i] !== undefined) {
-                    const isWin = daily[i] >= 0;
+
+                if(dailyData[i]) {
+                    const dayPnL = dailyData[i].pnl;
+                    const isWin = dayPnL >= 0;
+
+                    // Add Glow Effect
                     day.className += isWin ? " glow-win" : " glow-loss";
-                    content += `<span class="cal-pnl">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
+
+                    // Total Daily PnL
+                    content += `<span class="cal-pnl">${dayPnL >= 0 ? '+' : ''}$${dayPnL.toLocaleString()}</span>`;
+
+                    // --- LIST OF TRADES ---
+                    content += `<div class="mini-trade-list">`;
+                    dailyData[i].trades.forEach(trade => {
+                        const isTradeWin = trade.pnl >= 0;
+                        content += `
+                            <div class="mini-trade-item ${isTradeWin ? 'win' : 'loss'}">
+                                <span>${trade.pair}</span>
+                                <span>${trade.pnl >= 0 ? '+' : ''}${trade.pnl}</span>
+                            </div>
+                        `;
+                    });
+                    content += `</div>`;
                 }
-                
-                // CLICK EVENT: Filter trades for this day
+
                 day.onclick = () => {
                     const filterDateStr = new Date(year, month, i).toLocaleDateString();
                     loadTrades(filterDateStr);
                 };
-                
+
                 day.innerHTML = content;
                 grid.appendChild(day);
             }
@@ -703,384 +754,328 @@
         }
 
        async function saveTrade() {
-
-    // ===== BASIC FIELDS =====
-    const pair = document.getElementById('tradePair').value.trim().toUpperCase();
-    const pnlRaw = document.getElementById('tradePnL').value;
-    const mode = document.getElementById('tradeMode').value;
-
-    const pnl = pnlRaw ? parseFloat(pnlRaw) : 0;
-
-    // Optional fields (only if they exist in your form)
-    const session = document.getElementById('tradeSession')?.value || "Unknown";
-    const direction = document.getElementById('tradeDirection')?.value || null;
-    const strategy = document.getElementById('tradeStrategy')?.value || null;
-    const notes = document.getElementById('tradeReason')?.value || null;
-
-    // ===== DATE LOGIC =====
-    const now = new Date();
-    const tradeDate = now.toISOString().split("T")[0];
-    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
-
-    // ===== RESULT LOGIC =====
-    const isBacktest = (mode === 'Backtest' || mode === 'Forward');
-
-    const outcome =
-        pnl > 0 ? "Win" :
-        pnl < 0 ? "Loss" :
-        "Breakeven";
-
-    // ===== INSERT =====
-    const { error } = await supabaseClient.from('trades').insert([{
-        pair,
-        pnl,
-        outcome,
-        is_backtest: isBacktest,
-        session,
-        direction,
-        strategy,
-        reason: notes,
-        trade_date: tradeDate,
-        day_of_week: dayOfWeek,
-        created_at: now.toISOString()
-    }]);
-
-    if (error) {
-        console.error(error);
-        alert("Error saving trade");
-        return;
-    }
-
-    document.getElementById('addTradeModal').style.display = 'none';
-    loadTrades();
-     calculateAnalytics();
-}
-
+            // ===== BASIC FIELDS =====
+            const pair = document.getElementById('tradePair').value.trim().toUpperCase();
+            const pnlRaw = document.getElementById('tradePnL').value;
+            const mode = document.getElementById('tradeMode').value;
         
-    
+            const pnl = pnlRaw ? parseFloat(pnlRaw) : 0;
+        
+            // Optional fields (only if they exist in your form)
+            const session = document.getElementById('tradeSession')?.value || "Unknown";
+            const direction = document.getElementById('tradeDirection')?.value || null;
+            const strategy = document.getElementById('tradeStrategy')?.value || null;
+            const notes = document.getElementById('tradeReason')?.value || null;
+        
+            // ===== DATE LOGIC =====
+            const now = new Date();
+            const tradeDate = now.toISOString().split("T")[0];
+            const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+        
+            // ===== RESULT LOGIC =====
+            const isBacktest = (mode === 'Backtest' || mode === 'Forward');
+        
+            const outcome =
+                pnl > 0 ? "Win" :
+                pnl < 0 ? "Loss" :
+                "Breakeven";
+        
+            // ===== INSERT =====
+            const { error } = await supabaseClient.from('trades').insert([{
+                pair,
+                pnl,
+                outcome,
+                is_backtest: isBacktest,
+                session,
+                direction,
+                strategy,
+                reason: notes,
+                trade_date: tradeDate,
+                day_of_week: dayOfWeek,
+                created_at: now.toISOString()
+            }]);
+        
+            if (error) {
+                console.error(error);
+                alert("Error saving trade");
+                return;
+            }
+        
+            document.getElementById('addTradeModal').style.display = 'none';
+            loadTrades();
+            calculateAnalytics();
+        }
+
         async function deleteTrade(id) {
-    if(confirm("Delete trade?")) {
-        await supabaseClient.from('trades').delete().eq('id', id);
-        loadTrades();
-        calculateAnalytics();
-    }
-}
-
-
-// =============================
-// ANALYTICS ENGINE
-// =============================
-
-async function calculateAnalytics() {
-
-    const { data: trades, error } = await supabaseClient
-        .from('trades')
-        .select('*');
-
-    if (error || !trades || trades.length === 0) {
-        console.error("No trades found");
-        return;
-    }
-
-    let total = trades.length;
-    let wins = 0;
-    let losses = 0;
-    let totalPnL = 0;
-
-    let dayStats = {};
-    let sessionStats = {};
-    let strategyStats = {};
-
-    trades.forEach(trade => {
-
-        totalPnL += trade.pnl || 0;
-
-        if (trade.outcome === "Win") wins++;
-        if (trade.outcome === "Loss") losses++;
-
-        if (trade.day_of_week) {
-            if (!dayStats[trade.day_of_week]) {
-                dayStats[trade.day_of_week] = { wins: 0, total: 0 };
-            }
-            dayStats[trade.day_of_week].total++;
-            if (trade.outcome === "Win") dayStats[trade.day_of_week].wins++;
-        }
-
-        if (trade.session) {
-            if (!sessionStats[trade.session]) {
-                sessionStats[trade.session] = { wins: 0, total: 0 };
-            }
-            sessionStats[trade.session].total++;
-            if (trade.outcome === "Win") sessionStats[trade.session].wins++;
-        }
-
-        if (trade.strategy) {
-            if (!strategyStats[trade.strategy]) {
-                strategyStats[trade.strategy] = { wins: 0, total: 0 };
-            }
-            strategyStats[trade.strategy].total++;
-            if (trade.outcome === "Win") strategyStats[trade.strategy].wins++;
-        }
-
-    });
-
-    const winRate = ((wins / total) * 100).toFixed(1);
-
-    const bestDay = getBestCategory(dayStats);
-    const bestSession = getBestCategory(sessionStats);
-    const bestStrategy = getBestCategory(strategyStats);
-
-    generateAISummary({
-        total,
-        wins,
-        losses,
-        winRate,
-        totalPnL,
-        bestDay,
-        bestSession,
-        bestStrategy
-    });
-}
-
-
-function getBestCategory(statsObj) {
-
-    let best = null;
-    let bestRate = 0;
-
-    for (let key in statsObj) {
-        const { wins, total } = statsObj[key];
-        if (total > 0) {
-            const rate = wins / total;
-            if (rate > bestRate) {
-                bestRate = rate;
-                best = key;
+            if(confirm("Delete trade?")) {
+                await supabaseClient.from('trades').delete().eq('id', id);
+                loadTrades();
+                calculateAnalytics();
             }
         }
-    }
 
-    return best || "Not enough data";
-}
+        // =============================
+        // ANALYTICS ENGINE
+        // =============================
+        async function calculateAnalytics() {
+            const { data: trades, error } = await supabaseClient
+                .from('trades')
+                .select('*');
+        
+            if (error || !trades || trades.length === 0) {
+                console.error("No trades found");
+                return;
+            }
+        
+            let total = trades.length;
+            let wins = 0;
+            let losses = 0;
+            let totalPnL = 0;
+        
+            let dayStats = {};
+            let sessionStats = {};
+            let strategyStats = {};
+        
+            trades.forEach(trade => {
+                totalPnL += trade.pnl || 0;
+                if (trade.outcome === "Win") wins++;
+                if (trade.outcome === "Loss") losses++;
+        
+                if (trade.day_of_week) {
+                    if (!dayStats[trade.day_of_week]) {
+                        dayStats[trade.day_of_week] = { wins: 0, total: 0 };
+                    }
+                    dayStats[trade.day_of_week].total++;
+                    if (trade.outcome === "Win") dayStats[trade.day_of_week].wins++;
+                }
+        
+                if (trade.session) {
+                    if (!sessionStats[trade.session]) {
+                        sessionStats[trade.session] = { wins: 0, total: 0 };
+                    }
+                    sessionStats[trade.session].total++;
+                    if (trade.outcome === "Win") sessionStats[trade.session].wins++;
+                }
+        
+                if (trade.strategy) {
+                    if (!strategyStats[trade.strategy]) {
+                        strategyStats[trade.strategy] = { wins: 0, total: 0 };
+                    }
+                    strategyStats[trade.strategy].total++;
+                    if (trade.outcome === "Win") strategyStats[trade.strategy].wins++;
+                }
+            });
+        
+            const winRate = ((wins / total) * 100).toFixed(1);
+            const bestDay = getBestCategory(dayStats);
+            const bestSession = getBestCategory(sessionStats);
+            const bestStrategy = getBestCategory(strategyStats);
+        
+            generateAISummary({
+                total,
+                wins,
+                losses,
+                winRate,
+                totalPnL,
+                bestDay,
+                bestSession,
+                bestStrategy
+            });
+        }
 
+        function getBestCategory(statsObj) {
+            let best = null;
+            let bestRate = 0;
+            for (let key in statsObj) {
+                const { wins, total } = statsObj[key];
+                if (total > 0) {
+                    const rate = wins / total;
+                    if (rate > bestRate) {
+                        bestRate = rate;
+                        best = key;
+                    }
+                }
+            }
+            return best || "Not enough data";
+        }
 
-function generateAISummary(data) {
-
-    const {
-        total,
-        wins,
-        losses,
-        winRate,
-        totalPnL,
-        bestDay,
-        bestSession,
-        bestStrategy
-    } = data;
-
-    let summary = `
-📊 Total Trades: ${total}
-🏆 Win Rate: ${winRate}%
-💰 Total PnL: $${totalPnL.toFixed(2)}
-
-🔥 Best Day: ${bestDay}
-🌎 Best Session: ${bestSession}
-🎯 Best Strategy: ${bestStrategy}
-`;
-
-    if (winRate < 40) {
-        summary += "\n⚠️ Warning: Your win rate is low. Review discipline.";
-    }
-
-    if (totalPnL < 0) {
-        summary += "\n⚠️ You are currently negative overall.";
-    }
-
-    const box = document.getElementById("aiSummaryBox");
-    if (box) {
-        box.innerText = summary;
-    }
-}
+        function generateAISummary(data) {
+            const {
+                total,
+                wins,
+                losses,
+                winRate,
+                totalPnL,
+                bestDay,
+                bestSession,
+                bestStrategy
+            } = data;
+        
+            let summary = `
+        📊 Total Trades: ${total}
+        🏆 Win Rate: ${winRate}%
+        💰 Total PnL: $${totalPnL.toFixed(2)}
+        
+        🔥 Best Day: ${bestDay}
+        🌎 Best Session: ${bestSession}
+        🎯 Best Strategy: ${bestStrategy}
+        `;
+        
+            if (winRate < 40) {
+                summary += "\n⚠️ Warning: Your win rate is low. Review discipline.";
+            }
+        
+            if (totalPnL < 0) {
+                summary += "\n⚠️ You are currently negative overall.";
+            }
+        
+            const box = document.getElementById("aiSummaryBox");
+            if (box) {
+                box.innerText = summary;
+            }
+        }
 
         function handleFileImport() { alert("Import feature placeholder"); }
         function toggleAIChat() { const w=document.getElementById('aiChatWindow'); w.style.display=w.style.display==='flex'?'none':'flex'; }
+        
         // =============================
-// 🤖 REAL AI CONNECTED TO OPENAI
-// =============================
+        // 🤖 REAL AI CONNECTED TO OPENAI
+        // =============================
+        async function sendAIChat() {
+            const input = document.getElementById("aiChatInput");
+            const message = input.value.trim();
+            if (!message) return;
+        
+            const body = document.getElementById("aiChatBody");
+            body.innerHTML += `<div class="ai-msg user">${message}</div>`;
+            input.value = "";
+            body.innerHTML += `<div class="ai-msg bot">Thinking...</div>`;
+            body.scrollTop = body.scrollHeight;
+        
+            try {
+                const context = `
+        You are a professional trading performance analyst.
+        Here is the user's trade history:
+        ${JSON.stringify(allTradesCache)}
+        User question:
+        ${message}
+        `;
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + OPENAI_API_KEY
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [
+                            { role: "system", content: "You are a professional trading performance coach." },
+                            { role: "user", content: context }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+                const data = await response.json();
+                const reply = data.choices?.[0]?.message?.content || "No response.";
+                body.lastChild.remove();
+                body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
+                body.scrollTop = body.scrollHeight;
+            } catch (error) {
+                body.innerHTML += `<div class="ai-msg bot">AI Error</div>`;
+                console.error(error);
+            }
+        }
 
-async function sendAIChat() {
+        // ===== TRADE EXECUTION GRADER =====
+        async function runAIText() {
+            if (!window.currentViewTrade) {
+                alert("No trade selected");
+                return;
+            }
+            const outputBox = document.getElementById("aiCoachOutput");
+            outputBox.style.display = "block";
+            outputBox.innerText = "Analyzing trade...";
+            const trade = window.currentViewTrade;
+            const prompt = `
+        Grade this trade execution and psychology.
+        Pair: ${trade.pair}
+        Session: ${trade.session}
+        Strategy: ${trade.strategy}
+        PnL: ${trade.pnl}
+        Notes: ${trade.reason}
+        Give:
+        - Execution score /10
+        - Psychology score /10
+        - Mistakes
+        - Improvements
+        `;
+            try {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + OPENAI_API_KEY
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.7
+                    })
+                });
+                const data = await response.json();
+                const reply = data.choices?.[0]?.message?.content || "No response.";
+                outputBox.innerText = reply;
+            } catch (error) {
+                outputBox.innerText = "AI Error";
+                console.error(error);
+            }
+        }
 
-    const input = document.getElementById("aiChatInput");
-    const message = input.value.trim();
-    if (!message) return;
-
-    const body = document.getElementById("aiChatBody");
-
-    body.innerHTML += `<div class="ai-msg user">${message}</div>`;
-    input.value = "";
-
-    body.innerHTML += `<div class="ai-msg bot">Thinking...</div>`;
-    body.scrollTop = body.scrollHeight;
-
-    try {
-
-        const context = `
-You are a professional trading performance analyst.
-
-Here is the user's trade history:
-${JSON.stringify(allTradesCache)}
-
-User question:
-${message}
-`;
-
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + OPENAI_API_KEY
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: "You are a professional trading performance coach." },
-                    { role: "user", content: context }
-                ],
-                temperature: 0.7
-            })
-        });
-
-        const data = await response.json();
-
-        const reply = data.choices?.[0]?.message?.content || "No response.";
-
-        // Remove thinking message
-        body.lastChild.remove();
-
-        body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
-        body.scrollTop = body.scrollHeight;
-
-    } catch (error) {
-        body.innerHTML += `<div class="ai-msg bot">AI Error</div>`;
-        console.error(error);
-    }
-}
-
-
-
-// ===== TRADE EXECUTION GRADER =====
-async function runAIText() {
-
-    if (!window.currentViewTrade) {
-        alert("No trade selected");
-        return;
-    }
-
-    const outputBox = document.getElementById("aiCoachOutput");
-    outputBox.style.display = "block";
-    outputBox.innerText = "Analyzing trade...";
-
-    const trade = window.currentViewTrade;
-
-    const prompt = `
-Grade this trade execution and psychology.
-
-Pair: ${trade.pair}
-Session: ${trade.session}
-Strategy: ${trade.strategy}
-PnL: ${trade.pnl}
-Notes: ${trade.reason}
-
-Give:
-- Execution score /10
-- Psychology score /10
-- Mistakes
-- Improvements
-`;
-
-    try {
-
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + OPENAI_API_KEY
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.7
-            })
-        });
-
-        const data = await response.json();
-        const reply = data.choices?.[0]?.message?.content || "No response.";
-
-        outputBox.innerText = reply;
-
-    } catch (error) {
-        outputBox.innerText = "AI Error";
-        console.error(error);
-    }
-}
-
-
-
-// ===== CHART ANALYZER =====
-async function runAIVision() {
-
-    if (!window.currentViewTrade) {
-        alert("No trade selected");
-        return;
-    }
-
-    const outputBox = document.getElementById("aiCoachOutput");
-    outputBox.style.display = "block";
-    outputBox.innerText = "Analyzing chart...";
-
-    const trade = window.currentViewTrade;
-
-    if (!trade.chart_screenshot) {
-        outputBox.innerText = "No chart screenshot provided.";
-        return;
-    }
-
-    const prompt = `
-Analyze this trade chart and give structural feedback.
-Chart URL:
-${trade.chart_screenshot}
-
-Explain:
-- Market structure
-- Entry quality
-- Risk management
-- Improvement suggestions
-`;
-
-    try {
-
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + OPENAI_API_KEY
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.7
-            })
-        });
-
-        const data = await response.json();
-        const reply = data.choices?.[0]?.message?.content || "No response.";
-
-        outputBox.innerText = reply;
-
-    } catch (error) {
-        outputBox.innerText = "AI Error";
-        console.error(error);
-    }
-}
-
+        // ===== CHART ANALYZER =====
+        async function runAIVision() {
+            if (!window.currentViewTrade) {
+                alert("No trade selected");
+                return;
+            }
+            const outputBox = document.getElementById("aiCoachOutput");
+            outputBox.style.display = "block";
+            outputBox.innerText = "Analyzing chart...";
+            const trade = window.currentViewTrade;
+            if (!trade.chart_screenshot) {
+                outputBox.innerText = "No chart screenshot provided.";
+                return;
+            }
+            const prompt = `
+        Analyze this trade chart and give structural feedback.
+        Chart URL:
+        ${trade.chart_screenshot}
+        Explain:
+        - Market structure
+        - Entry quality
+        - Risk management
+        - Improvement suggestions
+        `;
+            try {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + OPENAI_API_KEY
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.7
+                    })
+                });
+                const data = await response.json();
+                const reply = data.choices?.[0]?.message?.content || "No response.";
+                outputBox.innerText = reply;
+            } catch (error) {
+                outputBox.innerText = "AI Error";
+                console.error(error);
+            }
+        }
     </script>
 </body>
 </html>

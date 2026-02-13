@@ -32,6 +32,22 @@
         * { box-sizing: border-box; outline: none; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
+        /* --- 🔥 NEW PROFESSIONAL SCROLLBAR STYLES --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted); 
+        }
+
         /* =========================================
            2. RESPONSIVE LAYOUT & CLEAN SIDEBAR
            ========================================= */
@@ -403,7 +419,7 @@
         <div class="modal-box" style="width:700px; padding:35px;">
             <h3 style="margin-top:0; color:white; margin-bottom:25px; font-size:1.5rem;">New Trade Entry</h3>
             
-            <div class="modal-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; overflow-y:auto; max-height:60vh;">
+            <div class="modal-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; overflow-y:auto; max-height:65vh; padding-right: 10px;">
                 <div><label class="week-label">Pair</label><input type="text" id="tradePair" class="side-input" placeholder="e.g. GBPUSD" style="margin-bottom:0;"></div>
                 <div><label class="week-label">Session</label>
                     <select id="tradeSession" class="side-input" style="margin-bottom:0;">
@@ -533,6 +549,22 @@
         </div>
     </div>
 
+    <div id="consistencyModal" class="modal-overlay">
+        <div style="background:var(--card); padding:30px; border-radius:12px; width:450px; border:1px solid var(--primary); box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; color:#fff;">📊 Consistency Check</h3>
+                <button onclick="document.getElementById('consistencyModal').style.display='none'" style="background:transparent; border:none; color:#fff; cursor:pointer;"><i class='bx bx-x' style="font-size:1.5rem;"></i></button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <input type="number" id="consistRule" class="side-input" value="40" placeholder="Rule %">
+                <input type="number" id="consistHigh" class="side-input" placeholder="Highest Day $">
+                <input type="number" id="consistTotal" class="side-input" placeholder="Total Profit $">
+                <button onclick="calcConsistency()" class="side-btn">Check Status</button>
+                <div id="consistResult" style="display:none; padding:15px; background:rgba(0,0,0,0.3); border-radius:8px; text-align:center; font-weight:bold; font-size:1.2rem;"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // =========================================
         // 1. CONFIGURATION
@@ -542,11 +574,11 @@
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         
         // ⚠️ WARNING: Use this Key ONLY for testing. Move to backend later.
-        const OPENAI_API_KEY = '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'; 
+        const OPENAI_API_KEY = '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'; 
 
         let allTradesCache = [];
         let ACCOUNT_BALANCE = 1000;
-        let currentCalDate = new Date(); 
+        let currentCalDate = new Date(); 
         let viewingTradeId = null;
 
         // =========================================
@@ -598,7 +630,7 @@
             document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
 
-            renderCalendar(liveTrades); 
+            renderCalendar(liveTrades); 
             
             // Feed Filter Logic
             let feedTrades = trades;
@@ -627,7 +659,7 @@
                 else if (t.outcome === 'Loss') card.classList.add('glow-loss');
                 
                 card.onclick = (e) => {
-                    if(!e.target.closest('button')) openViewModal(t); 
+                    if(!e.target.closest('button')) openViewModal(t); 
                 };
                 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "var(--danger)";
@@ -735,21 +767,21 @@
             
             window.myChart = new Chart(ctx, {
                 type: 'line',
-                data: { 
-                    labels: data.map((_,i)=>i), 
-                    datasets: [{ 
-                        data: data, 
-                        borderColor: '#2dd4bf', 
+                data: { 
+                    labels: data.map((_,i)=>i), 
+                    datasets: [{ 
+                        data: data, 
+                        borderColor: '#2dd4bf', 
                         backgroundColor: 'rgba(45, 212, 191, 0.05)',
                         tension: 0.4,
                         fill: true,
                         pointRadius: 0
-                    }] 
+                    }] 
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, 
                     scales: { x: { display: false }, y: { display: false } },
                     interaction: { mode: 'nearest', axis: 'x', intersect: false }
                 }
@@ -759,7 +791,7 @@
         // =========================================
         // 5. UTILS & MODALS
         // =========================================
-        function toggleSidebar() { 
+        function toggleSidebar() { 
             const sb = document.getElementById('mainSidebar');
             const overlay = document.getElementById('sidebarOverlay');
             if(sb.classList.contains('active')) {
@@ -773,7 +805,7 @@
 
         function openViewModal(trade, startInEditMode = false) {
             viewingTradeId = trade.id;
-            window.currentViewTrade = trade; 
+            window.currentViewTrade = trade; 
             
             document.getElementById('viewPair').innerText = trade.pair;
             document.getElementById('viewPnL').innerText = "$" + trade.pnl;
@@ -803,7 +835,7 @@
             }
             
             document.getElementById('viewModal').style.display = 'flex';
-            document.getElementById('aiCoachOutput').style.display = 'none'; 
+            document.getElementById('aiCoachOutput').style.display = 'none'; 
             if(startInEditMode) toggleEditMode();
         }
 
@@ -812,8 +844,9 @@
             const editDiv = document.getElementById('editModeContent');
             const editBtn = document.getElementById('btnEditToggle');
             const isEditing = viewDiv.style.display === 'none';
-            viewDiv.style.display = isEditing ? 'block' : 'none'; 
-            editDiv.style.display = isEditing ? 'none' : 'block'; 
+            
+            viewDiv.style.display = isEditing ? 'block' : 'none'; 
+            editDiv.style.display = isEditing ? 'none' : 'block'; 
             editBtn.style.display = isEditing ? 'block' : 'none';
         }
 
@@ -823,7 +856,7 @@
             const reason = document.getElementById('inpEditReason').value;
             const outcome = document.getElementById('inpEditOutcome').value;
             
-            await supabaseClient.from('trades').update({ 
+            await supabaseClient.from('trades').update({ 
                 pnl: parseFloat(pnl),
                 strategy,
                 reason,
@@ -834,8 +867,26 @@
             loadTrades();
         }
 
+        function openConsistencyModal() { document.getElementById('consistencyModal').style.display='flex'; }
+        
+        function calcConsistency() {
+            const high = parseFloat(document.getElementById('consistHigh').value);
+            const total = parseFloat(document.getElementById('consistTotal').value);
+            const res = document.getElementById('consistResult');
+            const percent = (high/total);
+            
+            res.style.display='block';
+            if(percent > 0.4) {
+                res.innerText = "❌ FAIL: Largest day is " + (percent*100).toFixed(1) + "% of profit.";
+                res.style.color = "#ef4444";
+            } else {
+                res.innerText = "✅ PASS: Consistent Growth.";
+                res.style.color = "#4ade80";
+            }
+        }
+
         // =========================================
-        // 6. SAVE LOGIC (UPDATED WITH R:R and SL)
+        // 6. SAVE LOGIC (CORRECT BUCKET: chart-screenshots)
         // =========================================
        async function saveTrade() {
             const btn = document.getElementById('saveTradeBtn');
@@ -852,13 +903,14 @@
                     const fileExt = file.name.split('.').pop();
                     const fileName = `${Date.now()}.${fileExt}`;
                     
-                    // Upload to 'chart-screenshots' bucket (FIXED NAME)
+                    // ⚠️ UPLOADING TO 'chart-screenshots' BUCKET
                     const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                        .from('chart-screenshots') 
+                        .from('chart-screenshots') 
                         .upload(fileName, file);
 
                     if (uploadError) throw uploadError;
 
+                    // Get Public URL
                     const { data: urlData } = supabaseClient.storage
                         .from('chart-screenshots')
                         .getPublicUrl(fileName);
@@ -885,7 +937,7 @@
                 const isBacktest = (mode === 'Backtest' || mode === 'Forward');
                 const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
                 
-                // 3. INSERT DB (NOTE: You must have columns stop_loss and risk_reward in your Supabase table)
+                // 3. INSERT DB
                 const { error } = await supabaseClient.from('trades').insert([{
                     pair,
                     pnl,
@@ -897,7 +949,7 @@
                     reason: notes,
                     stop_loss: stopLoss ? parseFloat(stopLoss) : null,
                     risk_reward: riskReward ? parseFloat(riskReward) : null,
-                    chart_screenshot: publicUrl, 
+                    chart_screenshot: publicUrl, // Save URL
                     trade_date: now.toISOString().split("T")[0],
                     day_of_week: now.toLocaleDateString('en-US', { weekday: 'long' }),
                     created_at: now.toISOString()
@@ -960,6 +1012,8 @@
                 });
                 
                 const data = await response.json();
+                
+                // ⚠️ BETTER ERROR HANDLING
                 body.lastChild.remove();
                 if (!response.ok) {
                     body.innerHTML += `<div class="ai-msg bot" style="color:#f87171;">AI Error: ${data.error ? data.error.message : "Unknown Error"}</div>`;
@@ -994,6 +1048,7 @@
                     })
                 });
                 const data = await response.json();
+                
                 if (!response.ok) {
                     outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown"}`;
                 } else {
@@ -1020,7 +1075,7 @@
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
                     body: JSON.stringify({
-                        model: "gpt-4o-mini", 
+                        model: "gpt-4o-mini", 
                         messages: [
                             {
                                 role: "user",

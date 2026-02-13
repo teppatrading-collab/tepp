@@ -494,13 +494,21 @@
             document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
 
-            // 🔥 FIX: Render ALL trades in this account on calendar, not just live ones
+            // 🔥 FIX: Render ALL trades in this account on calendar
             renderCalendar(accountTrades); 
             
             let feedTrades = accountTrades;
             if (filterDate) {
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
+                // filterDate is expected to be locale date string
                 feedTrades = accountTrades.filter(t => {
+                    // Try to match using trade_date first (YYYY-MM-DD)
+                    if(t.trade_date) {
+                        const clicked = new Date(filterDate);
+                        const tradeD = new Date(t.trade_date + "T12:00:00"); // Avoid timezone shift
+                        return clicked.getDate() === tradeD.getDate() && clicked.getMonth() === tradeD.getMonth();
+                    }
+                    // Fallback to created_at
                     const tDate = new Date(t.created_at);
                     return tDate.toLocaleDateString() === filterDate;
                 });
@@ -508,7 +516,7 @@
                 document.getElementById('tradeFeedTitle').innerText = "Recent Activity";
             }
             renderFeed(feedTrades);
-            renderChart(liveTrades); // Chart usually only makes sense for Live PnL
+            renderChart(liveTrades); 
         }
 
         // --- 4. RENDER FUNCTIONS ---
@@ -516,23 +524,17 @@
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = "";
             trades.forEach(t => {
+                // 🔥 FIXED: Use createElement + Closure for 100% reliable clicking
                 const card = document.createElement('div');
                 card.className = "trade-log-card";
-                
-                // Add this attribute so we can find the data easily later
-                card.setAttribute('data-trade-id', t.id); 
-
                 if (t.outcome === 'Win') card.classList.add('glow-win');
                 else if (t.outcome === 'Loss') card.classList.add('glow-loss');
                 
-                // 🔥 FIXED CLICK HANDLER: We look up the trade by ID instead of passing messy JSON
+                // CLICK EVENT (Attached directly to element)
                 card.onclick = (e) => {
-                    // Prevent opening if we clicked a button inside
-                    if(e.target.closest('button')) return;
-                    
-                    const tradeId = card.getAttribute('data-trade-id');
-                    const tradeObj = allTradesCache.find(tr => tr.id == tradeId);
-                    if(tradeObj) openViewModal(tradeObj);
+                    if(!e.target.closest('button')) {
+                        openViewModal(t);
+                    }
                 };
                 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "#ef4444";
@@ -546,6 +548,7 @@
                     imgStrip += '</div>';
                 }
 
+                // Inner HTML for content
                 card.innerHTML = `
                     <div class="card-body">
                         <div class="card-top">
@@ -572,7 +575,7 @@
             });
         }
 
-        // Helper for the Edit Button (since we removed the inline JSON)
+        // Helper for the Edit Button closure workaround
         function triggerEdit(tradeId) {
             const tradeObj = allTradesCache.find(tr => tr.id == tradeId);
             if(tradeObj) openViewModal(tradeObj, true);
@@ -591,9 +594,21 @@
 
             const daily = {};
             trades.forEach(t => {
-                const tDate = new Date(t.created_at);
-                if(tDate.getMonth() === month && tDate.getFullYear() === year) {
-                    const d = tDate.getDate();
+                let d = null;
+                // 🔥 FIX: Use 'trade_date' (YYYY-MM-DD) if available for stable calendar placement
+                if(t.trade_date) {
+                    const parts = t.trade_date.split('-'); // 2026-02-12
+                    const tYear = parseInt(parts[0]);
+                    const tMonth = parseInt(parts[1]) - 1; // 0-indexed
+                    const tDay = parseInt(parts[2]);
+                    if(tYear === year && tMonth === month) d = tDay;
+                } else {
+                    // Fallback to created_at
+                    const tDate = new Date(t.created_at);
+                    if(tDate.getMonth() === month && tDate.getFullYear() === year) d = tDate.getDate();
+                }
+
+                if(d !== null) {
                     if(!daily[d]) daily[d] = 0;
                     daily[d] += (t.pnl || 0);
                 }
@@ -738,7 +753,7 @@
             const notes = document.getElementById('tradeReason')?.value || null;
 
             const now = new Date();
-            const tradeDate = now.toISOString().split("T")[0];
+            const tradeDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
             const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
             const isBacktest = (mode === 'Backtest' || mode === 'Forward');
             const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";

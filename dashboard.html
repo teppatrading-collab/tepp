@@ -362,7 +362,12 @@
 
         <div class="account-overview">
             <div class="account-info">
-                <h2>Teppa Private Capital</h2>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h2 id="displayAccountName" style="margin:0; color:#fff;">Teppa Private Capital</h2>
+                    <button onclick="openAccountModal()" style="background:transparent; border:none; color:#64748b; cursor:pointer; font-size:1.2rem;">
+                        <i class='bx bxs-edit'></i>
+                    </button>
+                </div>
                 <p>Pro Terminal • Real-Time Analytics</p>
                 <div style="margin-top: 20px;">
                     <span class="win-rate-badge" id="cardWinRate">0% WR</span>
@@ -416,6 +421,26 @@
     </main>
 
     <div id="addTradeModal" class="modal-overlay">
+      <div id="accountModal" class="modal-overlay">
+        <div class="modal-box" style="width:400px; padding:30px;">
+            <h3 style="margin-top:0; color:white; margin-bottom:20px;">Account Settings</h3>
+            
+            <div style="margin-bottom:15px;">
+                <label class="week-label">Account Name</label>
+                <input type="text" id="setAccountName" class="side-input" placeholder="e.g. FTMO Challenge">
+            </div>
+            
+            <div style="margin-bottom:20px;">
+                <label class="week-label">Starting Balance ($)</label>
+                <input type="number" id="setStartBal" class="side-input" placeholder="e.g. 100000">
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveAccountSettings()" class="side-btn">Save Settings</button>
+                <button onclick="document.getElementById('accountModal').style.display='none'" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+            </div>
+        </div>
+    </div>
         <div class="modal-box" style="width:700px; padding:35px;">
             <h3 style="margin-top:0; color:white; margin-bottom:25px; font-size:1.5rem;">New Trade Entry</h3>
             
@@ -565,20 +590,19 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // =========================================
         // 1. CONFIGURATION
         // =========================================
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-        
-        // ⚠️ WARNING: Use this Key ONLY for testing. Move to backend later.
-        const OPENAI_API_KEY = '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'; 
+        const OPENAI_API_KEY = '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'; 
 
         let allTradesCache = [];
-        let ACCOUNT_BALANCE = 1000;
-        let currentCalDate = new Date(); 
+        let STARTING_BALANCE = 1000; // Default if nothing saved
+        let ACCOUNT_NAME = "Teppa Private Capital";
+        let currentCalDate = new Date(); 
         let viewingTradeId = null;
 
         // =========================================
@@ -588,10 +612,43 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if(!session) window.location.replace("index.html");
             else {
+                loadAccountSettings(); // Load your saved balance first
                 loadTrades();
             }
         }
         init();
+
+        // --- ACCOUNT SETTINGS LOGIC ---
+        function openAccountModal() {
+            document.getElementById('setAccountName').value = ACCOUNT_NAME;
+            document.getElementById('setStartBal').value = STARTING_BALANCE;
+            document.getElementById('accountModal').style.display = 'flex';
+        }
+
+        function saveAccountSettings() {
+            const name = document.getElementById('setAccountName').value;
+            const bal = parseFloat(document.getElementById('setStartBal').value);
+            
+            if(name) ACCOUNT_NAME = name;
+            if(bal) STARTING_BALANCE = bal;
+
+            // Save to browser storage
+            localStorage.setItem('teppa_acc_name', ACCOUNT_NAME);
+            localStorage.setItem('teppa_start_bal', STARTING_BALANCE);
+
+            document.getElementById('accountModal').style.display = 'none';
+            loadTrades(); // Refresh dashboard
+        }
+
+        function loadAccountSettings() {
+            const savedName = localStorage.getItem('teppa_acc_name');
+            const savedBal = localStorage.getItem('teppa_start_bal');
+            
+            if(savedName) ACCOUNT_NAME = savedName;
+            if(savedBal) STARTING_BALANCE = parseFloat(savedBal);
+
+            document.getElementById('displayAccountName').innerText = ACCOUNT_NAME;
+        }
 
         // =========================================
         // 3. CORE DATA LOADING
@@ -611,16 +668,15 @@
                 if(t.outcome === 'Loss') loss++;
             });
 
-            // UI Update
-            const balStr = "$" + (ACCOUNT_BALANCE + netPnL).toLocaleString();
-            const pnlStr = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
-            
-            document.getElementById('navBalance').innerText = balStr;
+            // UI Update (Start Balance + Net PnL)
+            const currentBalance = STARTING_BALANCE + netPnL;
+
+            document.getElementById('navBalance').innerText = "$" + currentBalance.toLocaleString();
             document.getElementById('navPnL').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('navTrades').innerText = liveTrades.length;
             
-            document.getElementById('cardBalance').innerText = balStr;
-            document.getElementById('cardPnL').innerText = pnlStr;
+            document.getElementById('cardBalance').innerText = "$" + currentBalance.toLocaleString();
+            document.getElementById('cardPnL').innerText = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
             document.getElementById('cardPnL').style.color = netPnL>=0 ? 'var(--primary)' : 'var(--danger)';
             
             const wr = (wins + loss) > 0 ? ((wins / (wins+loss))*100).toFixed(0) : 0;
@@ -630,9 +686,11 @@
             document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
 
-            renderCalendar(liveTrades); 
+            // Update Account Name Display
+            document.getElementById('displayAccountName').innerText = ACCOUNT_NAME;
+
+            renderCalendar(liveTrades); 
             
-            // Feed Filter Logic
             let feedTrades = trades;
             if (filterDate && filterDate !== 'all') {
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
@@ -653,25 +711,19 @@
             trades.forEach(t => {
                 const card = document.createElement('div');
                 card.className = "trade-log-card";
-                
-                // Color Logic
                 if (t.outcome === 'Win') card.classList.add('glow-win');
                 else if (t.outcome === 'Loss') card.classList.add('glow-loss');
-                
-                card.onclick = (e) => {
-                    if(!e.target.closest('button')) openViewModal(t); 
-                };
+                card.onclick = (e) => { if(!e.target.closest('button')) openViewModal(t); };
                 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "var(--danger)";
-                const tradeDataStr = encodeURIComponent(JSON.stringify(t));
                 const isTest = t.is_backtest ? `<span class="tag-pill tag-test">BACKTEST</span>` : '';
                 
-                // Image Strip
                 let imgStrip = '<div class="card-img-strip"><div class="no-img-placeholder">No Chart</div></div>';
                 if(t.chart_screenshot) {
-                    const urls = t.chart_screenshot.includes(',') ? t.chart_screenshot.split(',') : [t.chart_screenshot];
-                    if(urls[0] && urls[0].includes('http')) {
-                        imgStrip = `<div class="card-img-strip"><img src="${urls[0].trim()}"></div>`;
+                    let urls = t.chart_screenshot.split(',');
+                    let firstUrl = urls[0].trim();
+                    if(firstUrl && firstUrl.includes('http')) {
+                        imgStrip = `<div class="card-img-strip"><img src="${firstUrl}"></div>`;
                     }
                 }
 
@@ -684,18 +736,15 @@
                                 <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button>
                             </div>
                         </div>
-                        
                         <div class="card-main">
                             <span class="pair-text">${t.pair}</span>
                             <span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span>
                         </div>
-
                         <div class="tag-row">
                             <span class="tag-pill tag-session">${t.session || 'Unknown'}</span>
                             <span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>
                             ${isTest}
                         </div>
-
                         <div class="card-footer">${t.reason || 'No notes added.'}</div>
                     </div>
                 `;
@@ -710,11 +759,8 @@
             const month = currentCalDate.getMonth();
             const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
             document.getElementById('calMonthLabel').innerText = `${monthNames[month]} ${year}`;
-
             const firstDayIndex = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            // Group trades by day
             const dailyData = {};
             trades.forEach(t => {
                 const tDate = new Date(t.created_at);
@@ -725,33 +771,21 @@
                     dailyData[d].trades.push(t);
                 }
             });
-
-            // Empty Slots
-            for(let i=0; i<firstDayIndex; i++) {
-                grid.appendChild(Object.assign(document.createElement('div'), {className: "cal-day empty"}));
-            }
-
-            // Days
+            for(let i=0; i<firstDayIndex; i++) { grid.appendChild(Object.assign(document.createElement('div'), {className: "cal-day empty"})); }
             for(let i=1; i<=daysInMonth; i++) {
                 const day = document.createElement('div');
                 day.className = "cal-day";
                 let content = `<span class="cal-num">${i}</span>`;
-
                 if(dailyData[i]) {
                     const dayPnL = dailyData[i].pnl;
                     day.className += dayPnL >= 0 ? " glow-win" : " glow-loss";
                     content += `<span class="cal-pnl">${dayPnL >= 0 ? '+' : ''}$${dayPnL.toLocaleString()}</span>`;
                     content += `<div class="mini-trade-list">`;
                     dailyData[i].trades.forEach(trade => {
-                        content += `
-                            <div class="mini-trade-item ${trade.pnl >= 0 ? 'win' : 'loss'}">
-                                <span>${trade.pair}</span><span>${trade.pnl >= 0 ? '+' : ''}${trade.pnl}</span>
-                            </div>
-                        `;
+                        content += `<div class="mini-trade-item ${trade.pnl >= 0 ? 'win' : 'loss'}"><span>${trade.pair}</span><span>${trade.pnl >= 0 ? '+' : ''}${trade.pnl}</span></div>`;
                     });
                     content += `</div>`;
                 }
-
                 day.onclick = () => loadTrades(new Date(year, month, i).toLocaleDateString());
                 day.innerHTML = content;
                 grid.appendChild(day);
@@ -761,67 +795,40 @@
         function renderChart(trades) {
             const ctx = document.getElementById('equityChart').getContext('2d');
             if(window.myChart) window.myChart.destroy();
-            let bal = ACCOUNT_BALANCE;
-            // Create cumulative data array
+            let bal = STARTING_BALANCE;
             const data = trades.slice().reverse().map(t => { bal += t.pnl; return bal; });
+            // Add initial point
+            data.unshift(STARTING_BALANCE);
             
             window.myChart = new Chart(ctx, {
                 type: 'line',
-                data: { 
-                    labels: data.map((_,i)=>i), 
-                    datasets: [{ 
-                        data: data, 
-                        borderColor: '#2dd4bf', 
-                        backgroundColor: 'rgba(45, 212, 191, 0.05)',
-                        tension: 0.4,
-                        fill: true,
-                        pointRadius: 0
-                    }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, 
-                    scales: { x: { display: false }, y: { display: false } },
-                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
-                }
+                data: { labels: data.map((_,i)=>i), datasets: [{ data: data, borderColor: '#2dd4bf', backgroundColor: 'rgba(45, 212, 191, 0.05)', tension: 0.4, fill: true, pointRadius: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { display: false }, y: { display: false } }, interaction: { mode: 'nearest', axis: 'x', intersect: false } }
             });
         }
 
-        // =========================================
-        // 5. UTILS & MODALS
-        // =========================================
-        function toggleSidebar() { 
+        function toggleSidebar() { 
             const sb = document.getElementById('mainSidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            if(sb.classList.contains('active')) {
-                sb.classList.remove('active');
-                overlay.classList.remove('active');
-            } else {
-                sb.classList.add('active');
-                overlay.classList.add('active');
-            }
+            if(sb.classList.contains('active')) { sb.classList.remove('active'); overlay.classList.remove('active'); } 
+            else { sb.classList.add('active'); overlay.classList.add('active'); }
         }
 
         function openViewModal(trade, startInEditMode = false) {
             viewingTradeId = trade.id;
-            window.currentViewTrade = trade; 
-            
+            window.currentViewTrade = trade; 
             document.getElementById('viewPair').innerText = trade.pair;
             document.getElementById('viewPnL').innerText = "$" + trade.pnl;
             document.getElementById('viewStrategy').innerText = trade.strategy || 'N/A';
             document.getElementById('viewReason').innerText = trade.reason || 'No notes provided.';
-            
-            // Populate Edit Form
             document.getElementById('inpEditPnL').value = trade.pnl;
             document.getElementById('inpEditStrategy').value = trade.strategy || '';
             document.getElementById('inpEditReason').value = trade.reason || '';
             
-            // Handle Images
             const imgContainer = document.getElementById('viewImages');
             imgContainer.innerHTML = "";
             if (trade.chart_screenshot) {
-                const urls = trade.chart_screenshot.includes(',') ? trade.chart_screenshot.split(',') : [trade.chart_screenshot];
+                const urls = trade.chart_screenshot.split(',');
                 urls.forEach(url => {
                     if(url.trim().includes('http')) {
                         const img = document.createElement('img');
@@ -830,12 +837,10 @@
                         imgContainer.appendChild(img);
                     }
                 });
-            } else {
-                imgContainer.innerHTML = '<p style="color:#64748b; font-style:italic;">No screenshot available.</p>';
-            }
+            } else { imgContainer.innerHTML = '<p style="color:#64748b; font-style:italic;">No screenshot available.</p>'; }
             
             document.getElementById('viewModal').style.display = 'flex';
-            document.getElementById('aiCoachOutput').style.display = 'none'; 
+            document.getElementById('aiCoachOutput').style.display = 'none'; 
             if(startInEditMode) toggleEditMode();
         }
 
@@ -844,9 +849,8 @@
             const editDiv = document.getElementById('editModeContent');
             const editBtn = document.getElementById('btnEditToggle');
             const isEditing = viewDiv.style.display === 'none';
-            
-            viewDiv.style.display = isEditing ? 'block' : 'none'; 
-            editDiv.style.display = isEditing ? 'none' : 'block'; 
+            viewDiv.style.display = isEditing ? 'block' : 'none'; 
+            editDiv.style.display = isEditing ? 'none' : 'block'; 
             editBtn.style.display = isEditing ? 'block' : 'none';
         }
 
@@ -855,76 +859,44 @@
             const strategy = document.getElementById('inpEditStrategy').value;
             const reason = document.getElementById('inpEditReason').value;
             const outcome = document.getElementById('inpEditOutcome').value;
-            
-            await supabaseClient.from('trades').update({ 
-                pnl: parseFloat(pnl),
-                strategy,
-                reason,
-                outcome
-            }).eq('id', viewingTradeId);
-            
+            await supabaseClient.from('trades').update({ pnl: parseFloat(pnl), strategy, reason, outcome }).eq('id', viewingTradeId);
             document.getElementById('viewModal').style.display = 'none';
             loadTrades();
         }
 
         function openConsistencyModal() { document.getElementById('consistencyModal').style.display='flex'; }
-        
         function calcConsistency() {
             const high = parseFloat(document.getElementById('consistHigh').value);
             const total = parseFloat(document.getElementById('consistTotal').value);
             const res = document.getElementById('consistResult');
             const percent = (high/total);
-            
             res.style.display='block';
-            if(percent > 0.4) {
-                res.innerText = "❌ FAIL: Largest day is " + (percent*100).toFixed(1) + "% of profit.";
-                res.style.color = "#ef4444";
-            } else {
-                res.innerText = "✅ PASS: Consistent Growth.";
-                res.style.color = "#4ade80";
-            }
+            if(percent > 0.4) { res.innerText = "❌ FAIL: Largest day is " + (percent*100).toFixed(1) + "% of profit."; res.style.color = "#ef4444"; } 
+            else { res.innerText = "✅ PASS: Consistent Growth."; res.style.color = "#4ade80"; }
         }
 
-        // =========================================
-        // 6. SAVE LOGIC (CORRECT BUCKET: chart-screenshots)
-        // =========================================
        async function saveTrade() {
             const btn = document.getElementById('saveTradeBtn');
             btn.innerText = "Saving...";
             btn.disabled = true;
-
             try {
-                // 1. IMAGE UPLOAD
                 const fileInput = document.getElementById('chartUpload');
                 const file = fileInput.files[0];
                 let publicUrl = null;
-
                 if (file) {
                     const fileExt = file.name.split('.').pop();
                     const fileName = `${Date.now()}.${fileExt}`;
-                    
-                    // ⚠️ UPLOADING TO 'chart-screenshots' BUCKET
-                    const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                        .from('chart-screenshots') 
-                        .upload(fileName, file);
-
+                    const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(fileName, file);
                     if (uploadError) throw uploadError;
-
-                    // Get Public URL
-                    const { data: urlData } = supabaseClient.storage
-                        .from('chart-screenshots')
-                        .getPublicUrl(fileName);
-                    
+                    const { data: urlData } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(fileName);
                     publicUrl = urlData.publicUrl;
                 }
 
-                // 2. FORM FIELDS
                 const pair = document.getElementById('tradePair').value.trim().toUpperCase();
                 const pnlRaw = document.getElementById('tradePnL').value;
                 const mode = document.getElementById('tradeMode').value;
                 const pnl = pnlRaw ? parseFloat(pnlRaw) : 0;
                 
-                // NEW FIELDS
                 const stopLoss = document.getElementById('tradeSL').value;
                 const riskReward = document.getElementById('tradeRR').value;
 
@@ -937,19 +909,11 @@
                 const isBacktest = (mode === 'Backtest' || mode === 'Forward');
                 const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
                 
-                // 3. INSERT DB
                 const { error } = await supabaseClient.from('trades').insert([{
-                    pair,
-                    pnl,
-                    outcome,
-                    is_backtest: isBacktest,
-                    session,
-                    direction,
-                    strategy,
-                    reason: notes,
+                    pair, pnl, outcome, is_backtest: isBacktest, session, direction, strategy, reason: notes,
                     stop_loss: stopLoss ? parseFloat(stopLoss) : null,
                     risk_reward: riskReward ? parseFloat(riskReward) : null,
-                    chart_screenshot: publicUrl, // Save URL
+                    chart_screenshot: publicUrl, 
                     trade_date: now.toISOString().split("T")[0],
                     day_of_week: now.toLocaleDateString('en-US', { weekday: 'long' }),
                     created_at: now.toISOString()
@@ -957,7 +921,6 @@
                 
                 if (error) throw error;
                 
-                // Reset & Reload
                 document.getElementById('addTradeModal').style.display = 'none';
                 fileInput.value = "";
                 document.getElementById('tradePair').value = "";
@@ -965,41 +928,23 @@
                 document.getElementById('tradeReason').value = "";
                 document.getElementById('tradeSL').value = "";
                 document.getElementById('tradeRR').value = "";
-                
                 loadTrades();
-
-            } catch (error) {
-                console.error(error);
-                alert("Error saving trade: " + error.message);
-            } finally {
-                btn.innerText = "Save Entry";
-                btn.disabled = false;
-            }
+            } catch (error) { console.error(error); alert("Error saving trade: " + error.message); } 
+            finally { btn.innerText = "Save Entry"; btn.disabled = false; }
         }
 
-        async function deleteTrade(id) {
-            if(confirm("Are you sure you want to delete this trade?")) {
-                await supabaseClient.from('trades').delete().eq('id', id);
-                loadTrades();
-            }
-        }
+        async function deleteTrade(id) { if(confirm("Are you sure you want to delete this trade?")) { await supabaseClient.from('trades').delete().eq('id', id); loadTrades(); } }
         
-        // =========================================
-        // 7. AI FUNCTIONALITY (DEBUG MODE)
-        // =========================================
         function toggleAIChat() { const w=document.getElementById('aiChatWindow'); w.style.display=w.style.display==='flex'?'none':'flex'; }
         
         async function sendAIChat() {
             const input = document.getElementById("aiChatInput");
             const message = input.value.trim();
             if (!message) return;
-        
             const body = document.getElementById("aiChatBody");
             body.innerHTML += `<div class="ai-msg user">${message}</div>`;
             input.value = "";
-            body.innerHTML += `<div class="ai-msg bot">Thinking...</div>`;
             body.scrollTop = body.scrollHeight;
-        
             try {
                 const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST",
@@ -1010,73 +955,43 @@
                         temperature: 0.7
                     })
                 });
-                
                 const data = await response.json();
-                
-                // ⚠️ BETTER ERROR HANDLING
                 body.lastChild.remove();
-                if (!response.ok) {
-                    body.innerHTML += `<div class="ai-msg bot" style="color:#f87171;">AI Error: ${data.error ? data.error.message : "Unknown Error"}</div>`;
-                } else {
-                    const reply = data.choices[0].message.content;
-                    body.innerHTML += `<div class="ai-msg bot">${reply}</div>`;
-                }
-            } catch (error) {
-                body.lastChild.remove();
-                body.innerHTML += `<div class="ai-msg bot" style="color:#f87171;">Network Error. Check internet or API Key.</div>`;
-            }
+                if (!response.ok) { body.innerHTML += `<div class="ai-msg bot" style="color:#f87171;">AI Error: ${data.error ? data.error.message : "Unknown Error"}</div>`; } 
+                else { body.innerHTML += `<div class="ai-msg bot">${data.choices[0].message.content}</div>`; }
+            } catch (error) { body.lastChild.remove(); body.innerHTML += `<div class="ai-msg bot" style="color:#f87171;">Network Error. Check internet or API Key.</div>`; }
             body.scrollTop = body.scrollHeight;
         }
 
-        // TEXT GRADER
         async function runAIText() {
             if (!window.currentViewTrade) return alert("No trade loaded.");
             const outputBox = document.getElementById("aiCoachOutput");
             outputBox.style.display = "block";
             outputBox.innerText = "Teppa AI is grading...";
-            
             const trade = window.currentViewTrade;
             const prompt = `Grade this trade (1-10) and give feedback. Pair: ${trade.pair}, PnL: ${trade.pnl}, Notes: ${trade.reason}`;
-            
             try {
                 const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
-                    body: JSON.stringify({
-                        model: "gpt-4o-mini",
-                        messages: [{ role: "user", content: prompt }]
-                    })
+                    body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }] })
                 });
                 const data = await response.json();
-                
-                if (!response.ok) {
-                    outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown"}`;
-                } else {
-                    outputBox.innerText = data.choices[0].message.content;
-                }
+                if (!response.ok) { outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown"}`; } 
+                else { outputBox.innerText = data.choices[0].message.content; }
             } catch (error) { outputBox.innerText = "Network Error: Check API Key"; }
         }
 
-        // ===== VISION ANALYZER (FIXED FOR MULTIPLE IMAGES) =====
         async function runAIVision() {
-            if (!window.currentViewTrade) {
-                alert("No trade selected");
-                return;
-            }
+            if (!window.currentViewTrade) return alert("No trade loaded.");
             const outputBox = document.getElementById("aiCoachOutput");
             outputBox.style.display = "block";
             outputBox.innerText = "Teppa AI is scanning chart...";
-            
             const trade = window.currentViewTrade;
-            if (!trade.chart_screenshot) {
-                outputBox.innerText = "⚠️ No chart screenshot found for this trade.";
-                return;
-            }
-
-            // 🔥 THE FIX: Check for commas (multiple images) and take only the first URL
+            if (!trade.chart_screenshot) { outputBox.innerText = "⚠️ No chart screenshot found for this trade."; return; }
+            
             let imageUrl = trade.chart_screenshot;
-            if (imageUrl.includes(',')) {
-                // Splits "url1,url2" into a list and takes the first one
+            if(imageUrl.includes(',')) {
                 imageUrl = imageUrl.split(',')[0].trim();
             }
 
@@ -1090,7 +1005,7 @@
                             {
                                 role: "user",
                                 content: [
-                                    { type: "text", text: "Analyze this trading chart market structure and provide feedback." },
+                                    { type: "text", text: "Analyze this trading chart market structure." },
                                     { type: "image_url", image_url: { "url": imageUrl } }
                                 ]
                             }
@@ -1099,17 +1014,9 @@
                     })
                 });
                 const data = await response.json();
-                
-                if (!response.ok) {
-                    // This prints the exact error from OpenAI if it fails
-                    outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown Error"}`;
-                } else {
-                    outputBox.innerText = data.choices[0].message.content;
-                }
-            } catch (error) {
-                outputBox.innerText = "Network Error. Check API Key or Console.";
-                console.error(error);
-            }
+                if (!response.ok) { outputBox.innerText = `AI Error: ${data.error ? data.error.message : "Unknown"}`; } 
+                else { outputBox.innerText = data.choices[0].message.content; }
+            } catch (error) { outputBox.innerText = "Network Error. Check API Key."; }
         }
     </script>
 </body>

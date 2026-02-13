@@ -421,7 +421,7 @@
         let ACCOUNT_BALANCE = 1000;
         let currentCalDate = new Date(); 
         let viewingTradeId = null;
-        let currentAccount = 'Personal'; // Default Account
+        let currentAccount = 'Personal'; 
 
         // --- 2. INIT ---
         async function init() {
@@ -465,11 +465,11 @@
             const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
             if(error) return;
 
-            // Filter by Account Type (Legacy support: if undefined, treat as Personal)
+            // Filter by Account Type
             const accountTrades = trades.filter(t => (t.account_type || 'Personal') === currentAccount);
             allTradesCache = accountTrades;
             
-            // Calc Stats
+            // Calc Stats (Only on LIVE trades for money)
             let netPnL = 0, wins = 0, loss = 0;
             const liveTrades = accountTrades.filter(t => t.is_backtest !== true);
             
@@ -494,23 +494,21 @@
             document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
 
-            renderCalendar(liveTrades); 
+            // 🔥 FIX: Render ALL trades in this account on calendar, not just live ones
+            renderCalendar(accountTrades); 
             
             let feedTrades = accountTrades;
             if (filterDate) {
-                // Precise Date Filtering (YYYY-MM-DD comparison)
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
-                // filterDate is expected to be locale date string, let's normalize
                 feedTrades = accountTrades.filter(t => {
                     const tDate = new Date(t.created_at);
-                    // Match the day exactly as the calendar click passed it
                     return tDate.toLocaleDateString() === filterDate;
                 });
             } else {
                 document.getElementById('tradeFeedTitle').innerText = "Recent Activity";
             }
             renderFeed(feedTrades);
-            renderChart(liveTrades);
+            renderChart(liveTrades); // Chart usually only makes sense for Live PnL
         }
 
         // --- 4. RENDER FUNCTIONS ---
@@ -520,18 +518,24 @@
             trades.forEach(t => {
                 const card = document.createElement('div');
                 card.className = "trade-log-card";
+                
+                // Add this attribute so we can find the data easily later
+                card.setAttribute('data-trade-id', t.id); 
+
                 if (t.outcome === 'Win') card.classList.add('glow-win');
                 else if (t.outcome === 'Loss') card.classList.add('glow-loss');
                 
-                // FIXED: Direct Event Listener for Reliability
-                card.addEventListener('click', (e) => {
-                    if(!e.target.closest('button')) {
-                        openViewModal(t);
-                    }
-                });
+                // 🔥 FIXED CLICK HANDLER: We look up the trade by ID instead of passing messy JSON
+                card.onclick = (e) => {
+                    // Prevent opening if we clicked a button inside
+                    if(e.target.closest('button')) return;
+                    
+                    const tradeId = card.getAttribute('data-trade-id');
+                    const tradeObj = allTradesCache.find(tr => tr.id == tradeId);
+                    if(tradeObj) openViewModal(tradeObj);
+                };
                 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "#ef4444";
-                const tradeDataStr = encodeURIComponent(JSON.stringify(t));
                 const isTest = t.is_backtest ? `<span class="tag-pill tag-test">BACKTEST</span>` : '';
                 
                 let imgStrip = '';
@@ -547,7 +551,7 @@
                         <div class="card-top">
                             <span>${new Date(t.created_at).toLocaleDateString()}</span>
                             <div class="card-actions">
-                                <button class="action-icon-btn" onclick="event.stopPropagation(); openViewModal(JSON.parse(decodeURIComponent('${tradeDataStr}')), true)"><i class='bx bx-pencil'></i></button>
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); triggerEdit('${t.id}')"><i class='bx bx-pencil'></i></button>
                                 <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button>
                             </div>
                         </div>
@@ -566,6 +570,12 @@
                 `;
                 feed.appendChild(card);
             });
+        }
+
+        // Helper for the Edit Button (since we removed the inline JSON)
+        function triggerEdit(tradeId) {
+            const tradeObj = allTradesCache.find(tr => tr.id == tradeId);
+            if(tradeObj) openViewModal(tradeObj, true);
         }
 
         function renderCalendar(trades) {
@@ -605,11 +615,8 @@
                     content += `<span class="cal-pnl">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
                 }
                 
-                // FIXED: Calendar Click Filter
                 day.onclick = () => {
-                    // Create date object for clicked day
                     const clickDate = new Date(year, month, i);
-                    // Filter using the exact same format
                     loadTrades(clickDate.toLocaleDateString());
                 };
                 
@@ -741,7 +748,7 @@
                 reason: notes, trade_date: tradeDate, day_of_week: dayOfWeek, created_at: now.toISOString(),
                 stop_loss: stop_loss,
                 risk_percent: risk_percent,
-                account_type: currentAccount // SAVING THE ACCOUNT TYPE HERE
+                account_type: currentAccount
             }]);
 
             if (error) { console.error(error); alert("Error saving trade"); return; }

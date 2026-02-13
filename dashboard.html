@@ -32,10 +32,10 @@
         * { box-sizing: border-box; outline: none; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
-        /* --- 🔥 NEW PROFESSIONAL SCROLLBAR STYLES --- */
+        /* --- 🔥 PROFESSIONAL SCROLLBAR STYLES --- */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
             background: var(--bg); 
@@ -49,7 +49,7 @@
         }
 
         /* =========================================
-           2. RESPONSIVE LAYOUT & CLEAN SIDEBAR
+           2. RESPONSIVE LAYOUT & SIDEBAR
            ========================================= */
         .sidebar { 
             width: 260px; 
@@ -59,9 +59,9 @@
             padding: 25px; 
             position: fixed; 
             top: 0; 
-            left: -260px; /* Hidden by default for clean look */
+            left: -260px; 
             z-index: 2000; 
-            transition: left 0.3s ease; 
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
             display: flex;
             flex-direction: column;
             box-shadow: 5px 0 25px rgba(0,0,0,0.5);
@@ -70,13 +70,12 @@
         .sidebar.active { left: 0; }
 
         .main-content { 
-            margin-left: 0; /* Full width by default */
+            margin-left: 0; 
             padding: 40px; 
             max-width: 1800px; 
             transition: margin-left 0.3s ease; 
         }
         
-        /* Main Toggle Button (Always Visible) */
         .menu-toggle-btn { 
             position: fixed; 
             top: 20px; 
@@ -98,7 +97,6 @@
         }
         .menu-toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        /* Overlay when sidebar is open */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -112,8 +110,7 @@
         /* =========================================
            3. DASHBOARD COMPONENTS
            ========================================= */
-        /* Top Status Bar */
-        .top-bar { display: flex; gap: 15px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; margin-left: 60px; }
+        .top-bar { display: flex; gap: 15px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px; margin-left: 60px; }
         .stat-pill { 
             background: var(--card); 
             border: 1px solid var(--border); 
@@ -132,7 +129,6 @@
         .stat-pill.active { background: rgba(45, 212, 191, 0.1); border-color: var(--primary); color: var(--primary); }
         .stat-pill b { color: #fff; font-size: 1rem; }
 
-        /* Account Card */
         .account-overview { 
             background: linear-gradient(145deg, #1e293b, #0f172a); 
             border: 1px solid var(--border); 
@@ -187,13 +183,11 @@
         .cal-num { position: absolute; top: 8px; left: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: bold; }
         .cal-pnl { font-weight: 800; font-size: 0.85rem; margin-top: 0; z-index: 2; }
         
-        /* Trades inside calendar day */
-        .mini-trade-list { width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 0 4px; overflow-y: auto; scrollbar-width: none; }
+        .mini-trade-list { width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 0 4px; overflow-y: auto; }
         .mini-trade-item { display: flex; justify-content: space-between; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.4); font-weight: 600; white-space: nowrap; }
         .mini-trade-item.win { color: var(--success); border-left: 2px solid var(--success); }
         .mini-trade-item.loss { color: var(--danger); border-left: 2px solid var(--danger); }
 
-        /* Glow Effects */
         .glow-win { background: rgba(34, 197, 94, 0.05) !important; border: 1px solid #22c55e !important; box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.1); }
         .glow-win .cal-pnl { color: var(--success) !important; text-shadow: 0 0 10px rgba(74, 222, 128, 0.4); }
         
@@ -225,23 +219,9 @@
         /* =========================================
            6. TRADE FEED CARDS
            ========================================= */
-        .trade-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-            gap: 25px; 
-        }
+        .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
         
-        .trade-log-card { 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            border-radius: 16px; 
-            overflow: hidden; 
-            transition: all 0.3s ease; 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            cursor: pointer; 
-        }
+        .trade-log-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: all 0.3s ease; position: relative; display: flex; flex-direction: column; cursor: pointer; }
         .trade-log-card:hover { transform: translateY(-5px); border-color: var(--text-muted); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
         
         .card-img-strip { height: 160px; width: 100%; overflow: hidden; border-bottom: 1px solid var(--border); background: #000; position: relative; }
@@ -251,7 +231,6 @@
 
         .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
         .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: var(--text-muted); font-size: 0.85rem; }
-        
         .card-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .pair-text { font-size: 1.5rem; font-weight: 800; color: #fff; }
         .pnl-text { font-size: 1.5rem; font-weight: 800; }
@@ -264,8 +243,6 @@
         .tag-test { background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff; border: none; }
 
         .card-footer { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
-
-        /* Action Buttons on Card */
         .card-actions { display: flex; gap: 8px; }
         .action-icon-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .action-icon-btn:hover { background: var(--primary); color: #000; }
@@ -275,7 +252,7 @@
            7. AI & MODALS
            ========================================= */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 20px; }
-        .modal-box { background: var(--card); width: 850px; max-width: 100%; max-height: 90vh; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+        .modal-box { background: var(--card); width: 850px; max-width: 100%; max-height: 95vh; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
         
         .side-input { width: 100%; background: var(--bg); color: white; border: 1px solid var(--border); padding: 14px; margin-bottom: 15px; border-radius: 10px; font-size: 0.95rem; transition: 0.2s; }
         .side-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.2); }
@@ -300,10 +277,8 @@
             .account-metrics { width: 100%; text-align: left; }
             .big-balance { text-align: left; font-size: 2rem; }
             .metric-row { justify-content: flex-start; }
-            
             .modal-grid { grid-template-columns: 1fr !important; }
             .trade-grid { grid-template-columns: 1fr; }
-            
             .ai-chat-window { width: 90%; right: 5%; bottom: 100px; height: 500px; }
         }
     </style>
@@ -325,7 +300,7 @@
             <i class='bx bx-x' style="cursor:pointer; font-size:1.5rem;" onclick="toggleAIChat()"></i>
         </div>
         <div class="ai-chat-body" id="aiChatBody">
-            <div class="ai-msg bot">Hello! I'm connected to your trading journal. I can analyze your psychology or math. Ask away!</div>
+            <div class="ai-msg bot">Hello! I'm connected to your trading journal. Ask me anything about risk or structure.</div>
         </div>
         <div style="padding:15px; border-top:1px solid #334155; display:flex; gap:10px; background:#1e293b;">
             <input type="text" id="aiChatInput" class="side-input" style="margin:0; padding:10px;" placeholder="Ask AI..." onkeypress="if(event.key==='Enter') sendAIChat()">
@@ -338,17 +313,13 @@
             <img src="logo-512.png" alt="Teppa" class="brand-logo" onerror="this.style.display='none'"> 
             <div class="brand-text">TEPPA <span>TRADING</span></div>
         </div>
-        
         <button class="nav-btn special" onclick="window.location.href='courses.html'"><i class='bx bxs-graduation'></i> ACADEMY</button>
         <button class="nav-btn" onclick="openConsistencyModal()" style="color:#fbbf24;"><i class='bx bx-pie-chart-alt-2'></i> CONSISTENCY</button>
-        
         <div style="height:30px;"></div>
-        
         <div class="sidebar-section">
             <h4 style="margin:0 0 15px 10px; font-size:0.7rem; color:var(--text-muted); letter-spacing:1px;">QUICK ACTIONS</h4>
             <button class="side-btn" onclick="document.getElementById('addTradeModal').style.display='flex'">+ New Trade Entry</button>
         </div>
-
         <button onclick="supabaseClient.auth.signOut().then(()=>window.location.replace('index.html'))" class="nav-btn" style="margin-top:auto;"><i class='bx bx-log-out'></i> Log Out</button>
     </aside>
 
@@ -392,27 +363,17 @@
                     </div>
                     <button class="nav-btn" style="width:auto; padding:6px 15px; font-size:0.8rem; margin:0;" onclick="loadTrades('all')">Show All</button>
                 </div>
-                
-                <div class="calendar-header-row">
-                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                </div>
-                
+                <div class="calendar-header-row"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
                 <div id="calendarGrid" class="calendar-grid"></div>
             </div>
-            
             <div class="weekly-stats-col">
                 <div class="week-stat-box">
-                    <span class="week-label">TOTAL P&L</span>
-                    <span class="week-val" id="monthStatsVal">$0.00</span>
+                    <span class="week-label">TOTAL P&L</span><span class="week-val" id="monthStatsVal">$0.00</span>
                 </div>
                 <div class="week-stat-box" style="border:none;">
-                    <span class="week-label">AVG WIN</span>
-                    <span class="week-val" id="avgWinVal">$0.00</span>
+                    <span class="week-label">AVG WIN</span><span class="week-val" id="avgWinVal">$0.00</span>
                 </div>
-                <div style="height: 120px; margin-top: auto;">
-                    <span class="week-label">EQUITY CURVE</span>
-                    <canvas id="equityChart"></canvas>
-                </div>
+                <div style="height: 120px; margin-top: auto;"><span class="week-label">EQUITY CURVE</span><canvas id="equityChart"></canvas></div>
             </div>
         </div>
 
@@ -421,26 +382,6 @@
     </main>
 
     <div id="addTradeModal" class="modal-overlay">
-      <div id="accountModal" class="modal-overlay">
-        <div class="modal-box" style="width:400px; padding:30px;">
-            <h3 style="margin-top:0; color:white; margin-bottom:20px;">Account Settings</h3>
-            
-            <div style="margin-bottom:15px;">
-                <label class="week-label">Account Name</label>
-                <input type="text" id="setAccountName" class="side-input" placeholder="e.g. FTMO Challenge">
-            </div>
-            
-            <div style="margin-bottom:20px;">
-                <label class="week-label">Starting Balance ($)</label>
-                <input type="number" id="setStartBal" class="side-input" placeholder="e.g. 100000">
-            </div>
-
-            <div style="display:flex; gap:10px;">
-                <button onclick="saveAccountSettings()" class="side-btn">Save Settings</button>
-                <button onclick="document.getElementById('accountModal').style.display='none'" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
-            </div>
-        </div>
-    </div>
         <div class="modal-box" style="width:700px; padding:35px;">
             <h3 style="margin-top:0; color:white; margin-bottom:25px; font-size:1.5rem;">New Trade Entry</h3>
             
@@ -524,6 +465,24 @@
         </div>
     </div>
 
+    <div id="accountModal" class="modal-overlay">
+        <div class="modal-box" style="width:400px; padding:30px;">
+            <h3 style="margin-top:0; color:white; margin-bottom:20px;">Account Settings</h3>
+            <div style="margin-bottom:15px;">
+                <label class="week-label">Account Name</label>
+                <input type="text" id="setAccountName" class="side-input" placeholder="e.g. FTMO Challenge">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label class="week-label">Starting Balance ($)</label>
+                <input type="number" id="setStartBal" class="side-input" placeholder="e.g. 100000">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveAccountSettings()" class="side-btn">Save Settings</button>
+                <button onclick="document.getElementById('accountModal').style.display='none'" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="viewModal" class="modal-overlay">
         <div class="modal-box">
             <div style="padding:25px; background:#0f172a; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
@@ -590,35 +549,29 @@
         </div>
     </div>
 
-   <script>
-        // =========================================
-        // 1. CONFIGURATION
-        // =========================================
+    <script>
         const supabaseUrl = 'https://xuifnaypkeeukyjvlapi.supabase.co';
         const supabaseKey = 'sb_publishable_44vXTyFg__8x2Ohqa8KGuA_OV9HX2ob';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         const OPENAI_API_KEY = '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'; 
 
         let allTradesCache = [];
-        let STARTING_BALANCE = 1000; // Default if nothing saved
+        let STARTING_BALANCE = 1000; // Default
         let ACCOUNT_NAME = "Teppa Private Capital";
         let currentCalDate = new Date(); 
         let viewingTradeId = null;
 
-        // =========================================
-        // 2. INITIALIZATION
-        // =========================================
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if(!session) window.location.replace("index.html");
             else {
-                loadAccountSettings(); // Load your saved balance first
+                loadAccountSettings();
                 loadTrades();
             }
         }
         init();
 
-        // --- ACCOUNT SETTINGS LOGIC ---
+        // --- ACCOUNT SETTINGS ---
         function openAccountModal() {
             document.getElementById('setAccountName').value = ACCOUNT_NAME;
             document.getElementById('setStartBal').value = STARTING_BALANCE;
@@ -628,47 +581,37 @@
         function saveAccountSettings() {
             const name = document.getElementById('setAccountName').value;
             const bal = parseFloat(document.getElementById('setStartBal').value);
-            
             if(name) ACCOUNT_NAME = name;
             if(bal) STARTING_BALANCE = bal;
-
-            // Save to browser storage
+            
+            // Save settings
             localStorage.setItem('teppa_acc_name', ACCOUNT_NAME);
             localStorage.setItem('teppa_start_bal', STARTING_BALANCE);
-
+            
             document.getElementById('accountModal').style.display = 'none';
-            loadTrades(); // Refresh dashboard
+            loadTrades(); // Refresh to update balance
         }
 
         function loadAccountSettings() {
             const savedName = localStorage.getItem('teppa_acc_name');
             const savedBal = localStorage.getItem('teppa_start_bal');
-            
             if(savedName) ACCOUNT_NAME = savedName;
             if(savedBal) STARTING_BALANCE = parseFloat(savedBal);
-
-            document.getElementById('displayAccountName').innerText = ACCOUNT_NAME;
+            
+            const nameEl = document.getElementById('displayAccountName');
+            if(nameEl) nameEl.innerText = ACCOUNT_NAME;
         }
 
-        // =========================================
-        // 3. CORE DATA LOADING
-        // =========================================
         async function loadTrades(filterDate = null) {
             const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
             if(error) return console.error(error);
             allTradesCache = trades;
             
-            // Stats Calculation
             let netPnL = 0, wins = 0, loss = 0;
             const liveTrades = trades.filter(t => t.is_backtest !== true);
-            
-            liveTrades.forEach(t => {
-                netPnL += (t.pnl || 0);
-                if(t.outcome === 'Win') wins++;
-                if(t.outcome === 'Loss') loss++;
-            });
+            liveTrades.forEach(t => { netPnL += (t.pnl || 0); if(t.outcome === 'Win') wins++; if(t.outcome === 'Loss') loss++; });
 
-            // UI Update (Start Balance + Net PnL)
+            // Calculate Live Balance
             const currentBalance = STARTING_BALANCE + netPnL;
 
             document.getElementById('navBalance').innerText = "$" + currentBalance.toLocaleString();
@@ -678,16 +621,16 @@
             document.getElementById('cardBalance').innerText = "$" + currentBalance.toLocaleString();
             document.getElementById('cardPnL').innerText = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
             document.getElementById('cardPnL').style.color = netPnL>=0 ? 'var(--primary)' : 'var(--danger)';
-            
             const wr = (wins + loss) > 0 ? ((wins / (wins+loss))*100).toFixed(0) : 0;
             document.getElementById('cardWinRate').innerText = wr + "% Win Rate";
             document.getElementById('cardRecord').innerText = `${wins}W | ${loss}L`;
             
             document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
-
-            // Update Account Name Display
-            document.getElementById('displayAccountName').innerText = ACCOUNT_NAME;
+            
+            // Ensure Account Name is set
+            const nameEl = document.getElementById('displayAccountName');
+            if(nameEl) nameEl.innerText = ACCOUNT_NAME;
 
             renderCalendar(liveTrades); 
             
@@ -702,9 +645,6 @@
             renderChart(liveTrades);
         }
 
-        // =========================================
-        // 4. RENDERING FUNCTIONS
-        // =========================================
         function renderFeed(trades) {
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = "";
@@ -796,14 +736,34 @@
             const ctx = document.getElementById('equityChart').getContext('2d');
             if(window.myChart) window.myChart.destroy();
             let bal = STARTING_BALANCE;
-            const data = trades.slice().reverse().map(t => { bal += t.pnl; return bal; });
-            // Add initial point
-            data.unshift(STARTING_BALANCE);
+            // Create data starting with balance
+            const data = [STARTING_BALANCE];
+            // Since trades are loaded newest first, we reverse to calculate equity curve chronologically
+            trades.slice().reverse().forEach(t => {
+                bal += t.pnl;
+                data.push(bal);
+            });
             
             window.myChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: data.map((_,i)=>i), datasets: [{ data: data, borderColor: '#2dd4bf', backgroundColor: 'rgba(45, 212, 191, 0.05)', tension: 0.4, fill: true, pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { display: false }, y: { display: false } }, interaction: { mode: 'nearest', axis: 'x', intersect: false } }
+                data: { 
+                    labels: data.map((_,i)=>i), 
+                    datasets: [{ 
+                        data: data, 
+                        borderColor: '#2dd4bf', 
+                        backgroundColor: 'rgba(45, 212, 191, 0.05)', 
+                        tension: 0.4, 
+                        fill: true, 
+                        pointRadius: 0 
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, 
+                    scales: { x: { display: false }, y: { display: false } }, 
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false } 
+                }
             });
         }
 
@@ -828,7 +788,7 @@
             const imgContainer = document.getElementById('viewImages');
             imgContainer.innerHTML = "";
             if (trade.chart_screenshot) {
-                const urls = trade.chart_screenshot.split(',');
+                let urls = trade.chart_screenshot.split(',');
                 urls.forEach(url => {
                     if(url.trim().includes('http')) {
                         const img = document.createElement('img');

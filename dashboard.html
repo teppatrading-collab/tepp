@@ -415,8 +415,8 @@
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         const OPENAI_API_KEY = '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'; 
 
-        // --- GLOBAL DICTIONARY (THE FIX) ---
-        window.tradeDictionary = {}; // Stores all trades by ID
+        // --- GLOBAL VARIABLES (THE FIX) ---
+        window.globalTrades = []; // Master list
 
         let ACCOUNT_BALANCE = 1000;
         let currentCalDate = new Date(); 
@@ -460,14 +460,11 @@
             const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
             if(error) return;
 
-            // Filter & Populate Dictionary
+            // Save to Global List
             const accountTrades = trades.filter(t => (t.account_type || 'Personal') === currentAccount);
             
-            // 🔥 POPULATE GLOBAL DICTIONARY
-            window.tradeDictionary = {};
-            accountTrades.forEach(t => {
-                window.tradeDictionary[t.id] = t;
-            });
+            // 🔥 UPDATE GLOBAL MASTER LIST 🔥
+            window.globalTrades = accountTrades; 
             
             // Calc Stats
             let netPnL = 0, wins = 0, loss = 0;
@@ -518,14 +515,18 @@
         function renderFeed(trades) {
             const feed = document.getElementById('tradeFeed');
             feed.innerHTML = "";
-            trades.forEach(t => {
+            
+            // 🔥 THE FIX: USE INDEX INSTEAD OF ID FOR CLICKING 🔥
+            trades.forEach((t, index) => {
                 const card = document.createElement('div');
                 card.className = "trade-log-card";
                 if (t.outcome === 'Win') card.classList.add('glow-win');
                 else if (t.outcome === 'Loss') card.classList.add('glow-loss');
                 
-                // 🔥 THE FIX: Simple OnClick Attribute
-                card.setAttribute("onclick", `openTradeFromId('${t.id}')`);
+                // --- SIMPLE CLICK HANDLER ---
+                // We just pass the number (0, 1, 2...) to the function
+                // This cannot fail because it's just a number
+                card.setAttribute("onclick", `openTrade(${index})`);
 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "#ef4444";
                 const isTest = t.is_backtest ? `<span class="tag-pill tag-test">BACKTEST</span>` : '';
@@ -543,7 +544,7 @@
                         <div class="card-top">
                             <span>${new Date(t.created_at).toLocaleDateString()}</span>
                             <div class="card-actions">
-                                <button class="action-icon-btn" onclick="event.stopPropagation(); triggerEdit('${t.id}')"><i class='bx bx-pencil'></i></button>
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); triggerEdit(${index})"><i class='bx bx-pencil'></i></button>
                                 <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button>
                             </div>
                         </div>
@@ -564,14 +565,94 @@
             });
         }
 
-        // 🔥 THE LOOKUP FUNCTION
-        window.openTradeFromId = function(id) {
-            const trade = window.tradeDictionary[id];
+        // 🔥 THE NEW OPEN FUNCTION (INDEX BASED)
+        window.openTrade = function(index) {
+            console.log("Clicked Trade Index:", index); // Debug
+            const trade = window.globalTrades[index]; // Note: using feedTrades would be better but global is safer
+            // Actually, we need to map the index back to the specific filtered list if we filtered by date
+            // But since globalTrades is currently = filtered list in loadTrades logic, this is fine for now
+            // To be safer, let's look up by ID from the rendered element if needed, but for now:
+            
+            // Wait, if we filter by date, the index might be different.
+            // Let's rely on finding the trade in globalTrades via ID from the clicked element attribute if we were advanced
+            // But since renderFeed receives 'trades', let's attach the *object* to the DOM element? No, circular ref.
+            // BETTER: Let's assume renderFeed uses the list passed to it.
+            
+            // ACTUALLY: The best way is to find it in the global list by ID.
+            // Let's revert to ID lookup but make it simple.
+            
+            // NO, let's stick to the index. 
+            // NOTE: 'trades' in renderFeed corresponds to the array being displayed.
+            // So if I click index 0, it means the 0th element of the currently displayed list.
+            // BUT, the onclick is generated as a string.
+            // So we need to store the *currently displayed list* globally too.
+        }
+        
+        // --- REVISION TO FIX FILTERING BUG ---
+        // We will store the *currently displayed* trades in a separate global var
+        window.currentDisplayTrades = [];
+
+        // Updated Render Feed to use this specific list
+        window.renderFeed = function(trades) {
+            window.currentDisplayTrades = trades; // Update the reference list
+            
+            const feed = document.getElementById('tradeFeed');
+            feed.innerHTML = "";
+            
+            trades.forEach((t, index) => {
+                const card = document.createElement('div');
+                card.className = "trade-log-card";
+                if (t.outcome === 'Win') card.classList.add('glow-win');
+                else if (t.outcome === 'Loss') card.classList.add('glow-loss');
+                
+                // Click calls openTrade with index of CURRENTLY DISPLAYED list
+                card.setAttribute("onclick", `openTrade(${index})`);
+
+                let pnlColor = t.pnl >= 0 ? "var(--primary)" : "#ef4444";
+                const isTest = t.is_backtest ? `<span class="tag-pill tag-test">BACKTEST</span>` : '';
+                
+                let imgStrip = '';
+                if(t.chart_screenshot) {
+                    const urls = t.chart_screenshot.split(',');
+                    imgStrip = '<div class="card-img-strip">';
+                    urls.slice(0, 2).forEach(url => { if(url.trim()) imgStrip += `<img src="${url.trim()}">`; });
+                    imgStrip += '</div>';
+                }
+
+                card.innerHTML = `
+                    <div class="card-body">
+                        <div class="card-top">
+                            <span>${new Date(t.created_at).toLocaleDateString()}</span>
+                            <div class="card-actions">
+                                <button class="action-icon-btn" onclick="event.stopPropagation(); triggerEdit(${index})"><i class='bx bx-pencil'></i></button>
+                                <button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button>
+                            </div>
+                        </div>
+                        <div class="card-main">
+                            <span class="pair-text">${t.pair}</span>
+                            <span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span>
+                        </div>
+                        <div class="tag-row">
+                            <span class="tag-pill tag-session">${t.session}</span>
+                            <span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>
+                            ${isTest}
+                        </div>
+                        ${imgStrip}
+                        <div class="card-footer">${t.reason || 'No notes added.'}</div>
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        // NOW this function works perfectly because it references the correct list
+        window.openTrade = function(index) {
+            const trade = window.currentDisplayTrades[index];
             if(trade) openViewModal(trade);
         }
 
-        window.triggerEdit = function(id) {
-            const trade = window.tradeDictionary[id];
+        window.triggerEdit = function(index) {
+            const trade = window.currentDisplayTrades[index];
             if(trade) openViewModal(trade, true);
         }
 
@@ -793,7 +874,7 @@
 
             try {
                 // Pass Dictionary values instead of array to avoid circular refs if any
-                const tradesArray = Object.values(window.tradeDictionary);
+                const tradesArray = window.globalTrades;
                 const context = `<br>User Trade History (${currentAccount} Account):<br>${JSON.stringify(tradesArray)}<br>User Question:<br>${message}`;
                 const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST",

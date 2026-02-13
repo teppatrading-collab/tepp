@@ -17,7 +17,7 @@
         * { box-sizing: border-box; }
         body { background: #0f172a; color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
-        /* --- CUSTOM SCROLLBAR (Fixes the ugly white bar) --- */
+        /* --- CUSTOM SCROLLBAR --- */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -157,7 +157,7 @@
             <div class="ai-msg bot">Hello! I'm connected to your trading journal. Ask me about your performance or psychology.</div>
         </div>
         <div class="ai-chat-input-area">
-            <input type="text" id="aiChatInput" class="side-input" style="margin:0; padding:8px;" placeholder="Ask AI...">
+            <input type="text" id="aiChatInput" class="side-input" style="margin:0; padding:8px;" placeholder="Ask AI... (Press Enter)">
             <button onclick="sendAIChat()" style="background:#6366f1; border:none; color:white; border-radius:8px; width:40px; cursor:pointer;"><i class='bx bx-send'></i></button>
         </div>
     </div>
@@ -176,11 +176,18 @@
         
         <div style="height:20px;"></div>
         
+        <div style="margin-bottom:20px; padding:0 10px;">
+            <label style="color:#64748b; font-size:0.75rem; font-weight:bold; margin-bottom:8px; display:block;">CURRENT ACCOUNT</label>
+            <select id="accountSelector" class="side-input" onchange="changeAccount()" style="margin-bottom:0; border:1px solid #334155;">
+                <option value="Personal">Personal Account</option>
+                <option value="Funded">Funded Account</option>
+                <option value="Challenge">Challenge Account</option>
+            </select>
+        </div>
+
         <div class="sidebar-section">
             <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#94a3b8;">QUICK ACTIONS</h4>
             <button class="side-btn" onclick="document.getElementById('addTradeModal').style.display='flex'">+ New Trade Entry</button>
-            <button class="nav-btn" onclick="document.getElementById('importFile').click()"><i class='bx bx-import'></i> Import Data</button>
-            <input type="file" id="importFile" style="display:none;" onchange="handleFileImport(this)">
         </div>
 
         <button onclick="supabaseClient.auth.signOut().then(()=>window.location.replace('index.html'))" class="nav-btn" style="margin-top:auto;">Log Out</button>
@@ -188,7 +195,7 @@
 
     <main class="main-content">
         <div class="top-bar">
-            <div class="stat-pill active"><i class='bx bx-user'></i> <b>Live/Funded Journal</b></div>
+            <div class="stat-pill active"><i class='bx bx-user'></i> <b id="accountLabel">Personal Account</b></div>
             <div class="stat-pill"><i class='bx bx-wallet'></i> Bal: <b id="navBalance">$0</b></div>
             <div class="stat-pill"><i class='bx bx-line-chart'></i> P&L: <b id="navPnL">$0</b></div>
             <div class="stat-pill"><i class='bx bx-list-check'></i> Trades: <b id="navTrades">0</b></div>
@@ -197,7 +204,7 @@
         <div class="account-overview">
             <div class="account-info">
                 <h2>Teppa Private Capital</h2>
-                <p>Personal Account &bull; Pro Terminal</p>
+                <p>Pro Terminal &bull; <span id="accountSubLabel">Personal</span></p>
                 <div style="margin-top: 15px;">
                     <span class="win-rate-badge" id="cardWinRate">0% WR</span>
                     <span style="color: #94a3b8; margin-left: 10px;" id="cardRecord">0W | 0L</span>
@@ -219,7 +226,7 @@
                         <h4 id="calMonthLabel" style="margin:0; color:#fff; font-size:1.1rem; min-width: 140px; text-align:center;">--</h4>
                         <button onclick="changeMonth(1)" style="background:transparent; border:1px solid #334155; color:#fff; border-radius:6px; cursor:pointer; padding:5px;"><i class='bx bx-chevron-right'></i></button>
                     </div>
-                    <button class="nav-btn" style="width:auto; padding:5px 15px; font-size:0.8rem;" onclick="loadTrades('all')">Show All</button>
+                    <button class="nav-btn" style="width:auto; padding:5px 15px; font-size:0.8rem;" onclick="loadTrades(null)">Show All</button>
                 </div>
                 
                 <div class="calendar-header-row">
@@ -414,6 +421,7 @@
         let ACCOUNT_BALANCE = 1000;
         let currentCalDate = new Date(); 
         let viewingTradeId = null;
+        let currentAccount = 'Personal'; // Default Account
 
         // --- 2. INIT ---
         async function init() {
@@ -428,20 +436,42 @@
                     opt.innerText = i < 10 ? '0'+i : i;
                     minSelect.appendChild(opt);
                 }
+                
+                // Init AI Enter Key Listener
+                document.getElementById("aiChatInput").addEventListener("keypress", function(event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        sendAIChat();
+                    }
+                });
+
                 loadTrades();
             }
         }
         init();
 
+        // --- ACCOUNT HANDLER ---
+        function changeAccount() {
+            currentAccount = document.getElementById('accountSelector').value;
+            // Update UI Labels
+            document.getElementById('accountLabel').innerText = currentAccount + " Account";
+            document.getElementById('accountSubLabel').innerText = currentAccount;
+            loadTrades(); // Reload data filtered by account
+        }
+
         // --- 3. DATA LOADING ---
         async function loadTrades(filterDate = null) {
+            // Fetch ALL trades first, then filter in JS to avoid Supabase errors if column doesn't exist yet
             const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
             if(error) return;
-            allTradesCache = trades;
+
+            // Filter by Account Type (Legacy support: if undefined, treat as Personal)
+            const accountTrades = trades.filter(t => (t.account_type || 'Personal') === currentAccount);
+            allTradesCache = accountTrades;
             
             // Calc Stats
             let netPnL = 0, wins = 0, loss = 0;
-            const liveTrades = trades.filter(t => t.is_backtest !== true);
+            const liveTrades = accountTrades.filter(t => t.is_backtest !== true);
             
             liveTrades.forEach(t => {
                 netPnL += (t.pnl || 0);
@@ -466,10 +496,16 @@
 
             renderCalendar(liveTrades); 
             
-            let feedTrades = trades;
+            let feedTrades = accountTrades;
             if (filterDate) {
+                // Precise Date Filtering (YYYY-MM-DD comparison)
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
-                feedTrades = trades.filter(t => new Date(t.created_at).toLocaleDateString() === filterDate);
+                // filterDate is expected to be locale date string, let's normalize
+                feedTrades = accountTrades.filter(t => {
+                    const tDate = new Date(t.created_at);
+                    // Match the day exactly as the calendar click passed it
+                    return tDate.toLocaleDateString() === filterDate;
+                });
             } else {
                 document.getElementById('tradeFeedTitle').innerText = "Recent Activity";
             }
@@ -487,9 +523,12 @@
                 if (t.outcome === 'Win') card.classList.add('glow-win');
                 else if (t.outcome === 'Loss') card.classList.add('glow-loss');
                 
-                card.onclick = (e) => {
-                    if(!e.target.closest('button')) openViewModal(t); 
-                };
+                // FIXED: Direct Event Listener for Reliability
+                card.addEventListener('click', (e) => {
+                    if(!e.target.closest('button')) {
+                        openViewModal(t);
+                    }
+                });
                 
                 let pnlColor = t.pnl >= 0 ? "var(--primary)" : "#ef4444";
                 const tradeDataStr = encodeURIComponent(JSON.stringify(t));
@@ -565,10 +604,15 @@
                     day.className += isWin ? " glow-win" : " glow-loss";
                     content += `<span class="cal-pnl">${isWin?'+':''}$${daily[i].toLocaleString()}</span>`;
                 }
+                
+                // FIXED: Calendar Click Filter
                 day.onclick = () => {
-                    const filterDateStr = new Date(year, month, i).toLocaleDateString();
-                    loadTrades(filterDateStr);
+                    // Create date object for clicked day
+                    const clickDate = new Date(year, month, i);
+                    // Filter using the exact same format
+                    loadTrades(clickDate.toLocaleDateString());
                 };
+                
                 day.innerHTML = content;
                 grid.appendChild(day);
             }
@@ -601,15 +645,15 @@
             document.getElementById('viewPair').innerText = trade.pair;
             document.getElementById('viewPnL').innerText = "$" + trade.pnl;
             document.getElementById('viewRR').innerText = (trade.rr || 0) + " R";
-            document.getElementById('viewSL').innerText = (trade.stop_loss || "--") + " Pips"; // NEW
+            document.getElementById('viewSL').innerText = (trade.stop_loss || "--") + " Pips"; 
             document.getElementById('viewStrategy').innerText = trade.strategy || "--";
             document.getElementById('viewReason').innerText = trade.reason || "--";
 
             // Edit Fields
             document.getElementById('inpEditPnL').value = trade.pnl;
             document.getElementById('inpEditRR').value = trade.rr || 0;
-            document.getElementById('inpEditSL').value = trade.stop_loss || 0; // NEW
-            document.getElementById('inpEditRisk').value = trade.risk_percent || 0; // NEW
+            document.getElementById('inpEditSL').value = trade.stop_loss || 0; 
+            document.getElementById('inpEditRisk').value = trade.risk_percent || 0; 
             document.getElementById('inpEditOutcome').value = trade.outcome;
             document.getElementById('inpEditSession').value = trade.session;
             document.getElementById('inpEditStrategy').value = trade.strategy;
@@ -658,8 +702,8 @@
             await supabaseClient.from('trades').update({ 
                 pnl: parseFloat(pnl),
                 rr: rr ? parseFloat(rr) : 0,
-                stop_loss: sl ? parseFloat(sl) : 0, // NEW
-                risk_percent: risk ? parseFloat(risk) : 0, // NEW
+                stop_loss: sl ? parseFloat(sl) : 0, 
+                risk_percent: risk ? parseFloat(risk) : 0, 
                 outcome, session, strategy, reason
             }).eq('id', viewingTradeId);
 
@@ -673,8 +717,8 @@
             const mode = document.getElementById('tradeMode').value;
             
             const rrRaw = document.getElementById('tradeRR').value;
-            const slRaw = document.getElementById('tradeSL').value; // NEW
-            const riskRaw = document.getElementById('tradeRisk').value; // NEW
+            const slRaw = document.getElementById('tradeSL').value; 
+            const riskRaw = document.getElementById('tradeRisk').value; 
 
             const rr = rrRaw ? parseFloat(rrRaw) : 0;
             const stop_loss = slRaw ? parseFloat(slRaw) : 0;
@@ -695,8 +739,9 @@
             const { error } = await supabaseClient.from('trades').insert([{
                 pair, pnl, rr, outcome, is_backtest: isBacktest, session, direction, strategy,
                 reason: notes, trade_date: tradeDate, day_of_week: dayOfWeek, created_at: now.toISOString(),
-                stop_loss: stop_loss, // NEW
-                risk_percent: risk_percent // NEW
+                stop_loss: stop_loss,
+                risk_percent: risk_percent,
+                account_type: currentAccount // SAVING THE ACCOUNT TYPE HERE
             }]);
 
             if (error) { console.error(error); alert("Error saving trade"); return; }
@@ -721,7 +766,6 @@
             res.style.display='block';
             res.innerText = (high/total) < 0.4 ? "✅ PASS" : "❌ FAIL";
         }
-        function handleFileImport() { alert("Import feature placeholder"); }
         function toggleAIChat() { const w=document.getElementById('aiChatWindow'); w.style.display=w.style.display==='flex'?'none':'flex'; }
 
         // --- AI (OPENAI) ---
@@ -736,7 +780,7 @@
             body.scrollTop = body.scrollHeight;
 
             try {
-                const context = `<br>User Trade History:<br>${JSON.stringify(allTradesCache)}<br>User Question:<br>${message}`;
+                const context = `<br>User Trade History (${currentAccount} Account):<br>${JSON.stringify(allTradesCache)}<br>User Question:<br>${message}`;
                 const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
@@ -755,7 +799,6 @@
             outputBox.style.display = "block"; outputBox.innerText = "Analyzing...";
             const trade = window.currentViewTrade;
             const prompt = `Grade trade: ${trade.pair}, PnL: ${trade.pnl}, Notes: ${trade.reason}`;
-            // ... (Same Fetch as before)
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
                     body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], temperature: 0.7 })
@@ -771,7 +814,6 @@
             const trade = window.currentViewTrade;
             if (!trade.chart_screenshot) { outputBox.innerText = "No chart."; return; }
             const prompt = `Analyze chart URL: ${trade.chart_screenshot}`;
-            // ... (Same Fetch as before)
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                     method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_API_KEY },
                     body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], temperature: 0.7 })

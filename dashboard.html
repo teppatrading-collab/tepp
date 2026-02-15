@@ -27,6 +27,7 @@
             --text-muted: #94a3b8;
             --success: #4ade80;
             --danger: #ef4444;
+            --warning: #fbbf24; /* Added for Breakeven */
         }
 
         * { box-sizing: border-box; outline: none; }
@@ -38,7 +39,7 @@
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
         /* =========================================
-           2. RESPONSIVE LAYOUT & SIDEBAR
+           2. SIDEBAR
            ========================================= */
         .sidebar { 
             width: 260px; height: 100vh; background: #0f172a; border-right: 1px solid var(--border); 
@@ -65,9 +66,8 @@
         .sidebar-overlay.active { display: block; }
 
         /* =========================================
-           3. DASHBOARD COMPONENTS
+           3. DASHBOARD & TOP BAR
            ========================================= */
-        /* FIXED: Removed overflow-x: auto so dropdowns show */
         .top-bar { 
             display: flex; gap: 15px; margin-bottom: 30px; 
             flex-wrap: wrap; 
@@ -84,16 +84,7 @@
         .stat-pill.active { background: rgba(45, 212, 191, 0.1); border-color: var(--primary); color: var(--primary); }
         .stat-pill b { color: #fff; font-size: 1rem; }
 
-        .account-overview { 
-            background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 16px; 
-            padding: 30px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; 
-            position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .account-info h2 { margin: 0 0 5px 0; color: #fff; font-size: 1.8rem; letter-spacing: -0.5px; }
-        .big-balance { font-size: 2.5rem; font-weight: 800; color: #fff; margin-bottom: 5px; text-align: right; letter-spacing: -1px; }
-        .win-rate-badge { background: rgba(45, 212, 191, 0.15); color: var(--primary); padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; border: 1px solid rgba(45,212,191,0.2); }
-
-        /* ACCOUNT SWITCHER DROPDOWN */
+        /* ACCOUNT DROPDOWN */
         .account-select-container { position: relative; display: inline-block; }
         .account-dropdown {
             display: none; position: absolute; top: 110%; left: 0; width: 260px;
@@ -113,8 +104,18 @@
         }
         .new-acc-btn:hover { background: #22c55e; }
 
+        /* ACCOUNT CARD */
+        .account-overview { 
+            background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 16px; 
+            padding: 30px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; 
+            position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .account-info h2 { margin: 0 0 5px 0; color: #fff; font-size: 1.8rem; letter-spacing: -0.5px; }
+        .big-balance { font-size: 2.5rem; font-weight: 800; color: #fff; margin-bottom: 5px; text-align: right; letter-spacing: -1px; }
+        .win-rate-badge { background: rgba(45, 212, 191, 0.15); color: var(--primary); padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; border: 1px solid rgba(45,212,191,0.2); }
+
         /* =========================================
-           4. CALENDAR SYSTEM
+           4. CALENDAR & GRIDS
            ========================================= */
         .calendar-wrapper { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 30px; }
         .calendar-grid { 
@@ -136,8 +137,11 @@
         .mini-trade-item { display: flex; justify-content: space-between; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.4); font-weight: 600; white-space: nowrap; }
         .mini-trade-item.win { color: var(--success); border-left: 2px solid var(--success); }
         .mini-trade-item.loss { color: var(--danger); border-left: 2px solid var(--danger); }
+        .mini-trade-item.be { color: var(--warning); border-left: 2px solid var(--warning); } /* New BE Style */
+
         .glow-win { background: rgba(34, 197, 94, 0.05) !important; border: 1px solid #22c55e !important; box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.1); }
         .glow-win .cal-pnl { color: var(--success) !important; text-shadow: 0 0 10px rgba(74, 222, 128, 0.4); }
+        
         .glow-loss { background: rgba(239, 68, 68, 0.05) !important; border: 1px solid #ef4444 !important; box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.1); }
         .glow-loss .cal-pnl { color: var(--danger) !important; text-shadow: 0 0 10px rgba(248, 113, 113, 0.4); }
 
@@ -147,7 +151,7 @@
         .week-val { color: var(--primary); font-size: 1.6rem; font-weight: 800; }
 
         /* =========================================
-           5. SIDEBAR ELEMENTS
+           5. OTHER ELEMENTS
            ========================================= */
         .brand-container { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
         .brand-logo { width: 40px; height: 40px; object-fit: contain; }
@@ -158,9 +162,6 @@
         .side-btn { width: 100%; background: var(--primary); color: #000; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; }
         .side-btn:hover { background: #22c55e; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
 
-        /* =========================================
-           6. TRADE FEED CARDS
-           ========================================= */
         .trade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
         .trade-log-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: all 0.3s ease; position: relative; display: flex; flex-direction: column; cursor: pointer; }
         .trade-log-card:hover { transform: translateY(-5px); border-color: var(--text-muted); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
@@ -170,7 +171,6 @@
         .no-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: rgba(0,0,0,0.3); font-size: 0.9rem; }
         .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
         .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: var(--text-muted); font-size: 0.85rem; }
-        .card-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .pair-text { font-size: 1.5rem; font-weight: 800; color: #fff; }
         .pnl-text { font-size: 1.5rem; font-weight: 800; }
         .tag-row { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
@@ -178,6 +178,7 @@
         .tag-session { background: #334155; color: #cbd5e1; border: 1px solid #475569; }
         .tag-win { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.3); }
         .tag-loss { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .tag-be { background: rgba(251, 191, 36, 0.2); color: var(--warning); border: 1px solid rgba(251, 191, 36, 0.3); } /* New Tag */
         .card-footer { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
         .card-actions { display: flex; gap: 8px; }
         .action-icon-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
@@ -185,54 +186,38 @@
         .delete-icon:hover { background: var(--danger); color: #fff; }
 
         /* =========================================
-           UPDATED: PROFESSIONAL MODALS & FORMS
+           UPDATED MODALS & FORMS
            ========================================= */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 20px; }
         
         .modal-box { 
             background: var(--card); 
-            width: 850px; /* Wider for better spacing */
+            width: 850px; /* Wider */
             max-width: 95%; max-height: 90vh; 
-            border-radius: 24px; /* Softer, modern corners */
-            border: 1px solid var(--border); 
+            border-radius: 24px; border: 1px solid var(--border); 
             display: flex; flex-direction: column; 
             overflow: hidden; 
             box-shadow: 0 25px 50px rgba(0,0,0,0.6); 
-            padding: 40px; /* Internal breathing room */
+            padding: 40px; 
         }
         
         .modal-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 25px 40px; /* SPACIOUS GAP */
+            gap: 25px 40px; 
             overflow-y: auto; 
             padding-right: 15px; padding-bottom: 20px; 
         }
         
         .side-input { 
-            width: 100%; 
-            background: #0f172a; /* Darker than card */
-            color: #f8fafc; 
-            border: 1px solid var(--border); 
-            padding: 14px 16px; /* Taller comfortable inputs */
-            border-radius: 12px; 
-            font-size: 0.95rem; 
-            font-family: 'Inter', sans-serif; 
+            width: 100%; background: #0f172a; color: #f8fafc; border: 1px solid var(--border); 
+            padding: 14px 16px; border-radius: 12px; font-size: 0.95rem; font-family: 'Inter', sans-serif; 
             transition: all 0.2s ease; outline: none; 
         }
         
         .side-input:focus { border-color: var(--primary); background: #151e32; box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15); }
         
-        /* New Label Style */
-        .week-label { 
-            color: #94a3b8; 
-            font-size: 0.75rem; 
-            font-weight: 700; 
-            letter-spacing: 0.8px; /* High-end terminal look */
-            text-transform: uppercase; 
-            display: block; 
-            margin-bottom: 10px; /* Separation from input */
-        }
+        .week-label { color: #94a3b8; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; display: block; margin-bottom: 10px; }
         
         input[type="file"]::file-selector-button { background: #334155; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-right: 10px; transition: 0.2s; }
         input[type="file"]::file-selector-button:hover { background: var(--primary); color: #000; }
@@ -307,7 +292,7 @@
                 <p>Pro Terminal • Real-Time Analytics</p>
                 <div style="margin-top: 20px;">
                     <span class="win-rate-badge" id="cardWinRate">0% WR</span>
-                    <span style="color: #94a3b8; margin-left: 10px;" id="cardRecord">0W | 0L</span>
+                    <span style="color: #94a3b8; margin-left: 10px;" id="cardRecord">0W | 0L | 0BE</span>
                 </div>
             </div>
             <div class="account-metrics">
@@ -357,13 +342,16 @@
                 
                 <div><label class="week-label" style="color:var(--primary);">Risk (%)</label><input type="number" id="tradeRiskPct" class="side-input" placeholder="e.g. 1"></div>
                 <div><label class="week-label" style="color:var(--primary);">Reward (RR)</label><input type="number" id="tradeRR" class="side-input" placeholder="e.g. 3.5"></div>
+                
                 <div><label class="week-label">Daily Candle</label><select id="tradeDailyCandle" class="side-input"><option>Bullish</option><option>Bearish</option><option>Indecision</option></select></div>
                 <div><label class="week-label">Trend</label><select id="tradeTrend" class="side-input"><option>Pro Trend</option><option>Counter Trend</option></select></div>
 
-                <div><label class="week-label">Stop Loss (Pips)</label><input type="number" id="tradeSL" class="side-input"></div>
-                <div><label class="week-label">PnL ($)</label><input type="number" id="tradePnL" class="side-input"></div>
+                <div><label class="week-label">PnL ($)</label><input type="number" id="tradePnL" class="side-input" oninput="autoUpdateOutcome()"></div>
+                <div><label class="week-label">Outcome</label><select id="tradeOutcome" class="side-input"><option value="Win">Win</option><option value="Loss">Loss</option><option value="Breakeven">Breakeven</option></select></div>
 
+                <div><label class="week-label">Stop Loss (Pips)</label><input type="number" id="tradeSL" class="side-input"></div>
                 <div><label class="week-label">Mode</label><select id="tradeMode" class="side-input" style="border-color:#fbbf24; color:#fbbf24;"><option value="Live">Live Execution</option><option value="Backtest">Backtest</option><option value="Forward">Forward Test</option></select></div>
+                
                 <div><label class="week-label">Strategy</label><select id="tradeStrategy" class="side-input"><option>Continuation</option><option>Reversal</option></select></div>
                 <div><label class="week-label">Condition</label><select id="tradeCondition" class="side-input"><option>London Continuation 50% Asia</option><option>London Reversal</option><option>SMT New York Continuation</option><option>New York Reversal</option><option>Market Freestyle</option></select></div>
                 <div><label class="week-label">Inducement</label><select id="tradeInducement" class="side-input"><option>Minor</option><option>Medium</option><option>Major</option></select></div>
@@ -452,9 +440,10 @@
                     <div><label class="week-label">Daily Candle</label><select id="editDailyCandle" class="side-input"><option>Bullish</option><option>Bearish</option><option>Indecision</option></select></div>
                     <div><label class="week-label">Trend</label><select id="editTrend" class="side-input"><option>Pro Trend</option><option>Counter Trend</option></select></div>
 
-                    <div><label class="week-label">Stop Loss</label><input type="number" id="editSL" class="side-input"></div>
                     <div><label class="week-label">PnL ($)</label><input type="number" id="editPnL" class="side-input"></div>
                     <div><label class="week-label">Outcome</label><select id="editOutcome" class="side-input"><option>Win</option><option>Loss</option><option>Breakeven</option></select></div>
+                    
+                    <div><label class="week-label">Stop Loss</label><input type="number" id="editSL" class="side-input"></div>
                     <div><label class="week-label">Mode</label><select id="editMode" class="side-input"><option value="Live">Live</option><option value="Backtest">Backtest</option><option value="Forward">Forward</option></select></div>
                     <div><label class="week-label">Strategy</label><select id="editStrategy" class="side-input"><option>Continuation</option><option>Reversal</option></select></div>
                     <div><label class="week-label">Condition</label><select id="editCondition" class="side-input"><option>London Continuation 50% Asia</option><option>London Reversal</option><option>SMT New York Continuation</option><option>New York Reversal</option><option>Market Freestyle</option></select></div>
@@ -609,6 +598,16 @@
         function saveAccountsToStorage() { localStorage.setItem('teppa_accounts_v2', JSON.stringify(ACCOUNTS)); }
 
         // --- TRADING LOGIC ---
+        function autoUpdateOutcome() {
+            const val = parseFloat(document.getElementById('tradePnL').value);
+            const select = document.getElementById('tradeOutcome');
+            if(!isNaN(val)) {
+                if(val > 0) select.value = 'Win';
+                else if(val < 0) select.value = 'Loss';
+                else select.value = 'Breakeven';
+            }
+        }
+
         async function loadTrades(filterDate = null) {
             const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
             if(error) return console.error(error);
@@ -620,9 +619,14 @@
             }
             allTradesCache = accountTrades; 
             
-            let netPnL = 0, wins = 0, loss = 0;
+            let netPnL = 0, wins = 0, loss = 0, be = 0; // Added BE
             const liveTrades = accountTrades.filter(t => t.is_backtest !== true);
-            liveTrades.forEach(t => { netPnL += (t.pnl || 0); if(t.outcome === 'Win') wins++; if(t.outcome === 'Loss') loss++; });
+            liveTrades.forEach(t => { 
+                netPnL += (t.pnl || 0); 
+                if(t.outcome === 'Win') wins++; 
+                else if(t.outcome === 'Loss') loss++; 
+                else if(t.outcome === 'Breakeven') be++; 
+            });
 
             const currentAccount = ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
             const startBal = currentAccount ? currentAccount.balance : 0;
@@ -635,9 +639,13 @@
             document.getElementById('cardPnL').innerText = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
             document.getElementById('cardPnL').style.color = netPnL>=0 ? 'var(--primary)' : 'var(--danger)';
             
-            const wr = (wins + loss) > 0 ? ((wins / (wins+loss))*100).toFixed(0) : 0;
+            const totalTrades = wins + loss + be;
+            const wr = totalTrades > 0 ? ((wins / totalTrades)*100).toFixed(0) : 0;
             document.getElementById('cardWinRate').innerText = wr + "% Win Rate";
-            document.getElementById('cardRecord').innerText = `${wins}W | ${loss}L`;
+            
+            // UPDATED RECORD DISPLAY
+            document.getElementById('cardRecord').innerText = `${wins}W | ${loss}L | ${be}BE`;
+            
             document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
             document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
 
@@ -680,9 +688,10 @@
                 const pnl = parseFloat(document.getElementById('tradePnL').value || 0);
                 const mode = document.getElementById('tradeMode').value;
                 const isBacktest = (mode === 'Backtest' || mode === 'Forward');
-                const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
                 
-                // UPDATED INSERT to include ALL fields
+                // Read Manual Outcome
+                const outcome = document.getElementById('tradeOutcome').value;
+                
                 const { error } = await supabaseClient.from('trades').insert([{
                     pair, pnl, outcome, is_backtest: isBacktest, 
                     session: document.getElementById('tradeSession').value, 
@@ -710,6 +719,7 @@
                 
                 if (error) throw error;
                 document.getElementById('addTradeModal').style.display = 'none';
+                // Clear fields
                 ['tradePair','tradePnL','tradeReason','tradeSL','tradeRR','tradeRiskPct'].forEach(id => { 
                     const el = document.getElementById(id); if(el) el.value = ''; 
                 });
@@ -739,10 +749,13 @@
             trades.forEach(t => {
                 const card = document.createElement('div');
                 card.className = "trade-log-card";
-                if (t.outcome === 'Win') card.classList.add('glow-win'); else if (t.outcome === 'Loss') card.classList.add('glow-loss');
+                if (t.outcome === 'Win') card.classList.add('glow-win'); 
+                else if (t.outcome === 'Loss') card.classList.add('glow-loss');
+                
                 card.onclick = (e) => { if(!e.target.closest('button')) openViewModal(t); };
-                let pnlColor = t.pnl >= 0 ? "var(--primary)" : "var(--danger)";
+                let pnlColor = t.pnl > 0 ? "var(--primary)" : (t.pnl < 0 ? "var(--danger)" : "var(--warning)");
                 const isTest = t.is_backtest ? `<span class="tag-pill tag-test">BACKTEST</span>` : '';
+                
                 let imgStrip = '<div class="card-img-strip"><div class="no-img-placeholder">No Chart</div></div>';
                 if(t.chart_screenshot) {
                     let urls = t.chart_screenshot.split(',');
@@ -750,7 +763,13 @@
                     if(firstUrl && firstUrl.includes('http')) imgStrip = `<div class="card-img-strip"><img src="${firstUrl}"></div>`;
                 }
                 const displayDate = t.trade_date ? t.trade_date : new Date(t.created_at).toLocaleDateString();
-                card.innerHTML = `${imgStrip}<div class="card-body"><div class="card-top"><span>${displayDate}</span><div class="card-actions"><button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button></div></div><div class="card-main"><span class="pair-text">${t.pair}</span><span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span></div><div class="tag-row"><span class="tag-pill tag-session">${t.session || 'Unknown'}</span><span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>${isTest}</div><div class="card-footer">${t.reason || 'No notes added.'}</div></div>`;
+                
+                // Outcome Pill Logic
+                let outcomeClass = 'tag-win';
+                if(t.outcome === 'Loss') outcomeClass = 'tag-loss';
+                if(t.outcome === 'Breakeven') outcomeClass = 'tag-be';
+
+                card.innerHTML = `${imgStrip}<div class="card-body"><div class="card-top"><span>${displayDate}</span><div class="card-actions"><button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button></div></div><div class="card-main"><span class="pair-text">${t.pair}</span><span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span></div><div class="tag-row"><span class="tag-pill tag-session">${t.session || 'Unknown'}</span><span class="tag-pill ${outcomeClass}">${t.outcome}</span>${isTest}</div><div class="card-footer">${t.reason || 'No notes added.'}</div></div>`;
                 feed.appendChild(card);
             });
         }
@@ -780,10 +799,13 @@
                 let content = `<span class="cal-num">${i}</span>`;
                 if(dailyData[i]) {
                     const dayPnL = dailyData[i].pnl;
-                    day.className += dayPnL >= 0 ? " glow-win" : " glow-loss";
+                    day.className += dayPnL > 0 ? " glow-win" : (dayPnL < 0 ? " glow-loss" : "");
                     content += `<span class="cal-pnl">${dayPnL >= 0 ? '+' : ''}$${dayPnL.toLocaleString()}</span>`;
                     content += `<div class="mini-trade-list">`;
-                    dailyData[i].trades.forEach(trade => { content += `<div class="mini-trade-item ${trade.pnl >= 0 ? 'win' : 'loss'}"><span>${trade.pair}</span><span>${trade.pnl >= 0 ? '+' : ''}${trade.pnl}</span></div>`; });
+                    dailyData[i].trades.forEach(trade => { 
+                        let cls = trade.pnl > 0 ? 'win' : (trade.pnl < 0 ? 'loss' : 'be');
+                        content += `<div class="mini-trade-item ${cls}"><span>${trade.pair}</span><span>${trade.pnl >= 0 ? '+' : ''}${trade.pnl}</span></div>`; 
+                    });
                     content += `</div>`;
                 }
                 const filterStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
@@ -893,7 +915,6 @@
                 pnl: pnl,
                 outcome: document.getElementById('editOutcome').value,
                 
-                // New Fields in Edit
                 risk_percent: parseFloat(document.getElementById('editRiskPct').value || 0),
                 risk_reward: parseFloat(document.getElementById('editRR').value || 0),
                 daily_candle: document.getElementById('editDailyCandle').value,

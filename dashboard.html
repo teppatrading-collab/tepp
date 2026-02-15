@@ -33,20 +33,10 @@
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
         /* --- 🔥 PROFESSIONAL SCROLLBAR STYLES --- */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg); 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border); 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted); 
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
         /* =========================================
            2. RESPONSIVE LAYOUT & SIDEBAR
@@ -66,7 +56,6 @@
             flex-direction: column;
             box-shadow: 5px 0 25px rgba(0,0,0,0.5);
         }
-        
         .sidebar.active { left: 0; }
 
         .main-content { 
@@ -77,33 +66,17 @@
         }
         
         .menu-toggle-btn { 
-            position: fixed; 
-            top: 20px; 
-            left: 20px; 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            color: var(--text); 
-            width: 45px; 
-            height: 45px;
-            border-radius: 12px; 
-            z-index: 2001; 
-            cursor: pointer; 
-            font-size: 1.5rem; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
-            transition: 0.2s;
+            position: fixed; top: 20px; left: 20px; 
+            background: var(--card); border: 1px solid var(--border); color: var(--text); 
+            width: 45px; height: 45px; border-radius: 12px; z-index: 2001; 
+            cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: 0.2s;
         }
         .menu-toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
 
         .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1500;
-            backdrop-filter: blur(3px);
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 1500; backdrop-filter: blur(3px);
         }
         .sidebar-overlay.active { display: block; }
 
@@ -112,70 +85,59 @@
            ========================================= */
         .top-bar { display: flex; gap: 15px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px; margin-left: 60px; }
         .stat-pill { 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            padding: 10px 20px; 
-            border-radius: 30px; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            color: var(--text-muted); 
-            font-size: 0.9rem; 
-            font-weight: 600; 
-            white-space: nowrap; 
-            transition: 0.2s;
+            background: var(--card); border: 1px solid var(--border); padding: 10px 20px; border-radius: 30px; 
+            display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; 
+            white-space: nowrap; transition: 0.2s; cursor: pointer;
         }
         .stat-pill:hover { border-color: var(--primary); color: #fff; }
         .stat-pill.active { background: rgba(45, 212, 191, 0.1); border-color: var(--primary); color: var(--primary); }
         .stat-pill b { color: #fff; font-size: 1rem; }
 
         .account-overview { 
-            background: linear-gradient(145deg, #1e293b, #0f172a); 
-            border: 1px solid var(--border); 
-            border-radius: 16px; 
-            padding: 30px; 
-            margin-bottom: 30px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-end; 
-            position: relative; 
-            overflow: hidden; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 16px; 
+            padding: 30px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; 
+            position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
         .account-info h2 { margin: 0 0 5px 0; color: #fff; font-size: 1.8rem; letter-spacing: -0.5px; }
         .big-balance { font-size: 2.5rem; font-weight: 800; color: #fff; margin-bottom: 5px; text-align: right; letter-spacing: -1px; }
         .win-rate-badge { background: rgba(45, 212, 191, 0.15); color: var(--primary); padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; border: 1px solid rgba(45,212,191,0.2); }
+
+        /* ACCOUNT SWITCHER DROPDOWN */
+        .account-select-container { position: relative; display: inline-block; }
+        .account-dropdown {
+            display: none; position: absolute; top: 100%; left: 0; width: 220px;
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100; margin-top: 10px; overflow: hidden;
+        }
+        .account-dropdown.show { display: block; }
+        .account-item {
+            padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #e2e8f0;
+        }
+        .account-item:hover { background: rgba(255,255,255,0.03); }
+        .account-item.active { background: rgba(45, 212, 191, 0.1); color: var(--primary); }
+        .account-item i { font-size: 1.1rem; }
+        .new-acc-btn {
+            width: 100%; background: var(--primary); color: #000; border: none; padding: 10px;
+            font-weight: bold; cursor: pointer; text-align: center;
+        }
+        .new-acc-btn:hover { background: #22c55e; }
+
 
         /* =========================================
            4. CALENDAR SYSTEM
            ========================================= */
         .calendar-wrapper { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; margin-bottom: 30px; }
         .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            gap: 8px; 
-            background: var(--card); 
-            padding: 20px; 
-            border-radius: 12px; 
-            border: 1px solid var(--border); 
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; 
+            background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); 
         }
         .calendar-header-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 10px; color: var(--text-muted); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
         
         .cal-day { 
-            aspect-ratio: 1; 
-            background: var(--bg); 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            justify-content: flex-start !important; 
-            flex-direction: column; 
-            transition: all 0.2s ease; 
-            cursor: pointer;
-            padding-top: 28px; 
-            gap: 4px; 
-            overflow: hidden;
+            aspect-ratio: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; 
+            position: relative; display: flex; align-items: center; justify-content: flex-start !important; 
+            flex-direction: column; transition: all 0.2s ease; cursor: pointer; padding-top: 28px; gap: 4px; overflow: hidden;
         }
         .cal-day:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .cal-day.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
@@ -325,7 +287,15 @@
 
     <main class="main-content">
         <div class="top-bar">
-            <div class="stat-pill active"><i class='bx bx-user'></i> <b>Live/Funded Journal</b></div>
+            <div class="account-select-container">
+                <div class="stat-pill active" onclick="toggleAccountDropdown(event)" id="accountSelectBtn">
+                    <i class='bx bx-user'></i> <b id="topBarAccountName">Loading...</b> <i class='bx bx-chevron-down'></i>
+                </div>
+                <div class="account-dropdown" id="accountDropdown">
+                    <div id="accountListContainer"></div>
+                    <button class="new-acc-btn" onclick="openNewAccountModal()">+ Add New Account</button>
+                </div>
+            </div>
             <div class="stat-pill"><i class='bx bx-wallet'></i> Bal: <b id="navBalance">$0</b></div>
             <div class="stat-pill"><i class='bx bx-line-chart'></i> P&L: <b id="navPnL">$0</b></div>
             <div class="stat-pill"><i class='bx bx-list-check'></i> Trades: <b id="navTrades">0</b></div>
@@ -334,8 +304,8 @@
         <div class="account-overview">
             <div class="account-info">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <h2 id="displayAccountName">Teppa Private Capital</h2>
-                    <button onclick="openAccountModal()" style="background:transparent; border:none; color:#64748b; cursor:pointer; font-size:1.2rem;">
+                    <h2 id="displayAccountName">--</h2>
+                    <button onclick="openEditAccountModal()" style="background:transparent; border:none; color:#64748b; cursor:pointer; font-size:1.2rem;">
                         <i class='bx bxs-edit'></i>
                     </button>
                 </div>
@@ -386,35 +356,24 @@
             <h3 style="margin-top:0; color:white; margin-bottom:25px; font-size:1.5rem;">New Trade Entry</h3>
             
             <div class="modal-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; overflow-y:auto; max-height:65vh; padding-right: 10px;">
-                
                 <div><label class="week-label">Date</label><input type="date" id="tradeDate" class="side-input" style="margin-bottom:0;"></div>
                 <div><label class="week-label">Time</label><input type="time" id="tradeTime" class="side-input" style="margin-bottom:0;"></div>
-                
                 <div><label class="week-label">Pair</label><input type="text" id="tradePair" class="side-input" placeholder="e.g. GBPUSD" style="margin-bottom:0;"></div>
                 <div><label class="week-label">Session</label>
-                    <select id="tradeSession" class="side-input" style="margin-bottom:0;">
-                        <option>London</option><option>New York</option><option>Asia</option>
-                    </select>
+                    <select id="tradeSession" class="side-input" style="margin-bottom:0;"><option>London</option><option>New York</option><option>Asia</option></select>
                 </div>
-
                 <div><label class="week-label">Direction</label>
-                    <select id="tradeDirection" class="side-input" style="margin-bottom:0;">
-                        <option>Bullish</option><option>Bearish</option>
-                    </select>
+                    <select id="tradeDirection" class="side-input" style="margin-bottom:0;"><option>Bullish</option><option>Bearish</option></select>
                 </div>
                 <div><label class="week-label">Type</label>
-                    <select id="tradeType" class="side-input" style="margin-bottom:0;">
-                        <option>Buy</option><option>Sell</option>
-                    </select>
+                    <select id="tradeType" class="side-input" style="margin-bottom:0;"><option>Buy</option><option>Sell</option></select>
                 </div>
-
                 <div><label class="week-label" style="color:var(--primary);">Stop Loss (Pips)</label>
                     <input type="number" id="tradeSL" class="side-input" placeholder="e.g. 15" style="margin-bottom:0; border-color:var(--primary-glow);">
                 </div>
                 <div><label class="week-label" style="color:var(--primary);">Risk : Reward (1:X)</label>
                     <input type="number" id="tradeRR" class="side-input" placeholder="e.g. 3.5" style="margin-bottom:0; border-color:var(--primary-glow);">
                 </div>
-
                 <div><label class="week-label">Mode</label>
                     <select id="tradeMode" class="side-input" style="margin-bottom:0; border-color:#fbbf24; color:#fbbf24;">
                         <option value="Live">Live Execution</option>
@@ -423,45 +382,30 @@
                     </select>
                 </div>
                 <div><label class="week-label">Strategy</label>
-                    <select id="tradeStrategy" class="side-input" style="margin-bottom:0;">
-                        <option>Continuation</option><option>Reversal</option>
-                    </select>
+                    <select id="tradeStrategy" class="side-input" style="margin-bottom:0;"><option>Continuation</option><option>Reversal</option></select>
                 </div>
-                
                 <div style="grid-column: span 1;"><label class="week-label">Condition</label>
                     <select id="tradeCondition" class="side-input" style="margin-bottom:0;">
-                        <option>London Continuation 50% Asia</option>
-                        <option>London Reversal</option>
-                        <option>SMT New York Continuation</option>
-                        <option>New York Reversal</option>
-                        <option>Market Freestyle</option>
+                        <option>London Continuation 50% Asia</option><option>London Reversal</option>
+                        <option>SMT New York Continuation</option><option>New York Reversal</option><option>Market Freestyle</option>
                     </select>
                 </div>
-
                 <div><label class="week-label">Inducement</label>
-                    <select id="tradeInducement" class="side-input" style="margin-bottom:0;">
-                        <option>Minor</option><option>Medium</option><option>Major</option>
-                    </select>
+                    <select id="tradeInducement" class="side-input" style="margin-bottom:0;"><option>Minor</option><option>Medium</option><option>Major</option></select>
                 </div>
-                
                 <div><label class="week-label">Execution</label>
-                    <select id="tradeExec" class="side-input" style="margin-bottom:0;">
-                        <option>Market Execution</option><option>Limit Order</option>
-                    </select>
+                    <select id="tradeExec" class="side-input" style="margin-bottom:0;"><option>Market Execution</option><option>Limit Order</option></select>
                 </div>
                 <div><label class="week-label">PnL ($)</label><input type="number" id="tradePnL" class="side-input" style="margin-bottom:0;"></div>
             </div>
-
             <div style="margin-top:20px;">
                 <label class="week-label">Notes & Psychology</label>
                 <textarea id="tradeReason" class="side-input" rows="3" placeholder="How were you feeling? Why did you take this?"></textarea>
             </div>
-            
             <div style="margin-top:10px;">
                 <label class="week-label">Upload Chart Screenshot</label>
                 <input type="file" id="chartUpload" class="side-input" accept="image/*">
             </div>
-            
             <div style="display:flex; gap:15px; margin-top:20px;">
                 <button class="side-btn" id="saveTradeBtn" onclick="saveTrade()">Save Entry</button>
                 <button class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;" onclick="document.getElementById('addTradeModal').style.display='none'">Cancel</button>
@@ -469,20 +413,41 @@
         </div>
     </div>
 
-    <div id="accountModal" class="modal-overlay">
+    <div id="newAccountModal" class="modal-overlay">
         <div class="modal-box" style="width:400px; padding:30px;">
-            <h3 style="margin-top:0; color:white; margin-bottom:20px;">Account Settings</h3>
+            <h3 style="margin-top:0; color:white; margin-bottom:20px;">Create New Account</h3>
             <div style="margin-bottom:15px;">
                 <label class="week-label">Account Name</label>
-                <input type="text" id="setAccountName" class="side-input" placeholder="e.g. FTMO Challenge">
+                <input type="text" id="newAccName" class="side-input" placeholder="e.g. FTMO Challenge 2026">
             </div>
             <div style="margin-bottom:20px;">
                 <label class="week-label">Starting Balance ($)</label>
-                <input type="number" id="setStartBal" class="side-input" placeholder="e.g. 100000">
+                <input type="number" id="newAccBal" class="side-input" placeholder="e.g. 100000">
             </div>
             <div style="display:flex; gap:10px;">
-                <button onclick="saveAccountSettings()" class="side-btn">Save Settings</button>
-                <button onclick="document.getElementById('accountModal').style.display='none'" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+                <button onclick="createNewAccount()" class="side-btn">Create Account</button>
+                <button onclick="document.getElementById('newAccountModal').style.display='none'" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editAccountModal" class="modal-overlay">
+        <div class="modal-box" style="width:400px; padding:30px;">
+            <h3 style="margin-top:0; color:white; margin-bottom:20px;">Edit Current Account</h3>
+            <div style="margin-bottom:15px;">
+                <label class="week-label">Account Name</label>
+                <input type="text" id="editAccName" class="side-input">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label class="week-label">Starting Balance ($)</label>
+                <input type="number" id="editAccBal" class="side-input">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="updateCurrentAccount()" class="side-btn">Save Changes</button>
+                <button onclick="document.getElementById('editAccountModal').style.display='none'" class="side-btn" style="background:transparent; border:1px solid #ef4444; color:#ef4444;">Cancel</button>
+            </div>
+            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
+                <button onclick="deleteCurrentAccount()" class="side-btn" style="background:var(--danger); border:none; width:100%;">Delete This Account</button>
             </div>
         </div>
     </div>
@@ -496,13 +461,11 @@
                     <button onclick="document.getElementById('viewModal').style.display='none'" style="background:transparent; border:none; color:var(--text-muted); font-size:2rem; cursor:pointer;">&times;</button>
                 </div>
             </div>
-            
             <div id="viewModeContent" style="padding:25px; overflow-y:auto;">
                 <div style="display:flex; gap:15px; margin-bottom:25px;">
                     <div class="stat-pill"><span id="viewPnL" style="font-weight:bold;">--</span></div>
                     <div class="stat-pill"><span id="viewStrategy">--</span></div>
                 </div>
-                
                 <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid #6366f1; padding:20px; border-radius:12px; margin-bottom:25px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <strong style="color:#a855f7; display:flex; align-items:center; gap:8px;"><i class='bx bxs-bot'></i> AI TRADE COACH</strong>
@@ -513,14 +476,11 @@
                     </div>
                     <div id="aiCoachOutput" style="margin-top:15px; font-size:0.95rem; color:#e0e7ff; line-height:1.6; display:none; white-space: pre-wrap;"></div>
                 </div>
-
                 <h4 style="color:var(--text-muted); margin-bottom:10px;">Notes</h4>
                 <div id="viewReason" style="color:#e2e8f0; white-space:pre-wrap; background:var(--bg); padding:20px; border-radius:12px; border:1px solid var(--border); margin-bottom:25px;">--</div>
-                
                 <h4 style="color:var(--text-muted); margin-bottom:15px;">Screenshots</h4>
                 <div id="viewImages" style="display:flex; flex-direction:column; gap:15px;"></div>
             </div>
-
             <div id="editModeContent" style="padding:25px; overflow-y:auto; display:none;">
                 <div class="modal-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
                     <div><label class="week-label">PnL ($)</label><input type="number" id="inpEditPnL" class="side-input"></div>
@@ -559,107 +519,299 @@
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         const OPENAI_API_KEY = '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'; 
 
+        // GLOBALS
         let allTradesCache = [];
-        let STARTING_BALANCE = 1000; 
-        let ACCOUNT_NAME = "Teppa Private Capital";
         let currentCalDate = new Date(); 
         let viewingTradeId = null;
+
+        // ACCOUNT SYSTEM VARIABLES
+        let ACCOUNTS = [];
+        let CURRENT_ACCOUNT_ID = null;
 
         async function init() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if(!session) window.location.replace("index.html");
             else {
-                loadAccountSettings();
-                loadTrades();
-                setNow(); // Set default Date/Time on load
+                await loadAccounts();
+                setNow();
             }
         }
         init();
 
-        // --- NEW: Helper to set the date/time inputs to current moment ---
+        // ----------------------------------------------------
+        // ACCOUNT MANAGEMENT SYSTEM
+        // ----------------------------------------------------
+        async function loadAccounts() {
+            // 1. Fetch all accounts from Supabase 'accounts' table (create this table if not exists, but we'll simulate for now if you haven't made it)
+            // Ideally, you'd have a table: id, name, start_balance, created_at, user_id
+            
+            // For simplicity in this demo, I will store accounts in localStorage 
+            // BUT to make it persistent across devices, you should create a table in Supabase called 'accounts'.
+            // I will use a hybrid approach: Try to fetch from DB, fallback to local default.
+
+            // Since you might not have an 'accounts' table yet, I will simulate it using localStorage for this immediate solution.
+            // If you want true cloud sync for accounts, create a table named 'accounts' in Supabase with cols: id (uuid), name (text), start_balance (float).
+            
+            let storedAccounts = localStorage.getItem('teppa_accounts_v2');
+            
+            if (!storedAccounts) {
+                // Initialize default
+                ACCOUNTS = [{ id: 'default_1', name: 'Main Account', balance: 1000 }];
+                localStorage.setItem('teppa_accounts_v2', JSON.stringify(ACCOUNTS));
+            } else {
+                ACCOUNTS = JSON.parse(storedAccounts);
+            }
+
+            // Load last selected account
+            let lastId = localStorage.getItem('teppa_current_account_id');
+            if (lastId && ACCOUNTS.find(a => a.id === lastId)) {
+                CURRENT_ACCOUNT_ID = lastId;
+            } else {
+                CURRENT_ACCOUNT_ID = ACCOUNTS[0].id;
+            }
+
+            renderAccountList();
+            updateAccountUI();
+            loadTrades(); // Load trades for this specific account
+        }
+
+        function renderAccountList() {
+            const container = document.getElementById('accountListContainer');
+            container.innerHTML = '';
+            ACCOUNTS.forEach(acc => {
+                const div = document.createElement('div');
+                div.className = `account-item ${acc.id === CURRENT_ACCOUNT_ID ? 'active' : ''}`;
+                div.innerHTML = `<span>${acc.name}</span> <span>$${acc.balance.toLocaleString()}</span>`;
+                div.onclick = () => switchAccount(acc.id);
+                container.appendChild(div);
+            });
+        }
+
+        function switchAccount(id) {
+            CURRENT_ACCOUNT_ID = id;
+            localStorage.setItem('teppa_current_account_id', id);
+            renderAccountList();
+            updateAccountUI();
+            document.getElementById('accountDropdown').classList.remove('show');
+            loadTrades(); // Reload trades filtering by this account
+        }
+
+        function updateAccountUI() {
+            const acc = ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+            if(acc) {
+                document.getElementById('topBarAccountName').innerText = acc.name;
+                document.getElementById('displayAccountName').innerText = acc.name;
+            }
+        }
+
+        function toggleAccountDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('accountDropdown').classList.toggle('show');
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.account-select-container')) {
+                document.getElementById('accountDropdown').classList.remove('show');
+            }
+        }
+
+        function openNewAccountModal() {
+            document.getElementById('accountDropdown').classList.remove('show');
+            document.getElementById('newAccName').value = "";
+            document.getElementById('newAccBal').value = "";
+            document.getElementById('newAccountModal').style.display = 'flex';
+        }
+
+        function createNewAccount() {
+            const name = document.getElementById('newAccName').value;
+            const bal = parseFloat(document.getElementById('newAccBal').value);
+            if(!name || isNaN(bal)) return alert("Please enter valid details.");
+
+            const newId = 'acc_' + Date.now();
+            ACCOUNTS.push({ id: newId, name, balance: bal });
+            saveAccountsToStorage();
+            
+            switchAccount(newId);
+            document.getElementById('newAccountModal').style.display = 'none';
+        }
+
+        function openEditAccountModal() {
+            const acc = ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+            if(!acc) return;
+            document.getElementById('editAccName').value = acc.name;
+            document.getElementById('editAccBal').value = acc.balance;
+            document.getElementById('editAccountModal').style.display = 'flex';
+        }
+
+        function updateCurrentAccount() {
+            const name = document.getElementById('editAccName').value;
+            const bal = parseFloat(document.getElementById('editAccBal').value);
+            if(!name || isNaN(bal)) return;
+
+            const idx = ACCOUNTS.findIndex(a => a.id === CURRENT_ACCOUNT_ID);
+            if(idx !== -1) {
+                ACCOUNTS[idx].name = name;
+                ACCOUNTS[idx].balance = bal;
+                saveAccountsToStorage();
+                updateAccountUI();
+                renderAccountList();
+                loadTrades(); // Recalculate totals based on new start balance
+                document.getElementById('editAccountModal').style.display = 'none';
+            }
+        }
+
+        function deleteCurrentAccount() {
+            if(ACCOUNTS.length <= 1) return alert("You must have at least one account.");
+            if(!confirm("Are you sure? This will hide trades associated with this account ID.")) return;
+
+            ACCOUNTS = ACCOUNTS.filter(a => a.id !== CURRENT_ACCOUNT_ID);
+            CURRENT_ACCOUNT_ID = ACCOUNTS[0].id;
+            saveAccountsToStorage();
+            switchAccount(CURRENT_ACCOUNT_ID);
+            document.getElementById('editAccountModal').style.display = 'none';
+        }
+
+        function saveAccountsToStorage() {
+            localStorage.setItem('teppa_accounts_v2', JSON.stringify(ACCOUNTS));
+        }
+
+        // ----------------------------------------------------
+        // TRADING LOGIC
+        // ----------------------------------------------------
+
+        async function loadTrades(filterDate = null) {
+            const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
+            if(error) return console.error(error);
+            
+            // 1. FILTER TRADES BY CURRENT ACCOUNT ID
+            // Legacy trades (before update) won't have account_id, so we can either assign them to default or hide them.
+            // For now, I will treat trades with NO account_id as belonging to the first account created.
+            
+            // NOTE: You need to add a column 'account_id' (text) to your Supabase 'trades' table for this to persist in cloud!
+            // If the column doesn't exist, this will just show all trades for everyone.
+            
+            // Local filtering for display:
+            let accountTrades = trades.filter(t => t.account_id === CURRENT_ACCOUNT_ID);
+            
+            // Compatibility: If you have old trades with no ID, show them on the first account
+            if(CURRENT_ACCOUNT_ID === ACCOUNTS[0].id) {
+                const orphans = trades.filter(t => !t.account_id);
+                accountTrades = [...accountTrades, ...orphans];
+            }
+
+            allTradesCache = accountTrades; // Only cache trades for THIS account
+            
+            let netPnL = 0, wins = 0, loss = 0;
+            const liveTrades = accountTrades.filter(t => t.is_backtest !== true);
+            liveTrades.forEach(t => { netPnL += (t.pnl || 0); if(t.outcome === 'Win') wins++; if(t.outcome === 'Loss') loss++; });
+
+            const currentAccount = ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+            const startBal = currentAccount ? currentAccount.balance : 0;
+            const currentBalance = startBal + netPnL;
+
+            // Update Top Bar
+            document.getElementById('navBalance').innerText = "$" + currentBalance.toLocaleString();
+            document.getElementById('navPnL').innerText = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
+            document.getElementById('navTrades').innerText = liveTrades.length;
+
+            // Update Card
+            document.getElementById('cardBalance').innerText = "$" + currentBalance.toLocaleString();
+            document.getElementById('cardPnL').innerText = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
+            document.getElementById('cardPnL').style.color = netPnL>=0 ? 'var(--primary)' : 'var(--danger)';
+            
+            const wr = (wins + loss) > 0 ? ((wins / (wins+loss))*100).toFixed(0) : 0;
+            document.getElementById('cardWinRate').innerText = wr + "% Win Rate";
+            document.getElementById('cardRecord').innerText = `${wins}W | ${loss}L`;
+            
+            document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
+            document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
+
+            renderCalendar(liveTrades); 
+            
+            let feedTrades = accountTrades;
+            if (filterDate && filterDate !== 'all') {
+                document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
+                feedTrades = accountTrades.filter(t => t.trade_date === filterDate || new Date(t.created_at).toLocaleDateString() === filterDate);
+            } else {
+                document.getElementById('tradeFeedTitle').innerText = "RECENT ACTIVITY";
+            }
+            renderFeed(feedTrades);
+            renderChart(liveTrades, startBal);
+        }
+
+        async function saveTrade() {
+            const btn = document.getElementById('saveTradeBtn');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+            try {
+                const dateVal = document.getElementById('tradeDate').value; 
+                const timeVal = document.getElementById('tradeTime').value; 
+                const fullDateTime = new Date(`${dateVal}T${timeVal}`);
+                const created_at_iso = fullDateTime.toISOString();
+
+                const fileInput = document.getElementById('chartUpload');
+                const file = fileInput.files[0];
+                let publicUrl = null;
+                if (file) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}.${fileExt}`;
+                    const { data, error } = await supabaseClient.storage.from('chart-screenshots').upload(fileName, file);
+                    if (error) throw error;
+                    const { data: urlData } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(fileName);
+                    publicUrl = urlData.publicUrl;
+                }
+
+                const pair = document.getElementById('tradePair').value.trim().toUpperCase();
+                const pnl = parseFloat(document.getElementById('tradePnL').value || 0);
+                const mode = document.getElementById('tradeMode').value;
+                const isBacktest = (mode === 'Backtest' || mode === 'Forward');
+                const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
+                
+                // INSERT WITH CURRENT ACCOUNT ID
+                const { error } = await supabaseClient.from('trades').insert([{
+                    pair, pnl, outcome, is_backtest: isBacktest, 
+                    session: document.getElementById('tradeSession').value, 
+                    direction: document.getElementById('tradeDirection').value, 
+                    strategy: document.getElementById('tradeStrategy').value, 
+                    reason: document.getElementById('tradeReason').value,
+                    stop_loss: parseFloat(document.getElementById('tradeSL').value || 0),
+                    risk_reward: parseFloat(document.getElementById('tradeRR').value || 0),
+                    chart_screenshot: publicUrl, 
+                    trade_date: dateVal, 
+                    day_of_week: fullDateTime.toLocaleDateString('en-US', { weekday: 'long' }),
+                    created_at: created_at_iso,
+                    account_id: CURRENT_ACCOUNT_ID // IMPORTANT: Tag trade with current account
+                }]);
+                
+                if (error) throw error;
+                document.getElementById('addTradeModal').style.display = 'none';
+                // Reset form fields
+                ['tradePair','tradePnL','tradeReason','tradeSL','tradeRR'].forEach(id => document.getElementById(id).value = '');
+                fileInput.value = "";
+                
+                loadTrades();
+                setNow(); 
+            } catch (error) { console.error(error); alert("Error saving trade: " + error.message); } 
+            finally { btn.innerText = "Save Entry"; btn.disabled = false; }
+        }
+
+        // --- CORE HELPERS ---
+
         function setNow() {
             const now = new Date();
-            // en-CA format gives YYYY-MM-DD which inputs require
             const dateStr = now.toLocaleDateString('en-CA'); 
             const timeStr = now.toTimeString().split(' ')[0].substring(0,5);
-            
             const dateEl = document.getElementById('tradeDate');
             const timeEl = document.getElementById('tradeTime');
             if(dateEl) dateEl.value = dateStr;
             if(timeEl) timeEl.value = timeStr;
         }
 
-        // --- NEW: Function to fix calendar navigation ---
         function changeMonth(n) {
-            // Set to 1st to avoid month skipping on 31st
             currentCalDate.setDate(1); 
-            // Move month
             currentCalDate.setMonth(currentCalDate.getMonth() + n);
-            // Re-render only live trades
             const liveTrades = allTradesCache.filter(t => t.is_backtest !== true);
             renderCalendar(liveTrades);
-        }
-
-        function openAccountModal() {
-            document.getElementById('setAccountName').value = ACCOUNT_NAME;
-            document.getElementById('setStartBal').value = STARTING_BALANCE;
-            document.getElementById('accountModal').style.display = 'flex';
-        }
-
-        function saveAccountSettings() {
-            const name = document.getElementById('setAccountName').value;
-            const bal = parseFloat(document.getElementById('setStartBal').value);
-            if(name) ACCOUNT_NAME = name;
-            if(bal) STARTING_BALANCE = bal;
-            localStorage.setItem('teppa_acc_name', ACCOUNT_NAME);
-            localStorage.setItem('teppa_start_bal', STARTING_BALANCE);
-            document.getElementById('accountModal').style.display = 'none';
-            loadTrades();
-        }
-
-        function loadAccountSettings() {
-            const savedName = localStorage.getItem('teppa_acc_name');
-            const savedBal = localStorage.getItem('teppa_start_bal');
-            if(savedName) ACCOUNT_NAME = savedName;
-            if(savedBal) STARTING_BALANCE = parseFloat(savedBal);
-            const nameEl = document.getElementById('displayAccountName');
-            if(nameEl) nameEl.innerText = ACCOUNT_NAME;
-        }
-
-        async function loadTrades(filterDate = null) {
-            const { data: trades, error } = await supabaseClient.from('trades').select('*').order('created_at', {ascending:false});
-            if(error) return console.error(error);
-            allTradesCache = trades;
-            
-            let netPnL = 0, wins = 0, loss = 0;
-            const liveTrades = trades.filter(t => t.is_backtest !== true);
-            liveTrades.forEach(t => { netPnL += (t.pnl || 0); if(t.outcome === 'Win') wins++; if(t.outcome === 'Loss') loss++; });
-
-            const currentBalance = STARTING_BALANCE + netPnL;
-            document.getElementById('navBalance').innerText = "$" + currentBalance.toLocaleString();
-            document.getElementById('navPnL').innerText = "$" + netPnL.toLocaleString();
-            document.getElementById('navTrades').innerText = liveTrades.length;
-            document.getElementById('cardBalance').innerText = "$" + currentBalance.toLocaleString();
-            document.getElementById('cardPnL').innerText = (netPnL>=0?"+":"") + "$" + netPnL.toLocaleString();
-            document.getElementById('cardPnL').style.color = netPnL>=0 ? 'var(--primary)' : 'var(--danger)';
-            const wr = (wins + loss) > 0 ? ((wins / (wins+loss))*100).toFixed(0) : 0;
-            document.getElementById('cardWinRate').innerText = wr + "% Win Rate";
-            document.getElementById('cardRecord').innerText = `${wins}W | ${loss}L`;
-            document.getElementById('monthStatsVal').innerText = "$" + netPnL.toLocaleString();
-            document.getElementById('avgWinVal').innerText = wins > 0 ? "$" + (netPnL/wins).toFixed(2) : "$0";
-            const nameEl = document.getElementById('displayAccountName');
-            if(nameEl) nameEl.innerText = ACCOUNT_NAME;
-            renderCalendar(liveTrades); 
-            let feedTrades = trades;
-            if (filterDate && filterDate !== 'all') {
-                document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
-                // Need to match based on the stored trade_date
-                feedTrades = trades.filter(t => t.trade_date === filterDate || new Date(t.created_at).toLocaleDateString() === filterDate);
-            } else {
-                document.getElementById('tradeFeedTitle').innerText = "RECENT ACTIVITY";
-            }
-            renderFeed(feedTrades);
-            renderChart(liveTrades);
         }
 
         function renderFeed(trades) {
@@ -677,12 +829,9 @@
                 if(t.chart_screenshot) {
                     let urls = t.chart_screenshot.split(',');
                     let firstUrl = urls[0].trim();
-                    if(firstUrl && firstUrl.includes('http')) {
-                        imgStrip = `<div class="card-img-strip"><img src="${firstUrl}"></div>`;
-                    }
+                    if(firstUrl && firstUrl.includes('http')) imgStrip = `<div class="card-img-strip"><img src="${firstUrl}"></div>`;
                 }
                 const displayDate = t.trade_date ? t.trade_date : new Date(t.created_at).toLocaleDateString();
-                
                 card.innerHTML = `${imgStrip}<div class="card-body"><div class="card-top"><span>${displayDate}</span><div class="card-actions"><button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button></div></div><div class="card-main"><span class="pair-text">${t.pair}</span><span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span></div><div class="tag-row"><span class="tag-pill tag-session">${t.session || 'Unknown'}</span><span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>${isTest}</div><div class="card-footer">${t.reason || 'No notes added.'}</div></div>`;
                 feed.appendChild(card);
             });
@@ -706,7 +855,6 @@
                 } else {
                     tDate = new Date(t.created_at);
                 }
-                
                 if(tDate.getMonth() === month && tDate.getFullYear() === year) {
                     const d = tDate.getDate();
                     if(!dailyData[d]) dailyData[d] = { pnl: 0, trades: [] };
@@ -736,11 +884,11 @@
             }
         }
 
-        function renderChart(trades) {
+        function renderChart(trades, startBal) {
             const ctx = document.getElementById('equityChart').getContext('2d');
             if(window.myChart) window.myChart.destroy();
-            let bal = STARTING_BALANCE;
-            const data = [STARTING_BALANCE];
+            let bal = startBal;
+            const data = [startBal];
             trades.slice().reverse().forEach(t => { bal += t.pnl; data.push(bal); });
             window.myChart = new Chart(ctx, {
                 type: 'line',
@@ -815,70 +963,7 @@
             else { res.innerText = "✅ PASS: Consistent Growth."; res.style.color = "#4ade80"; }
         }
 
-       async function saveTrade() {
-            const btn = document.getElementById('saveTradeBtn');
-            btn.innerText = "Saving...";
-            btn.disabled = true;
-            try {
-                // Get manual date and time
-                const dateVal = document.getElementById('tradeDate').value; 
-                const timeVal = document.getElementById('tradeTime').value; 
-                // Combine to ISO string for created_at (which controls sorting)
-                const fullDateTime = new Date(`${dateVal}T${timeVal}`);
-                const created_at_iso = fullDateTime.toISOString();
-
-                const fileInput = document.getElementById('chartUpload');
-                const file = fileInput.files[0];
-                let publicUrl = null;
-                if (file) {
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}.${fileExt}`;
-                    const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('chart-screenshots').upload(fileName, file);
-                    if (uploadError) throw uploadError;
-                    const { data: urlData } = supabaseClient.storage.from('chart-screenshots').getPublicUrl(fileName);
-                    publicUrl = urlData.publicUrl;
-                }
-                const pair = document.getElementById('tradePair').value.trim().toUpperCase();
-                const pnlRaw = document.getElementById('tradePnL').value;
-                const mode = document.getElementById('tradeMode').value;
-                const pnl = pnlRaw ? parseFloat(pnlRaw) : 0;
-                const stopLoss = document.getElementById('tradeSL').value;
-                const riskReward = document.getElementById('tradeRR').value;
-                const session = document.getElementById('tradeSession')?.value || "Unknown";
-                const direction = document.getElementById('tradeDirection')?.value || null;
-                const strategy = document.getElementById('tradeStrategy')?.value || null;
-                const notes = document.getElementById('tradeReason')?.value || null;
-                const isBacktest = (mode === 'Backtest' || mode === 'Forward');
-                const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
-                
-                const { error } = await supabaseClient.from('trades').insert([{
-                    pair, pnl, outcome, is_backtest: isBacktest, session, direction, strategy, reason: notes,
-                    stop_loss: stopLoss ? parseFloat(stopLoss) : null,
-                    risk_reward: riskReward ? parseFloat(riskReward) : null,
-                    chart_screenshot: publicUrl, 
-                    
-                    // Use manual values
-                    trade_date: dateVal, // Explicit YYYY-MM-DD
-                    day_of_week: fullDateTime.toLocaleDateString('en-US', { weekday: 'long' }),
-                    created_at: created_at_iso // Sorts the list
-                }]);
-                
-                if (error) throw error;
-                document.getElementById('addTradeModal').style.display = 'none';
-                fileInput.value = "";
-                document.getElementById('tradePair').value = "";
-                document.getElementById('tradePnL').value = "";
-                document.getElementById('tradeReason').value = "";
-                document.getElementById('tradeSL').value = "";
-                document.getElementById('tradeRR').value = "";
-                loadTrades();
-                setNow(); // Reset date/time to current for next entry
-            } catch (error) { console.error(error); alert("Error saving trade: " + error.message); } 
-            finally { btn.innerText = "Save Entry"; btn.disabled = false; }
-        }
-
         async function deleteTrade(id) { if(confirm("Are you sure you want to delete this trade?")) { await supabaseClient.from('trades').delete().eq('id', id); loadTrades(); } }
-        
         function toggleAIChat() { const w=document.getElementById('aiChatWindow'); w.style.display=w.style.display==='flex'?'none':'flex'; }
         
         async function sendAIChat() {
@@ -891,11 +976,13 @@
             body.innerHTML += `<div class="ai-msg bot">Thinking...</div>`;
             body.scrollTop = body.scrollHeight;
 
+            const currentAccount = ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+            const startBal = currentAccount ? currentAccount.balance : 0;
             const netPnL = allTradesCache.reduce((acc, t) => acc + (t.pnl || 0), 0);
-            const currentBalance = STARTING_BALANCE + netPnL;
+            const currentBalance = startBal + netPnL;
             const recentTrades = allTradesCache.slice(0, 50).map(t => ({ date: t.trade_date, pair: t.pair, pnl: t.pnl, outcome: t.outcome, notes: t.reason }));
 
-            const systemContext = `You are Teppa AI Trading Coach. User Data: Account: ${ACCOUNT_NAME}, Balance: $${currentBalance.toLocaleString()}, Total PnL: $${netPnL.toLocaleString()}. History: ${JSON.stringify(recentTrades)}`;
+            const systemContext = `You are Teppa AI Trading Coach. User Data: Account: ${currentAccount.name}, Balance: $${currentBalance.toLocaleString()}, Total PnL: $${netPnL.toLocaleString()}. History: ${JSON.stringify(recentTrades)}`;
 
             try {
                 const response = await fetch("https://api.openai.com/v1/chat/completions", {

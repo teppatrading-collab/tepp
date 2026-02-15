@@ -92,7 +92,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
             transition: 0.2s;
         }
         .menu-toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
@@ -386,6 +386,10 @@
             <h3 style="margin-top:0; color:white; margin-bottom:25px; font-size:1.5rem;">New Trade Entry</h3>
             
             <div class="modal-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; overflow-y:auto; max-height:65vh; padding-right: 10px;">
+                
+                <div><label class="week-label">Date</label><input type="date" id="tradeDate" class="side-input" style="margin-bottom:0;"></div>
+                <div><label class="week-label">Time</label><input type="time" id="tradeTime" class="side-input" style="margin-bottom:0;"></div>
+                
                 <div><label class="week-label">Pair</label><input type="text" id="tradePair" class="side-input" placeholder="e.g. GBPUSD" style="margin-bottom:0;"></div>
                 <div><label class="week-label">Session</label>
                     <select id="tradeSession" class="side-input" style="margin-bottom:0;">
@@ -567,9 +571,23 @@
             else {
                 loadAccountSettings();
                 loadTrades();
+                setNow(); // NEW: Set default Date/Time on load
             }
         }
         init();
+
+        // NEW: Helper to set the date/time inputs to current moment
+        function setNow() {
+            const now = new Date();
+            // en-CA format gives YYYY-MM-DD which inputs require
+            const dateStr = now.toLocaleDateString('en-CA'); 
+            const timeStr = now.toTimeString().split(' ')[0].substring(0,5);
+            
+            const dateEl = document.getElementById('tradeDate');
+            const timeEl = document.getElementById('tradeTime');
+            if(dateEl) dateEl.value = dateStr;
+            if(timeEl) timeEl.value = timeStr;
+        }
 
         function openAccountModal() {
             document.getElementById('setAccountName').value = ACCOUNT_NAME;
@@ -624,7 +642,8 @@
             let feedTrades = trades;
             if (filterDate && filterDate !== 'all') {
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
-                feedTrades = trades.filter(t => new Date(t.created_at).toLocaleDateString() === filterDate);
+                // Need to match based on the stored trade_date which might be manual now
+                feedTrades = trades.filter(t => t.trade_date === filterDate || new Date(t.created_at).toLocaleDateString() === filterDate);
             } else {
                 document.getElementById('tradeFeedTitle').innerText = "RECENT ACTIVITY";
             }
@@ -651,7 +670,10 @@
                         imgStrip = `<div class="card-img-strip"><img src="${firstUrl}"></div>`;
                     }
                 }
-                card.innerHTML = `${imgStrip}<div class="card-body"><div class="card-top"><span>${new Date(t.created_at).toLocaleDateString()}</span><div class="card-actions"><button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button></div></div><div class="card-main"><span class="pair-text">${t.pair}</span><span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span></div><div class="tag-row"><span class="tag-pill tag-session">${t.session || 'Unknown'}</span><span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>${isTest}</div><div class="card-footer">${t.reason || 'No notes added.'}</div></div>`;
+                // Use trade_date if available, else created_at
+                const displayDate = t.trade_date ? t.trade_date : new Date(t.created_at).toLocaleDateString();
+                
+                card.innerHTML = `${imgStrip}<div class="card-body"><div class="card-top"><span>${displayDate}</span><div class="card-actions"><button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button></div></div><div class="card-main"><span class="pair-text">${t.pair}</span><span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span></div><div class="tag-row"><span class="tag-pill tag-session">${t.session || 'Unknown'}</span><span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>${isTest}</div><div class="card-footer">${t.reason || 'No notes added.'}</div></div>`;
                 feed.appendChild(card);
             });
         }
@@ -667,7 +689,17 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const dailyData = {};
             trades.forEach(t => {
-                const tDate = new Date(t.created_at);
+                // Parse the manual date first, then fallback to created_at
+                let tDate;
+                if(t.trade_date) {
+                    // trade_date is YYYY-MM-DD
+                    const parts = t.trade_date.split('-');
+                    // Note: new Date(y, m, d) is local month 0-indexed
+                    tDate = new Date(parts[0], parts[1]-1, parts[2]); 
+                } else {
+                    tDate = new Date(t.created_at);
+                }
+                
                 if(tDate.getMonth() === month && tDate.getFullYear() === year) {
                     const d = tDate.getDate();
                     if(!dailyData[d]) dailyData[d] = { pnl: 0, trades: [] };
@@ -690,7 +722,9 @@
                     });
                     content += `</div>`;
                 }
-                day.onclick = () => loadTrades(new Date(year, month, i).toLocaleDateString());
+                // When clicking calendar, pass 'YYYY-MM-DD' formatted string
+                const filterStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                day.onclick = () => loadTrades(filterStr);
                 day.innerHTML = content;
                 grid.appendChild(day);
             }
@@ -780,6 +814,13 @@
             btn.innerText = "Saving...";
             btn.disabled = true;
             try {
+                // NEW: Get manual date and time
+                const dateVal = document.getElementById('tradeDate').value; // YYYY-MM-DD
+                const timeVal = document.getElementById('tradeTime').value; // HH:MM
+                // Combine to ISO string for created_at (which controls sorting)
+                const fullDateTime = new Date(`${dateVal}T${timeVal}`);
+                const created_at_iso = fullDateTime.toISOString();
+
                 const fileInput = document.getElementById('chartUpload');
                 const file = fileInput.files[0];
                 let publicUrl = null;
@@ -801,18 +842,21 @@
                 const direction = document.getElementById('tradeDirection')?.value || null;
                 const strategy = document.getElementById('tradeStrategy')?.value || null;
                 const notes = document.getElementById('tradeReason')?.value || null;
-                const now = new Date();
                 const isBacktest = (mode === 'Backtest' || mode === 'Forward');
                 const outcome = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
+                
                 const { error } = await supabaseClient.from('trades').insert([{
                     pair, pnl, outcome, is_backtest: isBacktest, session, direction, strategy, reason: notes,
                     stop_loss: stopLoss ? parseFloat(stopLoss) : null,
                     risk_reward: riskReward ? parseFloat(riskReward) : null,
                     chart_screenshot: publicUrl, 
-                    trade_date: now.toISOString().split("T")[0],
-                    day_of_week: now.toLocaleDateString('en-US', { weekday: 'long' }),
-                    created_at: now.toISOString()
+                    
+                    // NEW: Use manual values
+                    trade_date: dateVal, // Explicit YYYY-MM-DD
+                    day_of_week: fullDateTime.toLocaleDateString('en-US', { weekday: 'long' }),
+                    created_at: created_at_iso // Sorts the list
                 }]);
+                
                 if (error) throw error;
                 document.getElementById('addTradeModal').style.display = 'none';
                 fileInput.value = "";
@@ -822,6 +866,7 @@
                 document.getElementById('tradeSL').value = "";
                 document.getElementById('tradeRR').value = "";
                 loadTrades();
+                setNow(); // Reset date/time to current for next entry
             } catch (error) { console.error(error); alert("Error saving trade: " + error.message); } 
             finally { btn.innerText = "Save Entry"; btn.disabled = false; }
         }

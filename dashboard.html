@@ -571,12 +571,12 @@
             else {
                 loadAccountSettings();
                 loadTrades();
-                setNow(); // NEW: Set default Date/Time on load
+                setNow(); // Set default Date/Time on load
             }
         }
         init();
 
-        // NEW: Helper to set the date/time inputs to current moment
+        // --- NEW: Helper to set the date/time inputs to current moment ---
         function setNow() {
             const now = new Date();
             // en-CA format gives YYYY-MM-DD which inputs require
@@ -587,6 +587,17 @@
             const timeEl = document.getElementById('tradeTime');
             if(dateEl) dateEl.value = dateStr;
             if(timeEl) timeEl.value = timeStr;
+        }
+
+        // --- NEW: Function to fix calendar navigation ---
+        function changeMonth(n) {
+            // Set to 1st to avoid month skipping on 31st
+            currentCalDate.setDate(1); 
+            // Move month
+            currentCalDate.setMonth(currentCalDate.getMonth() + n);
+            // Re-render only live trades
+            const liveTrades = allTradesCache.filter(t => t.is_backtest !== true);
+            renderCalendar(liveTrades);
         }
 
         function openAccountModal() {
@@ -642,7 +653,7 @@
             let feedTrades = trades;
             if (filterDate && filterDate !== 'all') {
                 document.getElementById('tradeFeedTitle').innerText = `Activity for ${filterDate}`;
-                // Need to match based on the stored trade_date which might be manual now
+                // Need to match based on the stored trade_date
                 feedTrades = trades.filter(t => t.trade_date === filterDate || new Date(t.created_at).toLocaleDateString() === filterDate);
             } else {
                 document.getElementById('tradeFeedTitle').innerText = "RECENT ACTIVITY";
@@ -670,7 +681,6 @@
                         imgStrip = `<div class="card-img-strip"><img src="${firstUrl}"></div>`;
                     }
                 }
-                // Use trade_date if available, else created_at
                 const displayDate = t.trade_date ? t.trade_date : new Date(t.created_at).toLocaleDateString();
                 
                 card.innerHTML = `${imgStrip}<div class="card-body"><div class="card-top"><span>${displayDate}</span><div class="card-actions"><button class="action-icon-btn delete-icon" onclick="event.stopPropagation(); deleteTrade('${t.id}')"><i class='bx bx-trash'></i></button></div></div><div class="card-main"><span class="pair-text">${t.pair}</span><span class="pnl-text" style="color:${pnlColor};">${t.pnl >= 0 ? "+" : ""}$${t.pnl}</span></div><div class="tag-row"><span class="tag-pill tag-session">${t.session || 'Unknown'}</span><span class="tag-pill ${t.outcome==='Win'?'tag-win':'tag-loss'}">${t.outcome}</span>${isTest}</div><div class="card-footer">${t.reason || 'No notes added.'}</div></div>`;
@@ -689,12 +699,9 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const dailyData = {};
             trades.forEach(t => {
-                // Parse the manual date first, then fallback to created_at
                 let tDate;
                 if(t.trade_date) {
-                    // trade_date is YYYY-MM-DD
                     const parts = t.trade_date.split('-');
-                    // Note: new Date(y, m, d) is local month 0-indexed
                     tDate = new Date(parts[0], parts[1]-1, parts[2]); 
                 } else {
                     tDate = new Date(t.created_at);
@@ -722,7 +729,6 @@
                     });
                     content += `</div>`;
                 }
-                // When clicking calendar, pass 'YYYY-MM-DD' formatted string
                 const filterStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
                 day.onclick = () => loadTrades(filterStr);
                 day.innerHTML = content;
@@ -814,9 +820,9 @@
             btn.innerText = "Saving...";
             btn.disabled = true;
             try {
-                // NEW: Get manual date and time
-                const dateVal = document.getElementById('tradeDate').value; // YYYY-MM-DD
-                const timeVal = document.getElementById('tradeTime').value; // HH:MM
+                // Get manual date and time
+                const dateVal = document.getElementById('tradeDate').value; 
+                const timeVal = document.getElementById('tradeTime').value; 
                 // Combine to ISO string for created_at (which controls sorting)
                 const fullDateTime = new Date(`${dateVal}T${timeVal}`);
                 const created_at_iso = fullDateTime.toISOString();
@@ -851,7 +857,7 @@
                     risk_reward: riskReward ? parseFloat(riskReward) : null,
                     chart_screenshot: publicUrl, 
                     
-                    // NEW: Use manual values
+                    // Use manual values
                     trade_date: dateVal, // Explicit YYYY-MM-DD
                     day_of_week: fullDateTime.toLocaleDateString('en-US', { weekday: 'long' }),
                     created_at: created_at_iso // Sorts the list
